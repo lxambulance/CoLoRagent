@@ -1,13 +1,17 @@
 # coding: utf-8
-import sys
 import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
+
 from time import sleep
 from pathlib import Path
-from PyQt5 import QtWidgets, QtGui, QtCore
 import PyQt5
-from mainPage import Ui_MainWindow
-import cmdlinePage
-import videoPage
+from PyQt5 import QtWidgets, QtGui, QtCore
+from PageUI.mainPage import Ui_MainWindow
+import PageUI.cmdlinePage
+import PageUI.videoPage
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
