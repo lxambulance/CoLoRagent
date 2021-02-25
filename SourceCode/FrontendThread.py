@@ -1,13 +1,11 @@
-# coding: utf-8
+# coding=utf-8
 import os
 import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
-from time import sleep
 from pathlib import Path
-import PyQt5
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PageUI.mainPage import Ui_MainWindow
 import PageUI.cmdlinePage
@@ -144,7 +142,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def announcement(self, item):
         if item.text(2) == '否':
             return
-        sleep(1)
         # 计算sid，发送ann包
         item.setText(1, '是')
         self.statusBar().showMessage('注册 ' + item.text(0) + ' 完成')
@@ -170,7 +167,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def getData(self, item):
         if item.text(1) == '否':
             return
-        sleep(1)
         # 计算sid，发送get包，收取data包
         item.setText(2, '是')
         fpath = self.home_dir+'/'+item.text(0)
