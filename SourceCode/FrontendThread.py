@@ -16,6 +16,8 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self.ui.treeWidget.hide()
+        self.ui.treeWidget.show()
         self.statusBar().showMessage('就绪') # 状态栏
         self.selectItem = None # 保存选择对象
         self.home_dir = str(Path.cwd()).replace('\\','/') + '/.tmp'

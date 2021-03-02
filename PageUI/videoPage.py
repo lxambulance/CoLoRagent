@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\CodeHub\ProjectCloud\videoPage.ui'
+# Form implementation generated from reading ui file 'd:\CodeHub\ProjectCloud\PageUI\videoPage.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.2
 #
@@ -11,24 +11,29 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_Form(QtWidgets.QWidget):
+class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(400, 300)
+        self.verticalLayout = QtWidgets.QVBoxLayout(Form)
+        self.verticalLayout.setObjectName("verticalLayout")
         self.label = QtWidgets.QLabel(Form)
-        self.label.setGeometry(QtCore.QRect(10, 10, 381, 231))
         self.label.setObjectName("label")
-        self.pushButton = QtWidgets.QPushButton(Form)
-        self.pushButton.setGeometry(QtCore.QRect(250, 260, 75, 23))
-        self.pushButton.setObjectName("pushButton")
+        self.verticalLayout.addWidget(self.label)
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
         self.horizontalSlider = QtWidgets.QSlider(Form)
-        self.horizontalSlider.setGeometry(QtCore.QRect(330, 260, 61, 22))
         self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
         self.horizontalSlider.setObjectName("horizontalSlider")
-        self.horizontalSlider_2 = QtWidgets.QSlider(Form)
-        self.horizontalSlider_2.setGeometry(QtCore.QRect(20, 260, 160, 22))
-        self.horizontalSlider_2.setOrientation(QtCore.Qt.Horizontal)
-        self.horizontalSlider_2.setObjectName("horizontalSlider_2")
+        self.horizontalLayout.addWidget(self.horizontalSlider)
+        self.pushButton = QtWidgets.QPushButton(Form)
+        self.pushButton.setObjectName("pushButton")
+        self.horizontalLayout.addWidget(self.pushButton)
+        self.verticalSlider = QtWidgets.QSlider(Form)
+        self.verticalSlider.setOrientation(QtCore.Qt.Vertical)
+        self.verticalSlider.setObjectName("verticalSlider")
+        self.horizontalLayout.addWidget(self.verticalSlider)
+        self.verticalLayout.addLayout(self.horizontalLayout)
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
