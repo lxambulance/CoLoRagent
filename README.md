@@ -50,3 +50,13 @@ dev分支修改了文件目录结构，PageUI将作为一个python包，SourceCo
 
 1. 主界面网盘功能：添加（默认注册一条龙），下载，切换模式。
 2. 注册子窗体指定路径等详细操作。
+
+### 拆分model/view中遇到问题
+
+一、使用qfilesystemmodel没法添加文件自定义属性，使用提供的函数修改也不行
+
+二、使用qstandarditemmodel暂时无法和三个view联动
+
+三、自己实现model如何重载data函数以应对三个view
+
+采用一个data多个model、一个model一个view的方式实现

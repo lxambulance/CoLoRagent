@@ -1,23 +1,22 @@
 # coding=utf-8
+
+# 添加UI文件路径../PageUI/*.ui
 import os
 import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
+''' docstring: '''
 from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PageUI.mainPage import Ui_MainWindow
-import PageUI.cmdlinePage
-import PageUI.videoPage
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.ui.treeWidget.hide()
-        self.ui.treeWidget.show()
         self.statusBar().showMessage('就绪') # 状态栏
         self.selectItem = None # 保存选择对象
         self.home_dir = str(Path.cwd()).replace('\\','/') + '/.tmp'
@@ -224,10 +223,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 litem = list(f.readline().strip('\n').split(' '))
                 QtWidgets.QTreeWidgetItem(self.ui.treeWidget, litem)
             f.close()
-        
+
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
     window = MainWindow()
-    window.readConfig(window.home_dir + '/config.txt')
     window.show()
     sys.exit(app.exec_())
