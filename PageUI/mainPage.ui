@@ -87,6 +87,26 @@
      <height>23</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>菜单</string>
+    </property>
+    <addaction name="action_6"/>
+    <addaction name="action_7"/>
+    <addaction name="action_8"/>
+   </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>编辑</string>
+    </property>
+    <addaction name="action_1"/>
+    <addaction name="action_2"/>
+    <addaction name="action_3"/>
+    <addaction name="action_4"/>
+    <addaction name="action_5"/>
+   </widget>
+   <addaction name="menu"/>
+   <addaction name="menu_2"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_1">
@@ -114,7 +134,24 @@
     <string>删除</string>
    </property>
   </action>
+  <action name="action_6">
+   <property name="text">
+    <string>命令行</string>
+   </property>
+  </action>
+  <action name="action_7">
+   <property name="text">
+    <string>视频</string>
+   </property>
+  </action>
+  <action name="action_8">
+   <property name="text">
+    <string>仓库目录</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../SourceCode/resource.qrc"/>
+ </resources>
  <connections/>
 </ui>
