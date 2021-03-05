@@ -1,13 +1,16 @@
-# coding: utf-8
-import sys
+# coding=utf-8
+
+# 添加UI文件路径../PageUI/*.ui
 import os
-from time import sleep
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
+
+''' docstring: '''
 from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
-import PyQt5
-from mainPage import Ui_MainWindow
-import cmdlinePage
-import videoPage
+from PageUI.mainPage import Ui_MainWindow
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -140,7 +143,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def announcement(self, item):
         if item.text(2) == '否':
             return
-        sleep(1)
         # 计算sid，发送ann包
         item.setText(1, '是')
         self.statusBar().showMessage('注册 ' + item.text(0) + ' 完成')
@@ -166,7 +168,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def getData(self, item):
         if item.text(1) == '否':
             return
-        sleep(1)
         # 计算sid，发送get包，收取data包
         item.setText(2, '是')
         fpath = self.home_dir+'/'+item.text(0)
@@ -222,10 +223,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 litem = list(f.readline().strip('\n').split(' '))
                 QtWidgets.QTreeWidgetItem(self.ui.treeWidget, litem)
             f.close()
-        
+
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
     window = MainWindow()
-    window.readConfig(window.home_dir + '/config.txt')
     window.show()
     sys.exit(app.exec_())
