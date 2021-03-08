@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: CoLoR Pan主页 '''
+''' docstring: CoLoR Pan 视频页 '''
 
 # 添加文件路径../
 import os

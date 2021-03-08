@@ -25,11 +25,11 @@ class serviceListModel(QAbstractListModel):
             return str(value)
 
         if role == Qt.DecorationRole:
-            value = self.services.getData(index.row())
-            if value == 1:
-                return QIcon(':/icon/document.png')
-            else:
+            value = self.services.getData(index.row(), 1)
+            if (value&1) == 1:
                 return QIcon(':/icon/folder.png')
+            else:
+                return QIcon(':/icon/document.png')
 
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole:
