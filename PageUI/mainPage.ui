@@ -163,7 +163,7 @@
   </action>
  </widget>
  <resources>
-  <include location="../SourceCode/resource.qrc"/>
+  <include location="../Icon/resource.qrc"/>
  </resources>
  <connections/>
 </ui>

@@ -12,11 +12,11 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from PageUI.mainPage import Ui_MainWindow
+from mainPage import Ui_MainWindow
 
 from CmdlineWindow import CmdlineWindow
 from VideoWindow import VideoWindow
-from addItemDialog import addItemDialog
+from AddItemWindow import AddItemWindow
 from serviceTableModel import serviceTableModel
 from serviceListModel import serviceListModel
 import FileData
@@ -68,6 +68,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # 设置信号与槽的连接
         self.pushButton_1.clicked.connect(self.addItem)
+        self.action_1.triggered.connect(self.addItem)
         self.pushButton_3.clicked.connect(self.switchView)
         self.action_cmd.triggered.connect(self.openCmdLinePage)
         self.action_video.triggered.connect(self.openVideoPage)
@@ -80,10 +81,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def addItem(self):
         ''' docstring: 按下添加按钮 '''
-        self.additemdialog = addItemDialog()
-        ret = self.additemdialog.exec_()
+        self.additemwindow = AddItemWindow()
+        ret = self.additemwindow.exec_()
         # ret 可用于后续判断返回结果
-        print('addItemDialog return', ret)
+        print('additemwindow return', ret)
 
     def switchView(self):
         ''' docstring: 切换视图按钮 '''

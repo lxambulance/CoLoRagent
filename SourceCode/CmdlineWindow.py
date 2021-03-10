@@ -1,13 +1,7 @@
 # coding=utf-8
 ''' docstring: CoLoR Pan 命令行页 '''
 
-# 添加文件路径../
-import os
-import sys
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
-sys.path.append(BASE_DIR)
-
-from PageUI.cmdlinePage import Ui_Form
+from cmdlinePage import Ui_Form
 
 from PyQt5.QtWidgets import QWidget
 
