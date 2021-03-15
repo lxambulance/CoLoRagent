@@ -4,59 +4,123 @@
 
 ## introduce
 
-这是一个color网络架构下的简单网盘系统。
+这是一个CoLoR网络架构下的简单网盘系统，主要语言是python，前端使用了pyqt库，后端使用了scapy库绑定网卡直接发自定义包。
+
+文件夹内Icon包含一些图标文件，PageUI包含所有QT的ui文件，SourceCode包含代码源文件（目前只有一个文件夹，可能后期考虑前后端代码分离看起来方便，会另建文件夹）。
 
 ## schedule
 
 - 2021.2.24 目前只包含前端几个页面以及一些简单的按钮逻辑。
+- 2021.3.10 前端基本完成，开始考虑前后交互的逻辑。
+- 2021.3.15 美化了前端几个界面的设计，开始阅读后端代码。
 
-dev分支修改了文件目录结构，PageUI将作为一个python包，SourceCode将包含源文件，其中color文件还需要进一步拆分（作为git练手，现阶段版本会多次提交）。
+作为git练手，dev分支可能会出现许多无聊地提交
 
-### 原color文件拆分
+### 原文件拆分重构
 
-两部分，一是前后端分离，二是item缺少对应结构。
+两部分要求：一是做到前后端分离；二是item缺少对应结构。
 
-前后端分离基本结构是对于每个耗时操作编写对应线程类，通过参数传递和锁由子线程完成，完成后返回信号。
+前后端分离基本结构是对于每个耗时操作编写对应线程类，通过qthread由子线程完成，完成后通过信号返回。
 
-耗时操作：
+### 界面需求
 
-- 撤销通告包 selectItem
-- 撤销本地缓存 selectItem
-- 删除item window.ui.treeWidget
-- 双击items显示信息 
-- 添加文件 window.ui.treeWidget
-- 注册单个文件
-- 注册多个文件
-- 注册过程本体
-- 获取单个文件数据
-- 获取多个文件数据
-- 获取数据本体
-- 导入其他配置文件
-- 保存配置文件
-- 读取配置文件
+#### 主界面功能
 
-不耗时操作：
+添加，下载，切换模式。
 
-- 打开仓库
-- 打开命令行
-- 打开视频页面
-- 显示右键菜单栏
-- 单击items选中
-- 主窗体关闭事件
+#### 通告功能
 
-### 界面设计
+指定路径、指定白名单操作作为按钮显示在拓扑图中，可以勾选，右侧显示相应的附加指令
 
-#### 需求
+#### 获取功能
 
-1. 主界面网盘功能：添加（默认注册一条龙），下载，切换模式。
-2. 注册子窗体指定路径等详细操作。
+除了一个按钮获取，暂时不知道其他要求（可以加一个进度条表示下载进度。如何提前获取文件大小？）。
 
-### 拆分model/view中遇到问题
+#### 异常处理
 
-一、使用qfilesystemmodel没法添加文件自定义属性，使用提供的函数修改也不行
+待分析
 
-二、使用qstandarditemmodel暂时无法和三个view联动
+#### 命令行
 
-三、自己实现model如何重载data函数以应对三个view
+待分析
 
-采用一个data多个model、一个model一个view的方式实现
+### 网络层接口
+
+1. def AddCacheSidUnit(path, AM, n_sid, l_sid, nid, level, whitelist) #将通告加入缓存
+2. def Hash(path) #计算文件hash
+3. def DeleteCacheSidUnit(path) #删除通告缓存
+4. def SidAnn(ttl, publickey, P) #生产通告文件
+5. def SendPkt_ipv4(ipdst, pkt) #发送通告ipv4域
+6. def Get(SID, path, ttl, publickey, QoS, SegId) #获取文件
+
+可能需要进一步改进
+
+## problem
+
+### 1. 拆分model/view [nearly solved]
+
+> 问题描述：如果使用qfilesystemmodel将没法添加文件自定义属性（没找到相关修改方法）；如果使用qstandarditemmodel暂时无法和三种view联动；如果使用自己实现model与前者类似，不法重载data函数以应对三种view调用
+
+解决方法（暂时）：一个data多个model、一个model一个view的方式实现。
+
+### 2. 前后端的服务类能否共用一个 [unsolved]
+
+> 问题描述：为了存储数据条目，前后端分别实现了一个服务类，能否共用一个？这用交互起来还方便一些。
+
+### 3. graphicview中多个graphicitem坐标定位 [solved]
+
+> 问题描述：多个graphicitem虽然可以一起移动，但是显示坐标与预期不符。
+
+item的坐标原点与view一开始一致，通过setpos可以修改item坐标原点，这时两个坐标系需要转化
+
+### 4. python类变量与qt信号 [solved]
+
+> 问题描述：python类变量如果是可变类型，那么由于类共享，可以被实例修改。但是qt信号看起来比较特殊，它只能作为类变量，并且不会被实例修改。
+
+看起来qt在信号与槽的连接上做了一定的封装，不过简单来说信号就是个函数指针，connect的时候会先new一个指针作为实例的成员变量，再连接函数。
+
+## appendix
+
+### pyqt学习记录
+
+#### widget dialog layout
+
+占坑
+
+#### model/view模型
+
+占坑
+
+#### extra data signal
+
+占坑
+
+#### Threads&processes
+
+占坑
+
+### json
+
+**J**ava**S**cript **O**bject **N**otation（javascript对象表示法），存储和交换文本信息的语法，类似XML。由于其字符串的存储形式，便于进程交互，另外python自带的库文件可以直接解析相应结构。
+
+#### 简单操作
+
+```python
+import json #python3.9自带
+a = json.dumps(['foo',{'bar':('baz',None,1.0,2)}]) #将json格式转化为python str
+b = json.loads(a) #将python str转化为json格式（python list）
+```
+
+#### Json Python类型转换表
+
+|     JSON     | Python |
+| :----------: | :----: |
+|    object    |  dict  |
+|    array     |  list  |
+|    string    |  str   |
+| number(int)  |  int   |
+| number(real) | float  |
+|     true     |  True  |
+|    false     | False  |
+|     null     |  None  |
+

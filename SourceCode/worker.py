@@ -19,7 +19,7 @@ class workerSignals(QObject):
 class worker(QRunnable):
     ''' docstring: worker class '''
 
-    def __init__(self, func, *args, **kwargs):
+    def __init__(self, option, func, *args, **kwargs):
         ''' docstring: store the initial val '''
         super().__init__()
         self.f = func
@@ -27,8 +27,9 @@ class worker(QRunnable):
         self.kwargs = kwargs
         self.signals = workerSignals()
 
-        # 添加回调函数
-        self.kwargs['process_callback'] = self.signals.progress
+        if (option & 1) == 1:
+            # 添加回调函数
+            self.kwargs['process_callback'] = self.signals.progress
     
     @pyqtSlot()
     def run(self):

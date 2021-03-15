@@ -87,34 +87,83 @@
      <height>23</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>菜单</string>
+    </property>
+    <addaction name="action_cmd"/>
+    <addaction name="action_video"/>
+    <addaction name="action_hub"/>
+    <addaction name="action_import"/>
+   </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>编辑</string>
+    </property>
+    <addaction name="action_1"/>
+    <addaction name="action_2"/>
+    <addaction name="action_3"/>
+    <addaction name="action_4"/>
+    <addaction name="action_5"/>
+    <addaction name="action_6"/>
+   </widget>
+   <addaction name="menu"/>
+   <addaction name="menu_2"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="action_1">
+  <action name="action_2">
    <property name="text">
     <string>注册</string>
    </property>
   </action>
-  <action name="action_2">
+  <action name="action_3">
    <property name="text">
     <string>取消注册</string>
    </property>
   </action>
-  <action name="action_3">
+  <action name="action_4">
    <property name="text">
     <string>下载</string>
    </property>
   </action>
-  <action name="action_4">
+  <action name="action_5">
    <property name="text">
     <string>取消下载</string>
    </property>
   </action>
-  <action name="action_5">
+  <action name="action_6">
    <property name="text">
     <string>删除</string>
    </property>
   </action>
+  <action name="action_cmd">
+   <property name="text">
+    <string>命令行</string>
+   </property>
+  </action>
+  <action name="action_video">
+   <property name="text">
+    <string>视频</string>
+   </property>
+  </action>
+  <action name="action_hub">
+   <property name="text">
+    <string>仓库目录</string>
+   </property>
+  </action>
+  <action name="action_1">
+   <property name="text">
+    <string>添加</string>
+   </property>
+  </action>
+  <action name="action_import">
+   <property name="text">
+    <string>导入数据</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../Icon/resource.qrc"/>
+ </resources>
  <connections/>
 </ui>
