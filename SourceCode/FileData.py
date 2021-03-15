@@ -36,6 +36,16 @@ class FileData:
         else:
             self.__data.append(item)
 
+    def setItem(self, *, filename, filepath, needReg = 0, have = 1, **kwargs):
+        ''' docstring: 添加文件时的处理 '''
+        item = [filename, filepath, needReg, have]
+        self.__data.append(item)
+        # todo: 处理file addtion text
+
+    def removeItem(self, row):
+        if row < self.rowCount():
+            del self.__data[row]
+
     def rowCount(self):
         return len(self.__data)
 

@@ -25,8 +25,8 @@ class serviceListModel(QAbstractListModel):
             return str(value)
 
         if role == Qt.DecorationRole:
-            value = self.services.getData(index.row(), 1)
-            if (value&1) == 1:
+            value = self.services.getData(index.row(), 0)
+            if value.find('.') == -1:
                 return QIcon(':/icon/folder')
             else:
                 return QIcon(':/icon/document')

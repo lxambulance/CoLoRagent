@@ -17,6 +17,7 @@ from mainPage import Ui_MainWindow
 from CmdlineWindow import CmdlineWindow
 from VideoWindow import VideoWindow
 from AddItemWindow import AddItemWindow
+from registerWindow import registerWindow
 from serviceTableModel import serviceTableModel
 from serviceListModel import serviceListModel
 import FileData
@@ -31,8 +32,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # 添加右键菜单
         for i in range(5):
-            eval('self.listView.addAction(self.action_'+str(i+1)+')')
-            eval('self.tableView.addAction(self.action_'+str(i+1)+')')
+            eval('self.listView.addAction(self.action_'+str(i+2)+')')
+            eval('self.tableView.addAction(self.action_'+str(i+2)+')')
         
         # 设置选中条目
         self.selectItem = None
@@ -69,6 +70,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 设置信号与槽的连接
         self.pushButton_1.clicked.connect(self.addItem)
         self.action_1.triggered.connect(self.addItem)
+        self.action_2.triggered.connect(lambda x:self.doubleClickItem(self.selectItem))
+        self.pushButton_2.clicked.connect(self.dlItem)
+        self.action_4.triggered.connect(self.dlItem)
+        self.action_6.triggered.connect(self.delItem)
         self.pushButton_3.clicked.connect(self.switchView)
         self.action_cmd.triggered.connect(self.openCmdLinePage)
         self.action_video.triggered.connect(self.openVideoPage)
@@ -81,10 +86,41 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def addItem(self):
         ''' docstring: 按下添加按钮 '''
-        self.additemwindow = AddItemWindow()
+        self.additemwindow = AddItemWindow(self.fd)
         ret = self.additemwindow.exec_()
         # ret 可用于后续判断返回结果
         print('additemwindow return', ret)
+        if ret:
+            # 添加成功刷新视图
+            self.model1.layoutChanged.emit()
+            self.model2.layoutChanged.emit()
+            # todo: 判断文件是否需要直接注册，按默认注册流程注册
+            datalength = self.fd.rowCount()
+            if self.fd.getData(datalength - 1, 2):
+                # todo: 拉起注册线程
+                print('send ANN')
+                self.statusBar().showMessage('文件'+str(datalength)+'开始注册')
+
+    def delItem(self):
+        ''' docstring: 删除选中条目 '''
+        if self.selectItem != None:
+            self.fd.removeItem(self.selectItem.row())
+            # 删除成功刷新视图
+            self.model1.layoutChanged.emit()
+            self.model2.layoutChanged.emit()
+            self.statusBar().showMessage('条目' + str(self.selectItem.row()) + '已删除')
+            self.selectItem = None
+        else:
+            self.statusBar().showMessage('未选中任何条目')
+
+    def dlItem(self):
+        ''' docstring: 从远端下载数据 '''
+        if self.selectItem == None:
+            self.statusBar().showMessage('未选中任何条目')
+            return
+        # todo: 拉起新线程，调用后端
+        print('get data')
+        self.statusBar().showMessage('文件'+str(self.selectItem.row()+1)+'开始下载')
 
     def switchView(self):
         ''' docstring: 切换视图按钮 '''
@@ -123,13 +159,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def clickItem(self, index):
         ''' docstring: 选中条目 '''
-        self.selectItem = index.row()
-        self.statusBar().showMessage('选中条目' + str(self.selectItem + 1))
+        self.selectItem = index
+        self.statusBar().showMessage('选中条目' + str(self.selectItem.row() + 1))
 
     def doubleClickItem(self, index):
         ''' docstring: 双击条目 '''
-        result = self.fd.getItem(self.selectItem)
-        QMessageBox.information(self, 'info', str(result))
+        if self.selectItem != None:
+            self.registerwindow = registerWindow(self.fd, self.selectItem.row())
+            self.registerwindow.exec_()
+            # todo: check datachanged信号
 
     def closeEvent(self, event):
         ''' docstring: 关闭窗口时弹出警告 '''
