@@ -1,9 +1,13 @@
 # coding=utf-8
-''' docstring: CoLoR Pan 注册对话 '''
+''' docstring: CoLoR Pan 通告对话 '''
 
 from registerDialog import Ui_Dialog
 
 from PyQt5.QtWidgets import QDialog
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+
+import resource_rc
 
 from FileData import FileData
 from PointLine import Node, Line
@@ -14,15 +18,32 @@ class registerWindow(QDialog, Ui_Dialog):
     def __init__(self, filedata, fileindex, parent = None):
         super().__init__(parent)
         self.setupUi(self)
+
         self.fd = filedata
         self.id = fileindex
+        self.returnValue = (None)
+        # TODO: 将fileName改成一个comboBox
         self.fileName.setText(str(self.fd.getData(self.id)))
         self.filePath.setText(str(self.fd.getData(self.id, 1)))
-        # todo: 文件描述暂无
-        self.fileAddtion.setText('无')
-        
-        # 设置图形显示
-        self.splitter.setSizes([700, 250])
+        self.fileHash.setText(str(self.fd.getData(self.id, 2)))
+        self.regArgs.setText('-N 0\n-L 0\n-I 0\n')
+
+        needReg = self.fd.getData(self.id, 3)
+        self.needReg.setCheckState(2 if needReg else 0)
+        isDow = self.fd.getData(self.id, 4)
+        # TODO: 文件描述暂无
+        self.fileAddtion.setText('暂无')
+        if isDow:
+            self.isDow.setPixmap(QPixmap(':/icon/tick'))
+        else:
+            # 不属于本地的文件没有通告权
+            self.isDow.setPixmap(QPixmap(':/icon/cross'))
+            self.graphics.hide()
+        self.timer = QTimer()
+        self.showSave.setPixmap(QPixmap(':/icon/minus'))
+
+        # 设置图形显示比例
+        self.splitter.setSizes([600, 250])
 
         # 人工设置拓扑图
         self.node = [0] * 5
@@ -39,6 +60,24 @@ class registerWindow(QDialog, Ui_Dialog):
             self.line[i] = Line(self.node[i],self.node[j],self.graphics)
             self.graphics.scene().addItem(self.line[i])
 
+        # 设置信号与槽连接
+        self.saveButton.clicked.connect(self.checkDataChange)
+        self.timer.timeout.connect(self.changeSaveShow)
+
+    def checkDataChange(self):
+        self.showSave.setPixmap(QPixmap(':/icon/tick'))
+        self.timer.setInterval(1500)
+        self.timer.start()
+        # TODO: 通告参数检查与返回
+        if (self.needReg.checkState()>0) != self.fd.getData(self.id, 3):
+            nowValue = int(self.needReg.checkState()>0)
+            self.fd.setData(self.id, 3, nowValue)
+            self.returnValue = (nowValue)
+    
+    def changeSaveShow(self):
+        self.timer.stop()
+        self.showSave.setPixmap(QPixmap(':/icon/minus'))
+
 if __name__ == '__main__':
     from PyQt5.QtWidgets import *
     from PyQt5.QtCore import *
@@ -46,6 +85,6 @@ if __name__ == '__main__':
     fd = FileData()
     fd.load()
     app = QApplication(sys.argv)
-    window = registerWindow(fd, 3)
+    window = registerWindow(fd, 0)
     window.show()
     app.exec_()

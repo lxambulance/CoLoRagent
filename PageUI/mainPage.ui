@@ -41,21 +41,28 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="QPushButton" name="pushButton_1">
+       <widget class="QPushButton" name="pushButton_add">
         <property name="text">
          <string>添加</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="pushButton_reg">
+        <property name="text">
+         <string>通告</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_dow">
         <property name="text">
          <string>下载</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_3">
+       <widget class="QPushButton" name="pushButton_swi">
         <property name="text">
          <string>切换</string>
         </property>
@@ -91,21 +98,22 @@
     <property name="title">
      <string>菜单</string>
     </property>
+    <addaction name="action_import"/>
+    <addaction name="action_hub"/>
     <addaction name="action_cmd"/>
     <addaction name="action_video"/>
-    <addaction name="action_hub"/>
-    <addaction name="action_import"/>
    </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
      <string>编辑</string>
     </property>
     <addaction name="action_1"/>
+    <addaction name="separator"/>
     <addaction name="action_2"/>
     <addaction name="action_3"/>
     <addaction name="action_4"/>
-    <addaction name="action_5"/>
     <addaction name="action_6"/>
+    <addaction name="action_5"/>
    </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
@@ -113,22 +121,17 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_2">
    <property name="text">
-    <string>注册</string>
+    <string>添加通告</string>
    </property>
   </action>
   <action name="action_3">
    <property name="text">
-    <string>取消注册</string>
+    <string>取消通告</string>
    </property>
   </action>
   <action name="action_4">
    <property name="text">
     <string>下载</string>
-   </property>
-  </action>
-  <action name="action_5">
-   <property name="text">
-    <string>取消下载</string>
    </property>
   </action>
   <action name="action_6">
@@ -159,6 +162,11 @@
   <action name="action_import">
    <property name="text">
     <string>导入数据</string>
+   </property>
+  </action>
+  <action name="action_5">
+   <property name="text">
+    <string>打开文件所在位置</string>
    </property>
   </action>
  </widget>

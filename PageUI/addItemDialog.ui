@@ -62,7 +62,7 @@
      <item row="3" column="0">
       <widget class="QLabel" name="label_4">
        <property name="text">
-        <string>是否需要注册</string>
+        <string>是否添加到通告包</string>
        </property>
        <property name="buddy">
         <cstring>needRegister</cstring>
@@ -71,6 +71,20 @@
      </item>
      <item row="3" column="1">
       <widget class="QCheckBox" name="needRegister">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>是否拷贝到主目录</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QCheckBox" name="needCopy">
        <property name="text">
         <string/>
        </property>

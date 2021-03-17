@@ -26,10 +26,10 @@ class serviceListModel(QAbstractListModel):
 
         if role == Qt.DecorationRole:
             value = self.services.getData(index.row(), 0)
-            if value.find('.') == -1:
-                return QIcon(':/icon/folder')
-            else:
+            if value.find('rar') == -1:
                 return QIcon(':/icon/document')
+            else:
+                return QIcon(':/icon/rar')
 
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole:

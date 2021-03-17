@@ -38,7 +38,8 @@ class FileData:
 
     def setItem(self, *, filename, filepath, needReg = 0, have = 1, **kwargs):
         ''' docstring: 添加文件时的处理 '''
-        item = [filename, filepath, needReg, have]
+        filehash = kwargs.get('filehash', None)
+        item = [filename, filepath, filehash, needReg, have]
         self.__data.append(item)
         # todo: 处理file addtion text
 

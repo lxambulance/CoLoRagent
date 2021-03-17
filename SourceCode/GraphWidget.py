@@ -17,7 +17,7 @@ class GraphWidget(QGraphicsView):
         self.setWindowTitle("Zoom and Move")
         scene = QGraphicsScene(self)
         scene.setItemIndexMethod(QGraphicsScene.NoIndex)
-        scene.setSceneRect(-350, -350, 700, 700)
+        scene.setSceneRect(-300, -300, 600, 600)
         self.setMinimumSize(400, 400)
         self.setScene(scene)
         self.setCacheMode(QGraphicsView.CacheBackground)

@@ -20,8 +20,11 @@ from AddItemWindow import AddItemWindow
 from registerWindow import registerWindow
 from serviceTableModel import serviceTableModel
 from serviceListModel import serviceListModel
+
 import FileData
 from worker import worker
+
+from ProxyLib import Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit, SidAnn, Get, CacheSidUnits
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     ''' docstring: class MainWindow '''
@@ -68,13 +71,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             os.mkdir(HOME_DIR)
 
         # 设置信号与槽的连接
-        self.pushButton_1.clicked.connect(self.addItem)
+        self.pushButton_add.clicked.connect(self.addItem)
         self.action_1.triggered.connect(self.addItem)
-        self.action_2.triggered.connect(lambda x:self.doubleClickItem(self.selectItem))
-        self.pushButton_2.clicked.connect(self.dlItem)
-        self.action_4.triggered.connect(self.dlItem)
+        self.pushButton_reg.clicked.connect(self.regAll)
+        self.action_2.triggered.connect(self.regItem)
+        self.action_3.triggered.connect(self.cancelReg)
+        self.action_5.triggered.connect(self.openFolder)
+        # self.pushButton_reg.clicked.connect()
+        self.pushButton_dow.clicked.connect(self.dowItem)
+        self.action_4.triggered.connect(self.dowItem)
         self.action_6.triggered.connect(self.delItem)
-        self.pushButton_3.clicked.connect(self.switchView)
+        self.pushButton_swi.clicked.connect(self.switchView)
         self.action_cmd.triggered.connect(self.openCmdLinePage)
         self.action_video.triggered.connect(self.openVideoPage)
         self.action_hub.triggered.connect(self.openHub)
@@ -84,60 +91,126 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.listView.doubleClicked.connect(self.doubleClickItem)
         self.tableView.doubleClicked.connect(self.doubleClickItem)
 
+    def modelViewUpdate(self):
+        ''' docstring: 刷新视图 '''
+        self.model1.layoutChanged.emit()
+        self.model2.layoutChanged.emit()
+
+    def showStatus(self, s):
+        self.statusBar().showMessage(s)
+
     def addItem(self):
         ''' docstring: 按下添加按钮 '''
         self.additemwindow = AddItemWindow(self.fd)
         ret = self.additemwindow.exec_()
+        row = self.additemwindow.newitemrow
         # ret 可用于后续判断返回结果
-        print('additemwindow return', ret)
-        if ret:
-            # 添加成功刷新视图
-            self.model1.layoutChanged.emit()
-            self.model2.layoutChanged.emit()
-            # todo: 判断文件是否需要直接注册，按默认注册流程注册
-            datalength = self.fd.rowCount()
-            if self.fd.getData(datalength - 1, 2):
-                # todo: 拉起注册线程
-                print('send ANN')
-                self.statusBar().showMessage('文件'+str(datalength)+'开始注册')
+        if (ret) and (row != None):
+            self.modelViewUpdate()
+            # 计算hash值
+            filepath = self.fd.getData(row - 1, 1)
+            hashworker = worker(0, Sha1Hash, filepath)
+            # print('start calc hash: ', filepath)
+            hashworker.signals.result.connect(self.calcHashRet(row - 1))
+            self.threadpool.start(hashworker)
+
+            # 直接注册流程
+            needReg = self.fd.getData(row - 1, 3)
+            if needReg:
+                registerworker = worker(0, AddCacheSidUnit, filepath, 1, 0, 0, 0)
+                self.threadpool.start(registerworker)
+
+    def calcHashRet(self, row):
+        ''' docstring: 这是一个返回函数的函数 '''
+        def result(s):
+            s = str(s)
+            # print(s)
+            self.fd.setData(row, 2, s)
+            a = self.model2.createIndex(row, 2)
+            self.model2.dataChanged.emit(a,a)
+        return result
 
     def delItem(self):
         ''' docstring: 删除选中条目 '''
         if self.selectItem != None:
             self.fd.removeItem(self.selectItem.row())
-            # 删除成功刷新视图
-            self.model1.layoutChanged.emit()
-            self.model2.layoutChanged.emit()
-            self.statusBar().showMessage('条目' + str(self.selectItem.row()) + '已删除')
+            self.modelViewUpdate()
+            self.showStatus('条目' + str(self.selectItem.row()+1) + '已删除')
             self.selectItem = None
         else:
-            self.statusBar().showMessage('未选中任何条目')
+            self.showStatus('未选中任何条目')
 
-    def dlItem(self):
+    def dowItem(self):
         ''' docstring: 从远端下载数据 '''
         if self.selectItem == None:
-            self.statusBar().showMessage('未选中任何条目')
+            self.showStatus('未选中任何条目')
             return
-        # todo: 拉起新线程，调用后端
-        print('get data')
-        self.statusBar().showMessage('文件'+str(self.selectItem.row()+1)+'开始下载')
+        isDow = self.fd.getData(self.selectItem.row(), 4)
+        if isDow:
+            self.showStatus('条目已下载')
+            return
+        SID = self.fd.getData(self.selectItem.row(), 2)
+        filepath = self.fd.getData(self.selectItem.row(), 1)
+        downloadworker = worker(0, Get, SID, filepath)
+        downloadworker.signals.finished.connect(lambda:self.fd.setData(self.selectItem.row(), 4, 1))
+        self.showStatus('文件'+str(self.selectItem.row()+1)+'开始下载')
+        self.threadpool.start(downloadworker)
+
+    def regItem(self):
+        ''' docstring: 添加通告 '''
+        if self.selectItem == None:
+            self.showStatus('未选中任何条目')
+            return
+        needReg = self.fd.getData(self.selectItem.row(), 3)
+        if needReg:
+            self.showStatus('条目已添加通告')
+            return
+        filepath = self.fd.getData(self.selectItem.row(), 1)
+        registerworker = worker(0, AddCacheSidUnit, filepath, 1, 0, 0, 0)
+        registerworker.signals.finished.connect(lambda:self.fd.setData(self.selectItem.row(), 3, 1))
+        self.showStatus('条目'+str(self.selectItem.row()+1)+'已添加通告')
+        self.threadpool.start(registerworker)
+
+    def cancelReg(self):
+        ''' docstring: 取消通告 '''
+        if self.selectItem == None:
+            self.showStatus('未选中条目')
+            return
+        needReg = self.fd.getData(self.selectItem.row(), 3)
+        if not needReg:
+            self.showStatus('条目'+str(self.selectItem.row() + 1)+'已取消通告')
+            return
+        filepath = self.fd.getData(self.selectItem.row(), 1)
+        cancelregworker = worker(0, DeleteCacheSidUnit, filepath)
+        cancelregworker.signals.finished.connect(lambda:self.fd.setData(self.selectItem.row(), 3, 0))
+        self.threadpool.start(cancelregworker)
 
     def switchView(self):
         ''' docstring: 切换视图按钮 '''
         if self.switchlistortable:
             self.listView.hide()
             self.tableView.show()
-            self.statusBar().showMessage('切换到列表视图')
+            self.showStatus('切换到列表视图')
         else:
             self.listView.show()
             self.tableView.hide()
-            self.statusBar().showMessage('切换到图标视图')
+            self.showStatus('切换到图标视图')
         self.switchlistortable ^= 1
 
     def openHub(self):
         ''' docstring: 打开本地仓库 '''
-        self.openHubWorker = worker(0, os.startfile, HOME_DIR)
-        self.threadpool.start(self.openHubWorker)
+        openhubworker = worker(0, os.startfile, HOME_DIR)
+        self.threadpool.start(openhubworker)
+
+    def openFolder(self):
+        ''' docstring: 打开所选文件所在文件夹 '''
+        if self.selectItem == None:
+            self.showStatus('未选中文件')
+            return
+        tmp = self.fd.getData(self.selectItem.row(), 1)
+        filepath = tmp[:tmp.rfind('/')]
+        openfolderworker = worker(0, os.startfile, filepath)
+        self.threadpool.start(openfolderworker)
 
     def openCmdLinePage(self):
         ''' docstring: 打开命令行 '''
@@ -154,20 +227,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         fpath = QFileDialog.getOpenFileName(self, '打开文件', HOME_DIR)
         if fpath[0]:
             self.fd.load(fpath[0])
-            self.model1.layoutChanged.emit()
-            self.model2.layoutChanged.emit()
+            self.modelViewUpdate()
 
     def clickItem(self, index):
         ''' docstring: 选中条目 '''
         self.selectItem = index
-        self.statusBar().showMessage('选中条目' + str(self.selectItem.row() + 1))
+        self.showStatus('选中条目' + str(self.selectItem.row() + 1))
 
     def doubleClickItem(self, index):
         ''' docstring: 双击条目 '''
-        if self.selectItem != None:
-            self.registerwindow = registerWindow(self.fd, self.selectItem.row())
+        if index != None:
+            self.registerwindow = registerWindow(self.fd, index.row())
             self.registerwindow.exec_()
-            # todo: check datachanged信号
+            # print(self.registerwindow.returnValue)
+
+            # 根据返回值执行操作
+            if self.registerwindow.returnValue != None:
+                filepath = self.fd.getData(index.row(), 1)
+                registerworker = None
+                if self.registerwindow.returnValue == 0:
+                    registerworker = worker(0, DeleteCacheSidUnit, filepath)
+                else:
+                    registerworker = worker(0, AddCacheSidUnit, filepath, 1, 0, 0, 0)
+                self.threadpool.start(registerworker)
+                a = self.model2.createIndex(index.row(), 0)
+                b = self.model2.createIndex(index.row(), self.model2.columnCount(index)-1)
+                self.model2.dataChanged.emit(a,b)
+            
+        else:
+            self.showStatus('未选中条目')
 
     def closeEvent(self, event):
         ''' docstring: 关闭窗口时弹出警告 '''
@@ -181,6 +269,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             event.accept()
         else:
             event.ignore()
+
+    def regAll(self):
+        if not len(CacheSidUnits):
+            self.showStatus('没有待通告缓存')
+            return
+        regAllworker = worker(0, SidAnn)
+        self.threadpool.start(regAllworker)
+        self.showStatus('开始通告缓存')
 
 if __name__ == '__main__':
     app = QApplication([])

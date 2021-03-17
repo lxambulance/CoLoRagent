@@ -1,5 +1,3 @@
-# coding=utf-8
-
 # CoLoR代理功能函数库，供交互线程及监听线程调用
 from scapy.all import *
 import hashlib
@@ -7,6 +5,7 @@ import threading
 import time
 
 # 公共全局变量
+
 
 Nid = -0x1  # 当前终端NID，需要初始化
 CacheSidUnits = {}  # 已生成但尚未通告的SID通告单元，key: path; value：class SidUnit
@@ -17,7 +16,9 @@ Lock_AnnSidUnits = threading.Lock()  # AnnSidUnits变量锁
 gets = {}  # 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）
 Lock_gets = threading.Lock()  # gets变量锁
 
+
 # 供线程调用的功能函数
+
 
 def Sha1Hash(path):
     # 计算特定文件160位hash值(Sha1)
@@ -32,6 +33,7 @@ def Sha1Hash(path):
             sha1.update(temp)
         # print(sha1.digest())
         return sha1.hexdigest()
+
 
 def AddCacheSidUnit(path, AM, N, L, I, level=-1):
     # 生成单个SID通告单元
@@ -53,11 +55,13 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1):
     CacheSidUnits[path] = tempSidUnit
     Lock_CacheSidUnits.release()
 
+
 def DeleteCacheSidUnit(path):
     # 删除已生成但未通告的SID策略单元
     Lock_CacheSidUnits.acquire()
     CacheSidUnits.pop(path)
     Lock_CacheSidUnits.release()
+
 
 def SidAnn(ttl=64, PublicKey='', P=1):
     # 整合已生成的SID策略单元，发送ANN报文
@@ -118,6 +122,7 @@ def SidAnn(ttl=64, PublicKey='', P=1):
         Lock_AnnSidUnits.release()
     SendIpv4(GetRMip(), Tar)
 
+
 def Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1):
     # 生成完整的Get报文，获取对应内容
     # SID：目标SID(N_sid+L_sid)的16进制字符串，path：本地存储路径（含文件名）
@@ -127,6 +132,24 @@ def Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1):
     gets[SID] = path
     Lock_gets.release()
     SendIpv4(GetRMip(), Tar)
+
+
+def ConvertFile(path, lpointer=0, rpointer=-1):
+    # 将任意文件编码为二进制
+    # path：文件路径，lpointer：左截取指针，rpointer
+    f = open(path, 'rb')
+    tar = f.read()
+    if(rpointer == -1):
+        rpointer = len(tar)
+    return tar[lpointer: rpointer]
+
+
+def ConvertByte(tar, path):
+    # 将二进制编码写入到文件
+    # src：二进制编码，path：新文件路径
+    f = open(path, 'ab') # 追加写入，覆盖写入为'wb'
+    f.write(tar)
+    f.close()
 
 
 # 各对象定义
@@ -150,7 +173,7 @@ class SidUnit():
         self.N_sid = N_sid
         self.L_sid = L_sid
         self.nid = nid
-        self.Strategy_units = Strategy_units
+        self.Strategy_units = Strategy_units.copy()
         self.Unit_length = 3  # 固定长度
         if(N_sid != -1):
             self.Unit_length += 16
@@ -158,6 +181,7 @@ class SidUnit():
             self.Unit_length += 20
         if(nid != -1):
             self.Unit_length += 16
+        self.Strategy_units_length.clear()
         for key in self.Strategy_units:
             value_length = len(self.Strategy_units[key])/2 + 2
             self.Unit_length += value_length
@@ -230,11 +254,79 @@ class DataPkt():
     SegID = -1
     PIDs = []  # RES_PID包含其中
     load = b''
+    Pkt = b''
 
-    def __init__(self, flag, B, R, C, SID, ttl=64, MinimalPidCp=-1, nid_cus=-1, nid_pro=-1, QoS='', SegID=-1, PIDs=[], load=b''):
+    def __init__(self, flag, B=0, R=0, C=0, SID='', ttl=64, MinimalPidCp=-1, nid_cus=-1, nid_pro=-1, QoS='', SegID=-1, PIDs=[], load=b'', Pkt=b''):
         if(flag == 0):
             # 解析Data包
-            return
+            pointer = 1  # 当前解析字节指针，第0字节已在调用时验证
+            self.Pkt = Pkt
+            self.ttl = Pkt[pointer]
+            pointer += 1
+            self.PktLength = Pkt[pointer]+(Pkt[pointer+1] << 8)
+            pointer += 2
+            self.checksum = (Pkt[pointer] << 8)+Pkt[pointer+1]
+            pointer += 2
+            self.HeaderLength = Pkt[pointer]
+            pointer += 1
+            self.PidPt = Pkt[pointer]
+            pointer += 1
+            self.PID_num = Pkt[pointer]
+            pointer += 1
+            self.F = 1 if Pkt[pointer] & (1 << 7) > 0 else 0
+            self.B = 1 if Pkt[pointer] & (1 << 6) > 0 else 0
+            self.R = 1 if Pkt[pointer] & (1 << 5) > 0 else 0
+            self.M = 1 if Pkt[pointer] & (1 << 4) > 0 else 0
+            self.Q = 1 if Pkt[pointer] & (1 << 3) > 0 else 0
+            self.C = 1 if Pkt[pointer] & (1 << 2) > 0 else 0
+            self.S = 1 if Pkt[pointer] & (1 << 1) > 0 else 0
+            pointer += 1
+            if(self.M == 1):
+                self.MinimalPidCp = Pkt[pointer]+(Pkt[pointer+1] << 8)
+                pointer += 2
+            self.N_sid = 0
+            for i in range(16):
+                self.N_sid = (self.N_sid << 8) + Pkt[pointer]
+                pointer += 1
+            self.L_sid = 0
+            for i in range(20):
+                self.L_sid = (self.L_sid << 8) + Pkt[pointer]
+                pointer += 1
+            if(self.B == 0):
+                self.nid_cus = 0
+                for i in range(16):
+                    self.nid_cus = (self.nid_cus << 8) + Pkt[pointer]
+                    pointer += 1
+            self.nid_pro = 0
+            for i in range(16):
+                self.nid_pro = (self.nid_pro << 8) + Pkt[pointer]
+                pointer += 1
+            if(self.Q == 1):
+                QosLen = Pkt[pointer]
+                pointer += 1
+                for i in range(QosLen):
+                    self.QoS += hex(Pkt[pointer]).replace('0x', '')
+                    pointer += 1
+            if(self.C == 1):
+                self.HMAC = 0
+                for i in range(4):
+                    self.HMAC += Pkt[pointer] << (8*i)
+                    pointer += 1
+            if(self.S == 1):
+                self.SegID = 0
+                for i in range(4):
+                    self.SegID += Pkt[pointer] << (8*i)
+                    pointer += 1
+            self.PIDs.clear()
+            for i in range(self.PID_num + self.R):
+                tempPID = 0
+                for j in range(4):
+                    tempPID += tempPID << 8 + Pkt[pointer]
+                    pointer += 1
+                self.PIDs.append(tempPID)
+            while(pointer < len(Pkt)):
+                self.load += ConvertInt2Bytes(Pkt[pointer], 1)
+                pointer += 1
         elif(flag == 1):
             # 新建Data包
             self.ttl = ttl
@@ -293,6 +385,50 @@ class DataPkt():
             self.HeaderLength += len(self.PIDs)*4
             self.PktLength = self.HeaderLength + len(self.load)
 
+    def packing(self):
+        # 计算校验和
+        TarPre = bytes()  # 存储CheckSum前的报文
+        TarCS = ConvertInt2Bytes(self.checksum, 2)  # 计算校验和时默认CS字段为0
+        TarRest = bytes()  # CheckSum后的报文
+        TarPre += ConvertInt2Bytes((self.V << 4) + self.Package, 1)
+        TarPre += ConvertInt2Bytes(self.ttl, 1)
+        TarPre += ConvertInt2Bytes_LE(self.PktLength, 2)
+        TarRest += ConvertInt2Bytes(self.HeaderLength, 1)
+        TarRest += ConvertInt2Bytes(self.PidPt, 1)
+        TarRest += ConvertInt2Bytes(self.PID_num, 1)
+        TarRest += ConvertInt2Bytes((self.F << 7)+(self.B << 6) + (self.R << 5)+(
+            self.M << 4)+(self.Q << 3)+(self.C << 2)+(self.S << 1), 1)
+        if(self.M == 1):
+            TarRest += ConvertInt2Bytes_LE(self.MinimalPidCp, 2)
+        if(self.N_sid != -1):
+            TarRest += ConvertInt2Bytes(self.N_sid, 16)
+        else:
+            TarRest += ConvertInt2Bytes(0, 16)
+        if(self.L_sid != -1):
+            TarRest += ConvertInt2Bytes(self.L_sid, 20)
+        else:
+            TarRest += ConvertInt2Bytes(0, 20)
+        if(self.B == 0):
+            TarRest += ConvertInt2Bytes(self.nid_cus, 16)
+        TarRest += ConvertInt2Bytes(self.nid_pro, 16)
+        if(self.Q == 1):
+            QosLen = len(self.QoS)/2
+            TarRest += ConvertInt2Bytes(QosLen, 1)
+            TarRest += ConvertInt2Bytes(int(self.QoS, 16), QosLen)
+        if(self.C == 1):
+            TarRest += ConvertInt2Bytes(self.HMAC, 4)
+        if(self.S == 1):
+            TarRest += ConvertInt2Bytes_LE(self.SegID, 4)
+        for pid in self.PIDs:
+            TarRest += ConvertInt2Bytes(pid, 4)
+        TarRest += self.load
+        Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
+        TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
+        Tar = TarPre + TarCS + TarRest  # 计算出校验和的字节串
+        # 封装并返回
+        self.Pkt = Tar
+        return self.Pkt
+
 
 class GetPkt():
     # get包
@@ -318,7 +454,7 @@ class GetPkt():
     PIDs = []
     Pkt = b''
 
-    def __init__(self, flag, SID, ttl=64, PublicKey='', QoS='', SegID=-1, A=1, Pkt=b''):
+    def __init__(self, flag, SID='', ttl=64, PublicKey='', QoS='', SegID=-1, A=1, Pkt=b''):
         if (flag == 0):
             # 解析Get包
             pointer = 1  # 当前解析字节指针，第0字节已在调用时验证
@@ -370,6 +506,7 @@ class GetPkt():
                 for i in range(4):
                     self.SegID += Pkt[pointer] << (8*i)
                     pointer += 1
+            self.PIDs.clear()
             for i in range(self.PID_num):
                 tempPID = 0
                 for j in range(4):
@@ -502,7 +639,7 @@ def SendIpv4(ipdst, data):
     # ipdst: 目标IP地址，data：IP包正文内容
     pkt = IP(dst=ipdst, proto=150) / data
     # pkt.show()
-    send(pkt)
+    send(pkt,verbose=0)
 
 
 def GetRMip():
