@@ -12,8 +12,7 @@ from PyQt5.QtGui import *
 
 import FileData
 
-COLUMN = ['A', 'B', 'C', 'D']
-COLUMN_LEN = len(COLUMN)
+COLUMN = ['文件名', '路径', 'SID', '是否通告', '是否下载']
 
 class serviceTableModel(QAbstractTableModel):
     ''' docstring: service table model class '''
@@ -32,10 +31,10 @@ class serviceTableModel(QAbstractTableModel):
             if orientation == Qt.Horizontal:
                 return str(COLUMN[section])
             if orientation == Qt.Vertical:
-                return 'r' + str(section + 1)
+                return '条目' + str(section + 1)
 
     def rowCount(self, index):
         return self.services.rowCount()
 
     def columnCount(self, index):
-        return COLUMN_LEN
+        return len(COLUMN)

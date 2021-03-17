@@ -18,6 +18,9 @@ class Ui_Form(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setObjectName("verticalLayout")
         self.label = QtWidgets.QLabel(Form)
+        font = QtGui.QFont()
+        font.setPointSize(20)
+        self.label.setFont(font)
         self.label.setObjectName("label")
         self.verticalLayout.addWidget(self.label)
         self.pushButton = QtWidgets.QPushButton(Form)
@@ -30,5 +33,5 @@ class Ui_Form(object):
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
-        self.label.setText(_translate("Form", "TextLabel"))
+        self.label.setText(_translate("Form", "（功能待开发）"))
         self.pushButton.setText(_translate("Form", "start/stop"))

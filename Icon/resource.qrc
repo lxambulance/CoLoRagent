@@ -2,9 +2,13 @@
   <qresource prefix="icon">
     <file alias="document">paper.png</file>
     <file alias="folder">folder.png</file>
+    <file alias="rar">rar.png</file>
     <file alias="RM">database-storage.png</file>
     <file alias="router">router.png</file>
     <file alias="switching">switching.png</file>
     <file alias="cloud">weather-cloud.png</file>
+    <file alias="tick">tick.png</file>
+    <file alias="cross">cross.png</file>
+    <file alias="minus">minus.png</file>
   </qresource>
 </RCC>
