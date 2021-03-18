@@ -25,12 +25,12 @@
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
-       <widget class="QTableView" name="tableView">
+       <widget class="MyTableView" name="tableView">
         <property name="contextMenuPolicy">
          <enum>Qt::ActionsContextMenu</enum>
         </property>
        </widget>
-       <widget class="QListView" name="listView">
+       <widget class="MyListView" name="listView">
         <property name="contextMenuPolicy">
          <enum>Qt::ActionsContextMenu</enum>
         </property>
@@ -121,7 +121,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_2">
    <property name="text">
-    <string>添加通告</string>
+    <string>通告</string>
    </property>
   </action>
   <action name="action_3">
@@ -170,6 +170,18 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MyTableView</class>
+   <extends>QTableView</extends>
+   <header>MyTableView</header>
+  </customwidget>
+  <customwidget>
+   <class>MyListView</class>
+   <extends>QListView</extends>
+   <header>MyListView</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="../Icon/resource.qrc"/>
  </resources>

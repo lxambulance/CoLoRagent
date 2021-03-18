@@ -27,10 +27,10 @@ class Ui_MainWindow(object):
         self.splitter = QtWidgets.QSplitter(self.splitter_2)
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.setObjectName("splitter")
-        self.tableView = QtWidgets.QTableView(self.splitter)
+        self.tableView = MyTableView(self.splitter)
         self.tableView.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.tableView.setObjectName("tableView")
-        self.listView = QtWidgets.QListView(self.splitter)
+        self.listView = MyListView(self.splitter)
         self.listView.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.listView.setObjectName("listView")
         self.horizontalLayout.addWidget(self.splitter_2)
@@ -109,7 +109,7 @@ class Ui_MainWindow(object):
         self.pushButton_swi.setText(_translate("MainWindow", "切换"))
         self.menu.setTitle(_translate("MainWindow", "菜单"))
         self.menu_2.setTitle(_translate("MainWindow", "编辑"))
-        self.action_2.setText(_translate("MainWindow", "添加通告"))
+        self.action_2.setText(_translate("MainWindow", "通告"))
         self.action_3.setText(_translate("MainWindow", "取消通告"))
         self.action_4.setText(_translate("MainWindow", "下载"))
         self.action_6.setText(_translate("MainWindow", "删除"))
@@ -119,4 +119,6 @@ class Ui_MainWindow(object):
         self.action_1.setText(_translate("MainWindow", "添加"))
         self.action_import.setText(_translate("MainWindow", "导入数据"))
         self.action_5.setText(_translate("MainWindow", "打开文件所在位置"))
+from MyListView import MyListView
+from MyTableView import MyTableView
 import resource_rc

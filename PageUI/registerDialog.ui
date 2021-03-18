@@ -24,6 +24,11 @@
       <layout class="QFormLayout" name="formLayout">
        <item row="0" column="0">
         <widget class="QLabel" name="label_1">
+         <property name="font">
+          <font>
+           <pointsize>15</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>文件名</string>
          </property>
@@ -31,6 +36,11 @@
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_2">
+         <property name="font">
+          <font>
+           <pointsize>15</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>文件路径</string>
          </property>
@@ -45,6 +55,11 @@
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_3">
+         <property name="font">
+          <font>
+           <pointsize>15</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>文件哈希</string>
          </property>
@@ -59,6 +74,11 @@
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="label_4">
+         <property name="font">
+          <font>
+           <pointsize>15</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>文件描述</string>
          </property>
@@ -73,20 +93,23 @@
        </item>
        <item row="4" column="0">
         <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>添加到通告包</string>
+         <property name="font">
+          <font>
+           <pointsize>15</pointsize>
+          </font>
          </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <widget class="QCheckBox" name="needReg">
          <property name="text">
-          <string/>
+          <string>是否通告</string>
          </property>
         </widget>
        </item>
        <item row="5" column="0">
         <widget class="QLabel" name="label_6">
+         <property name="font">
+          <font>
+           <pointsize>15</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>是否下载</string>
          </property>
@@ -101,6 +124,11 @@
        </item>
        <item row="6" column="0">
         <widget class="QLabel" name="label_7">
+         <property name="font">
+          <font>
+           <pointsize>15</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>通告参数</string>
          </property>
@@ -118,8 +146,13 @@
        </item>
        <item row="7" column="0">
         <widget class="QPushButton" name="saveButton">
+         <property name="font">
+          <font>
+           <pointsize>15</pointsize>
+          </font>
+         </property>
          <property name="text">
-          <string>保存修改</string>
+          <string>提交修改</string>
          </property>
         </widget>
        </item>
@@ -132,6 +165,13 @@
        </item>
        <item row="0" column="1">
         <widget class="QLabel" name="fileName">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLabel" name="isReg">
          <property name="text">
           <string>TextLabel</string>
          </property>

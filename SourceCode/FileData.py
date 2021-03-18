@@ -36,10 +36,10 @@ class FileData:
         else:
             self.__data.append(item)
 
-    def setItem(self, *, filename, filepath, needReg = 0, have = 1, **kwargs):
+    def setItem(self, *, filename, filepath, isReg = 0, have = 1, **kwargs):
         ''' docstring: 添加文件时的处理 '''
         filehash = kwargs.get('filehash', None)
-        item = [filename, filepath, filehash, needReg, have]
+        item = [filename, filepath, filehash, isReg, have]
         self.__data.append(item)
         # todo: 处理file addtion text
 
@@ -55,6 +55,7 @@ class FileData:
 
     def load(self, Path = None):
         ''' docstring: 从数据路径加载数据 '''
+        last = self.rowCount()
         if Path == None:
             Path = DATA_PATH
         with open(Path, 'r') as f:
@@ -64,9 +65,13 @@ class FileData:
                 items = json.load(f)
                 for item in items:
                     self.__data.append(item)
+        for i in range(last, self.rowCount()):
+            self.__data[i][3] &= 2
 
     def save(self, Path = None):
         ''' docstring: 将数据保存到数据路径中 '''
+        for i in range(self.rowCount()):
+            self.__data[i][3] &= 2
         if Path == None:
             Path = DATA_PATH
         with open(Path, 'w') as f:

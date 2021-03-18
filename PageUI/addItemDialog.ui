@@ -62,7 +62,7 @@
      <item row="3" column="0">
       <widget class="QLabel" name="label_4">
        <property name="text">
-        <string>是否添加到通告包</string>
+        <string>是否通告</string>
        </property>
        <property name="buddy">
         <cstring>needRegister</cstring>

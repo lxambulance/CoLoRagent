@@ -27,18 +27,22 @@ class registerWindow(QDialog, Ui_Dialog):
         self.filePath.setText(str(self.fd.getData(self.id, 1)))
         self.fileHash.setText(str(self.fd.getData(self.id, 2)))
         self.regArgs.setText('-N 0\n-L 0\n-I 0\n')
-
-        needReg = self.fd.getData(self.id, 3)
-        self.needReg.setCheckState(2 if needReg else 0)
-        isDow = self.fd.getData(self.id, 4)
         # TODO: 文件描述暂无
         self.fileAddtion.setText('暂无')
+
+        isReg = self.fd.getData(self.id, 3)
+        if isReg:
+            self.isReg.setPixmap(QPixmap(':/icon/tick'))
+        else:
+            self.isReg.setPixmap(QPixmap(':/icon/cross'))
+        isDow = self.fd.getData(self.id, 4)
         if isDow:
             self.isDow.setPixmap(QPixmap(':/icon/tick'))
         else:
             # 不属于本地的文件没有通告权
             self.isDow.setPixmap(QPixmap(':/icon/cross'))
             self.graphics.hide()
+        
         self.timer = QTimer()
         self.showSave.setPixmap(QPixmap(':/icon/minus'))
 
@@ -51,7 +55,7 @@ class registerWindow(QDialog, Ui_Dialog):
             self.node[i] = Node()
             self.graphics.scene().addItem(self.node[i])
             a = math.pi * 2 / 5
-            R = 300
+            R = 250
             x, y = round(math.cos(a*3/4+a*i) * R), round(math.sin(a*3/4+a*i) * R)
             self.node[i].setPos(x, y)
         self.line = [0] * 5
@@ -69,10 +73,6 @@ class registerWindow(QDialog, Ui_Dialog):
         self.timer.setInterval(1500)
         self.timer.start()
         # TODO: 通告参数检查与返回
-        if (self.needReg.checkState()>0) != self.fd.getData(self.id, 3):
-            nowValue = int(self.needReg.checkState()>0)
-            self.fd.setData(self.id, 3, nowValue)
-            self.returnValue = (nowValue)
     
     def changeSaveShow(self):
         self.timer.stop()

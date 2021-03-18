@@ -74,5 +74,5 @@ class Ui_Dialog(object):
         self.label_2.setText(_translate("Dialog", "文件路径"))
         self.choosePath.setText(_translate("Dialog", "..."))
         self.label_3.setText(_translate("Dialog", "文件说明"))
-        self.label_4.setText(_translate("Dialog", "是否添加到通告包"))
+        self.label_4.setText(_translate("Dialog", "是否通告"))
         self.label_5.setText(_translate("Dialog", "是否拷贝到主目录"))

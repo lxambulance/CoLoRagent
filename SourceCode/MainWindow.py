@@ -71,25 +71,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             os.mkdir(HOME_DIR)
 
         # 设置信号与槽的连接
+        self.tableView.signal.connect(self.setSelectItem)
+        self.listView.signal.connect(self.setSelectItem)
+
         self.pushButton_add.clicked.connect(self.addItem)
         self.action_1.triggered.connect(self.addItem)
-        self.pushButton_reg.clicked.connect(self.regAll)
-        self.action_2.triggered.connect(self.regItem)
-        self.action_3.triggered.connect(self.cancelReg)
-        self.action_5.triggered.connect(self.openFolder)
-        # self.pushButton_reg.clicked.connect()
+        self.action_6.triggered.connect(self.delItem)
         self.pushButton_dow.clicked.connect(self.dowItem)
         self.action_4.triggered.connect(self.dowItem)
-        self.action_6.triggered.connect(self.delItem)
-        self.pushButton_swi.clicked.connect(self.switchView)
+
+        self.pushButton_reg.clicked.connect(self.regItem)
+        self.action_2.triggered.connect(self.regItem)
+        self.action_3.triggered.connect(self.cancelRegItem)
+
+        self.action_5.triggered.connect(self.openFolder)
         self.action_cmd.triggered.connect(self.openCmdLinePage)
         self.action_video.triggered.connect(self.openVideoPage)
         self.action_hub.triggered.connect(self.openHub)
+        self.pushButton_swi.clicked.connect(self.switchView)
         self.action_import.triggered.connect(self.importData)
-        self.listView.clicked.connect(self.clickItem)
-        self.tableView.clicked.connect(self.clickItem)
+
         self.listView.doubleClicked.connect(self.doubleClickItem)
         self.tableView.doubleClicked.connect(self.doubleClickItem)
+
+    def setSelectItem(self, row):
+        # print(row)
+        if (row == -1):
+            self.selectItem = None
+            self.showStatus('')
+        else:
+            self.selectItem = self.model2.createIndex(row, 0)
+            self.showStatus('选中条目' + str(row + 1))
 
     def modelViewUpdate(self):
         ''' docstring: 刷新视图 '''
@@ -104,21 +116,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.additemwindow = AddItemWindow(self.fd)
         ret = self.additemwindow.exec_()
         row = self.additemwindow.newitemrow
+        needReg = self.additemwindow.needReg
         # ret 可用于后续判断返回结果
         if (ret) and (row != None):
             self.modelViewUpdate()
             # 计算hash值
-            filepath = self.fd.getData(row - 1, 1)
+            filepath = self.fd.getData(row, 1)
             hashworker = worker(0, Sha1Hash, filepath)
             # print('start calc hash: ', filepath)
-            hashworker.signals.result.connect(self.calcHashRet(row - 1))
+            hashworker.signals.result.connect(self.calcHashRet(row))
             self.threadpool.start(hashworker)
-
-            # 直接注册流程
-            needReg = self.fd.getData(row - 1, 3)
+            # 检查needReg，进行通告流程
             if needReg:
-                registerworker = worker(0, AddCacheSidUnit, filepath, 1, 0, 0, 0)
-                self.threadpool.start(registerworker)
+                self.selectItem = self.medel2.createIndex(row, 0)
+                self.regItem()
 
     def calcHashRet(self, row):
         ''' docstring: 这是一个返回函数的函数 '''
@@ -157,33 +168,52 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(downloadworker)
 
     def regItem(self):
-        ''' docstring: 添加通告 '''
+        ''' docstring: 通告 '''
         if self.selectItem == None:
-            self.showStatus('未选中任何条目')
+            self.showStatus('未选中条目')
             return
-        needReg = self.fd.getData(self.selectItem.row(), 3)
-        if needReg:
-            self.showStatus('条目已添加通告')
+        isReg = self.fd.getData(self.selectItem.row(), 3)
+        if isReg:
+            self.showStatus('条目'+str(self.selectItem.row() + 1)+'已通告')
             return
         filepath = self.fd.getData(self.selectItem.row(), 1)
-        registerworker = worker(0, AddCacheSidUnit, filepath, 1, 0, 0, 0)
-        registerworker.signals.finished.connect(lambda:self.fd.setData(self.selectItem.row(), 3, 1))
-        self.showStatus('条目'+str(self.selectItem.row()+1)+'已添加通告')
+        message = '条目'+str(self.selectItem.row() + 1)+'已通告'
+        
+        registerworker = worker(0, self.regItem_main, filepath)
+        registerworker.signals.finished.connect(
+            lambda:self.regFinished(self.selectItem.row(), 1, message))
         self.threadpool.start(registerworker)
 
-    def cancelReg(self):
+    def regItem_main(self, filepath):
+        AddCacheSidUnit(filepath, 1, 0, 0, 0)
+        SidAnn()
+
+    def cancelRegItem(self):
         ''' docstring: 取消通告 '''
         if self.selectItem == None:
             self.showStatus('未选中条目')
             return
-        needReg = self.fd.getData(self.selectItem.row(), 3)
-        if not needReg:
+        isReg = self.fd.getData(self.selectItem.row(), 3)
+        if not isReg:
             self.showStatus('条目'+str(self.selectItem.row() + 1)+'已取消通告')
             return
         filepath = self.fd.getData(self.selectItem.row(), 1)
-        cancelregworker = worker(0, DeleteCacheSidUnit, filepath)
-        cancelregworker.signals.finished.connect(lambda:self.fd.setData(self.selectItem.row(), 3, 0))
+        message = '条目'+str(self.selectItem.row() + 1)+'已取消通告'
+
+        cancelregworker = worker(0, self.cancelRegItem_main, filepath)
+        cancelregworker.signals.finished.connect(
+            lambda:self.regFinished(self.selectItem.row(), 0, message))
         self.threadpool.start(cancelregworker)
+    
+    def cancelRegItem_main(self, filepath):
+        AddCacheSidUnit(filepath, 3, 0, 0, 0)
+        SidAnn()
+
+    def regFinished(self, row, value, message):
+        self.fd.setData(row, 3, value)
+        a = self.model2.createIndex(row, 3)
+        self.model2.dataChanged.emit(a,a)
+        self.showStatus(message)
 
     def switchView(self):
         ''' docstring: 切换视图按钮 '''
@@ -229,31 +259,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.fd.load(fpath[0])
             self.modelViewUpdate()
 
-    def clickItem(self, index):
-        ''' docstring: 选中条目 '''
-        self.selectItem = index
-        self.showStatus('选中条目' + str(self.selectItem.row() + 1))
-
     def doubleClickItem(self, index):
         ''' docstring: 双击条目 '''
         if index != None:
             self.registerwindow = registerWindow(self.fd, index.row())
             self.registerwindow.exec_()
-            # print(self.registerwindow.returnValue)
-
-            # 根据返回值执行操作
             if self.registerwindow.returnValue != None:
-                filepath = self.fd.getData(index.row(), 1)
-                registerworker = None
-                if self.registerwindow.returnValue == 0:
-                    registerworker = worker(0, DeleteCacheSidUnit, filepath)
-                else:
-                    registerworker = worker(0, AddCacheSidUnit, filepath, 1, 0, 0, 0)
-                self.threadpool.start(registerworker)
-                a = self.model2.createIndex(index.row(), 0)
-                b = self.model2.createIndex(index.row(), self.model2.columnCount(index)-1)
-                self.model2.dataChanged.emit(a,b)
-            
+                # TODO: 根据返回值执行操作
+                pass
         else:
             self.showStatus('未选中条目')
 
@@ -269,14 +282,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             event.accept()
         else:
             event.ignore()
-
-    def regAll(self):
-        if not len(CacheSidUnits):
-            self.showStatus('没有待通告缓存')
-            return
-        regAllworker = worker(0, SidAnn)
-        self.threadpool.start(regAllworker)
-        self.showStatus('开始通告缓存')
 
 if __name__ == '__main__':
     app = QApplication([])
