@@ -58,6 +58,9 @@ class FileData:
         last = self.rowCount()
         if Path == None:
             Path = DATA_PATH
+        pos = Path.find('db')
+        if pos == -1:
+            return
         with open(Path, 'r') as f:
             if (self.__data == None):
                 self.__data = json.load(f)

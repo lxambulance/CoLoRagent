@@ -11,6 +11,7 @@ from MainWindow import MainWindow
 
 if __name__ == '__main__':
     thread_monitor = CM.Monitor()
+    thread_monitor.setDaemon(True)
     thread_monitor.start()
 
     app = QApplication([])
