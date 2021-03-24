@@ -10,11 +10,14 @@ from PyQt5.QtWidgets import QApplication
 from MainWindow import MainWindow
 
 if __name__ == '__main__':
-    # 启动监听线程
+    CM.PL.Nid = 1 # 初始化本机NID
+    
     thread_monitor = CM.Monitor()
     thread_monitor.setDaemon(True)
     thread_monitor.start()
-    # 主线程拉起窗口并阻塞
+
+    CM.PL.AnnProxy()# 向RM注册本代理
+
     app = QApplication([])
     window = MainWindow()
     window.show()

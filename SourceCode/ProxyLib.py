@@ -5,6 +5,7 @@ from scapy.all import *
 import hashlib
 import threading
 import time
+import socket
 
 # 公共全局变量
 
@@ -20,6 +21,12 @@ Lock_gets = threading.Lock()  # gets变量锁
 
 
 # 供线程调用的功能函数
+
+
+def AnnProxy():
+    # 向RM注册当前代理，获取域内信息
+    ProxyIP = socket.gethostbyname(socket.gethostname())
+    return
 
 
 def Sha1Hash(path):
@@ -47,10 +54,10 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1):
         value += '0'*(8-len(value))
         Strategy_units[1] = value
     Hash_sid = int(Sha1Hash(path), 16)
-    # TODO: 需通过Hash_sid判断内容是否来自其他生产节点，此处默认了path对应的文件是本终端提供的内容，待完善
-    N_sid_temp = Nid if N == 0 else -1
-    L_sid_temp = Hash_sid if L == 0 else -1
-    nid_temp = Nid if I == 0 else -1
+    # TODO: 需通过Hash_sid判断内容是否来自其他生产节点，此处默认了path对应的文件是本终端提供的内容，待完善 #
+    N_sid_temp = Nid if N == 1 else -1
+    L_sid_temp = Hash_sid if L == 1 else -1
+    nid_temp = Nid if I == 1 else -1
     tempSidUnit = SidUnit(path, AM, N_sid_temp,
                           L_sid_temp, nid_temp, Strategy_units)
     Lock_CacheSidUnits.acquire()
@@ -194,11 +201,11 @@ class SidUnit():
         tar = bytes()
         # 首字节
         temp = 0
-        if(self.N_sid == -1):
+        if(self.N_sid != -1):
             temp |= 0x80
-        if(self.L_sid == -1):
+        if(self.L_sid != -1):
             temp |= 0x40
-        if(self.nid == -1):
+        if(self.nid != -1):
             temp |= 0x20
         if(self.AM == 1):
             temp |= 0X08
