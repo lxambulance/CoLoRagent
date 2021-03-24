@@ -164,6 +164,22 @@ def ConvertByte(tar, path):
 # 各对象定义
 
 
+class ControlPkt():
+    # 控制包
+    V = 7
+    Package = 4
+    ttl = 64
+    checksum = 0
+    HeaderLength = 0
+    tag = 0
+    DataLenth = 0
+    ProxyIP = ''
+    ProxyNid = -1
+
+    def __init__(self):
+        return
+
+
 class SidUnit():
     # 通告单元
     path = ''
