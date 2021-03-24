@@ -1,4 +1,6 @@
-# CoLoR代理功能函数库，供交互线程及监听线程调用
+# coding=utf-8
+''' CoLoR代理功能函数库，供交互线程及监听线程调用 '''
+
 from scapy.all import *
 import hashlib
 import threading
@@ -45,7 +47,7 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1):
         value += '0'*(8-len(value))
         Strategy_units[1] = value
     Hash_sid = int(Sha1Hash(path), 16)
-    # 需通过Hash_sid判断内容是否来自其他生产节点，此处默认了path对应的文件是本终端提供的内容，待完善 #
+    # TODO: 需通过Hash_sid判断内容是否来自其他生产节点，此处默认了path对应的文件是本终端提供的内容，待完善
     N_sid_temp = Nid if N == 0 else -1
     L_sid_temp = Hash_sid if L == 0 else -1
     nid_temp = Nid if I == 0 else -1
@@ -617,7 +619,7 @@ def ConvertInt2Bytes_LE(data, length):
 
 
 def CalculateCS(tar):
-    # 校验和计算
+    ''' docstring: 校验和计算 '''
     # tar：bytes字符串
     length = len(tar)
     pointer = 0
@@ -643,10 +645,11 @@ def SendIpv4(ipdst, data):
 
 
 def GetRMip():
-    # 读配置文件获取RM所在IP地址(适用IPv4)
+    ''' docstring: 读配置文件获取RM所在IP地址(适用IPv4) '''
+    # TODO: 修改为与RM交互获取数据
     return '192.168.50.129'
 
 
 def GetBRip():
-    # 读配置文件获取BR所在IP地址(适用IPv4)
+    ''' docstring: 读配置文件获取BR所在IP地址(适用IPv4)'''
     return '192.168.50.129'

@@ -128,7 +128,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.threadpool.start(hashworker)
             # 检查needReg，进行通告流程
             if needReg:
-                self.selectItem = self.medel2.createIndex(row, 0)
+                self.selectItem = self.model2.createIndex(row, 0)
                 self.regItem()
 
     def calcHashRet(self, row):

@@ -1,4 +1,6 @@
-# CoLoR监听线程，负责与网络组件的报文交互
+# coding=utf-8
+''' docstring: CoLoR监听线程，负责与网络组件的报文交互 '''
+
 from scapy.all import *
 import threading
 import ProxyLib as PL
@@ -22,8 +24,9 @@ class PktHandler(threading.Thread):
         if 'Raw' in self.packet:
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
+            # TODO：异常情况调用traceback模块输出信息
             if PktLength < 4 or PktLength != (data[2]+(data[3] << 8)):
-                # 长度不匹配
+                print('长度不匹配')
                 return
             if (data[0] == 0x72):
                 # 收到网络中的get报文
@@ -166,11 +169,12 @@ class PktHandler(threading.Thread):
 
 
 class Monitor(threading.Thread):
+    ''' docstring: 自行实现的监听线程类，继承自线程类 '''
     def __init__(self):
         threading.Thread.__init__(self)
 
     def parser(self, packet):
-        # 调用通用语法解析器线程
+        ''' docstring: 调用通用语法解析器线程 '''
         GeneralHandler = PktHandler(packet)
         GeneralHandler.start()
 
