@@ -24,9 +24,8 @@ class PktHandler(threading.Thread):
         if 'Raw' in self.packet:
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
-            # TODO：异常情况调用traceback模块输出信息
+            # 过滤掉其他格式的包。TODO：异常情况调用traceback模块输出信息
             if PktLength < 4 or PktLength != (data[2]+(data[3] << 8)):
-                print('长度不匹配')
                 return
             if (data[0] == 0x72):
                 # 收到网络中的get报文

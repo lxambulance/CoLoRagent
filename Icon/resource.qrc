@@ -10,5 +10,8 @@
     <file alias="tick">tick.png</file>
     <file alias="cross">cross.png</file>
     <file alias="minus">minus.png</file>
+    <file alias="switchView">switchView.png</file>
+    <file alias="addFile">addFile.png</file>
+    <file alias="openFolder">openFolder.png</file>
   </qresource>
 </RCC>

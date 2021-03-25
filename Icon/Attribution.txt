@@ -8,3 +8,6 @@ rar.png <div>Icons made by <a href="https://www.freepik.com" title="Freepik">Fre
 cross.png Fugue Icons from https://p.yusukekamiyamane.com/
 tick.png Fugue Icons from https://p.yusukekamiyamane.com/
 minus.png Fugue Icons from https://p.yusukekamiyamane.com/
+switchView <div>Icons made by <a href="https://www.flaticon.com/authors/pixel-perfect" title="Pixel perfect">Pixel perfect</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+addFile <div>Icons made by <a href="https://www.flaticon.com/authors/pixel-perfect" title="Pixel perfect">Pixel perfect</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+openFolder <div>Icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>

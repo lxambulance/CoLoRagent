@@ -29,7 +29,7 @@ class worker(QRunnable):
 
         if (option & 1) == 1:
             # 添加回调函数
-            self.kwargs['process_callback'] = self.signals.progress
+            self.kwargs['progress_callback'] = self.signals.progress
     
     @pyqtSlot()
     def run(self):
