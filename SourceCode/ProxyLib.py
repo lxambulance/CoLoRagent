@@ -5,12 +5,12 @@ from scapy.all import *
 import hashlib
 import threading
 import time
-import socket
 
 # 公共全局变量
 
 
 Nid = -0x1  # 当前终端NID，需要初始化
+IPv4 = '' # 当前终端IPv4地址，需要初始化
 CacheSidUnits = {}  # 已生成但尚未通告的SID通告单元，key: path; value：class SidUnit
 Lock_CacheSidUnits = threading.Lock()  # CacheSidUnits变量锁
 # 已通告SID通告单元，key：SID(N_sid+L_sid)的16进制字符串，不存在时为空; value：class SidUnit
@@ -25,7 +25,6 @@ Lock_gets = threading.Lock()  # gets变量锁
 
 def AnnProxy():
     # 向RM注册当前代理，获取域内信息
-    ProxyIP = socket.gethostbyname(socket.gethostname())
     return
 
 
@@ -175,9 +174,37 @@ class ControlPkt():
     DataLenth = 0
     ProxyIP = ''
     ProxyNid = -1
+    Proxys = [] # 元组（NID, IP）列表
+    BRs = [] # 元组（PX, IP）列表
+    data = b''
+    Pkt = b''
 
-    def __init__(self):
-        return
+    def __init__(self,flag,ttl=64,Pkt=b''):
+        if(flag == 0):
+            # 解析控制包
+            pointer = 1  # 当前解析字节指针，第0字节已在调用时验证
+            self.Pkt = Pkt
+        elif(flag == 1):
+            # 新建控制包
+            self.ttl = ttl
+            self.HeaderLength = 8
+            self.tag = 5 # 仅存在一种情况
+            self.len = 20
+            
+
+    def packing(self):
+        # 计算校验和
+        TarPre = bytes()  # 存储CheckSum前的报文
+        TarCS = ConvertInt2Bytes(self.checksum, 2)  # 计算校验和时默认CS字段为0
+        TarRest = bytes()  # CheckSum后的报文
+        TarPre += ConvertInt2Bytes((self.V << 4) + self.Package, 1)
+        TarPre += ConvertInt2Bytes(self.ttl, 1)
+        TarRest += ConvertInt2Bytes(self.HeaderLength, 1)
+        TarRest += ConvertInt2Bytes(self.tag, 1)
+        TarRest += ConvertInt2Bytes_LE(self.DataLenth, 2)
+        # 封装并返回
+        self.Pkt = Tar
+        return self.Pkt
 
 
 class SidUnit():
