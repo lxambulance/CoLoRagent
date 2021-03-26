@@ -10,7 +10,7 @@ import time
 
 
 Nid = -0x1  # 当前终端NID，需要初始化
-IPv4 = '' # 当前终端IPv4地址，需要初始化
+IPv4 = ''  # 当前终端IPv4地址，需要初始化
 CacheSidUnits = {}  # 已生成但尚未通告的SID通告单元，key: path; value：class SidUnit
 Lock_CacheSidUnits = threading.Lock()  # CacheSidUnits变量锁
 # 已通告SID通告单元，key：SID(N_sid+L_sid)的16进制字符串，不存在时为空; value：class SidUnit
@@ -25,7 +25,9 @@ Lock_gets = threading.Lock()  # gets变量锁
 
 def AnnProxy():
     # 向RM注册当前代理，获取域内信息
-    return
+    NewPkt = ControlPkt(1)
+    Tar = NewPkt.packing()
+    SendIpv4(GetRMip(), Tar)
 
 
 def Sha1Hash(path):
@@ -155,7 +157,7 @@ def ConvertFile(path, lpointer=0, rpointer=-1):
 def ConvertByte(tar, path):
     # 将二进制编码写入到文件
     # src：二进制编码，path：新文件路径
-    f = open(path, 'ab') # 追加写入，覆盖写入为'wb'
+    f = open(path, 'ab')  # 追加写入，覆盖写入为'wb'
     f.write(tar)
     f.close()
 
@@ -174,12 +176,12 @@ class ControlPkt():
     DataLenth = 0
     ProxyIP = ''
     ProxyNid = -1
-    Proxys = [] # 元组（NID, IP）列表
-    BRs = [] # 元组（PX, IP）列表
+    Proxys = []  # 元组（NID, IP）列表
+    BRs = []  # 元组（PX, IP）列表
     data = b''
     Pkt = b''
 
-    def __init__(self,flag,ttl=64,Pkt=b''):
+    def __init__(self, flag, ttl=64, Pkt=b''):
         if(flag == 0):
             # 解析控制包
             pointer = 1  # 当前解析字节指针，第0字节已在调用时验证
@@ -188,9 +190,14 @@ class ControlPkt():
             # 新建控制包
             self.ttl = ttl
             self.HeaderLength = 8
-            self.tag = 5 # 仅存在一种情况
-            self.len = 20
-            
+            self.tag = 5  # 仅存在一种情况
+            self.DataLenth = 20
+            self.ProxyIP = IPv4
+            self.ProxyNid = Nid
+            IPList = self.ProxyIP.split('.')
+            for i in IPList:
+                data += ConvertInt2Bytes(i, 1)
+            data += ConvertInt2Bytes(self.ProxyNid, 16)
 
     def packing(self):
         # 计算校验和
@@ -202,6 +209,10 @@ class ControlPkt():
         TarRest += ConvertInt2Bytes(self.HeaderLength, 1)
         TarRest += ConvertInt2Bytes(self.tag, 1)
         TarRest += ConvertInt2Bytes_LE(self.DataLenth, 2)
+        TarRest += self.data
+        Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
+        TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
+        Tar = TarPre + TarCS + TarRest  # 计算出校验和的字节串
         # 封装并返回
         self.Pkt = Tar
         return self.Pkt
@@ -691,7 +702,7 @@ def SendIpv4(ipdst, data):
     # ipdst: 目标IP地址，data：IP包正文内容
     pkt = IP(dst=ipdst, proto=150) / data
     # pkt.show()
-    send(pkt,verbose=0)
+    send(pkt, verbose=0)
 
 
 def GetRMip():
