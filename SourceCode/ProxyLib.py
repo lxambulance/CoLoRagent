@@ -186,6 +186,32 @@ class ControlPkt():
             # 解析控制包
             pointer = 1  # 当前解析字节指针，第0字节已在调用时验证
             self.Pkt = Pkt
+            self.ttl = Pkt[pointer]
+            pointer += 1
+            self.checksum = (Pkt[pointer] << 8)+Pkt[pointer+1]
+            pointer += 2
+            self.HeaderLength = Pkt[pointer]
+            pointer += 1
+            self.tag = Pkt[pointer]
+            pointer += 1
+            self.DataLenth = Pkt[pointer]+(Pkt[pointer+1] << 8)
+            pointer += 2
+            if(self.tag == 6):
+                # RM同步域内信息
+                NumProxys = Pkt[pointer]
+                pointer += 1
+                return
+            elif(self.tag == 8) and (self.DataLenth == 20):
+                # RM分发新注册的proxy信息
+                self.ProxyIP = ''
+                for i in range(4):
+                    self.ProxyIP += str(Pkt[pointer]) + '.'
+                    pointer += 1
+                self.ProxyIP = self.ProxyIP[:-1]
+                self.ProxyNid = 0
+                for i in range(16):
+                    self.ProxyNid = (self.ProxyNid << 8) + Pkt[pointer]
+                    pointer += 1
         elif(flag == 1):
             # 新建控制包
             self.ttl = ttl
@@ -196,7 +222,7 @@ class ControlPkt():
             self.ProxyNid = Nid
             IPList = self.ProxyIP.split('.')
             for i in IPList:
-                data += ConvertInt2Bytes(i, 1)
+                data += ConvertInt2Bytes(int(i), 1)
             data += ConvertInt2Bytes(self.ProxyNid, 16)
 
     def packing(self):
