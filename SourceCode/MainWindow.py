@@ -56,7 +56,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.toolBar.addAction(self.button_addfile)
 
         # 设置选中条目
-        self.selectItem = None
+        self.selectItems = []
 
         # 使用自定义模型
         self.fd = FileData.FileData()
@@ -84,8 +84,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.setColumnWidth(4, 120)
 
         # 设置listview(0)与tableview(1)的视图转换
-        self.switchlistortable = 1
-        self.listView.hide()
+        self.switchlistortable = 0
+        self.tableView.hide()
         self.splitter.setSizes([300,300,400])
 
         # 设置线程池
@@ -113,10 +113,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.graphics.scaleView(0.7)
 
         # 设置信号与槽的连接
-        self.tableView.signal.connect(self.setSelectItem)
-        self.listView.signal.connect(self.setSelectItem)
-        self.listView.doubleClicked.connect(self.doubleClickItem)
-        self.tableView.doubleClicked.connect(self.doubleClickItem)
+        self.tableView.signal_select.connect(self.setSelectItem)
+        self.listView.signal_select.connect(self.setSelectItem)
+        self.listView.signal_add.connect(self.addItems)
 
         self.action_add.triggered.connect(self.addItem)
         self.action_del.triggered.connect(self.delItem)
@@ -135,13 +134,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_openfolder.triggered.connect(self.openFolder)
         self.button_addfile.triggered.connect(self.addItem)
 
-    def setSelectItem(self, row):
-        if (row == -1):
-            self.selectItem = None
-            self.showStatus('')
+    def setSelectItem(self, items):
+        if len(items) == 0:
+            self.selectItems = []
         else:
-            self.selectItem = self.tablemodel.createIndex(row, 0)
-            self.showStatus('选中条目' + str(row + 1))
+            status = '选中条目'
+            self.selectItems = []
+            for item in items:
+                self.selectItems.append(item.row())
+                status += ' ' + str(item.row() + 1)
+            self.showStatus(status)
 
     def modelViewUpdate(self):
         ''' docstring: 刷新视图 '''
@@ -168,8 +170,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.threadpool.start(hashworker)
             # 检查needReg，进行通告流程
             if needReg:
-                self.selectItem = self.tablemodel.createIndex(row, 0)
+                self.selectItems = [row]
                 self.regItem()
+
+    def addItems(self, items):
+        nowitems = items.copy()
+        if len(nowitems):
+            additemworker = worker(0, self.addItem_multi, nowitems)
+            additemworker.signals.finished.connect(lambda:self.modelViewUpdate())
+            self.threadpool.start(additemworker)
+    
+    def addItem_multi(self, items):
+        for item_str in items:
+            if os.path.isfile(item_str):
+                item = item_str.replace('\\', '/')
+                pos = item.rfind('/')
+                item_hash = Sha1Hash(item_str)
+                self.fd.setItem(filename = item[pos+1:], filepath = item, filehash = item_hash)
+            elif os.path.isdir(item_str):
+                # TODO: 支持文件夹
+                pass
 
     def calcHashRet(self, row):
         ''' docstring: 这是一个返回函数的函数 '''
@@ -183,94 +203,98 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def delItem(self):
         ''' docstring: 删除选中条目 '''
-        nowSelectItem = QModelIndex(self.selectItem)
-        if nowSelectItem != None:
-            self.fd.removeItem(nowSelectItem.row())
-            self.modelViewUpdate()
-            self.showStatus('条目' + str(nowSelectItem.row()+1) + '已删除')
-            nowSelectItem = None
-        else:
+        if len(self.selectItems) == 0:
             self.showStatus('未选中任何条目')
+        else:
+            nowSelectItems = self.selectItems.copy()
+            for item in nowSelectItems:
+                self.fd.removeItem(item)
+            self.modelViewUpdate()
+            self.showStatus('条目已删除')
 
     def dowItem(self):
         ''' docstring: 从远端下载数据 '''
-        nowSelectItem = QModelIndex(self.selectItem)
-        if nowSelectItem == None:
+        if len(self.selectItems) == 0:
             self.showStatus('未选中任何条目')
-            return
-        isDow = self.fd.getData(nowSelectItem.row(), 4)
-        if isDow:
-            self.showStatus('条目已下载')
-            return
-        SID = self.fd.getData(nowSelectItem.row(), 2)
-        filepath = self.fd.getData(nowSelectItem.row(), 1)
-        downloadworker = worker(0, Get, SID, filepath)
-        downloadworker.signals.finished.connect(lambda:self.fd.setData(nowSelectItem.row(), 4, 100))
-        self.showStatus('文件'+str(nowSelectItem.row()+1)+'开始下载')
-        self.threadpool.start(downloadworker)
+        else:
+            nowSelectItems = self.selectItems.copy()
+            dowitemworker = worker(1, self.dowItem_multi, nowSelectItems)
+            for item in nowSelectItems:
+                dowitemworker.signals.progress.connect(self.updateProgress(item, 4))
+            dowitemworker.signals.finished.connect(lambda:self.showStatus('条目已下载'))
+            self.threadpool.start(dowitemworker)
+    
+    def dowItem_multi(self, items, progress_callback):
+        total = len(items)
+        now = 0
+        for item in items:
+            now += 1
+            isDow = self.fd.getData(item, 4)
+            if isDow:
+                continue
+            SID = self.fd.getData(item, 2)
+            filepath = self.fd.getData(item, 1)
+            Get(SID, filepath)
+            progress_callback.emit(round(now*100/total))
 
     def regItem(self):
         ''' docstring: 通告 '''
-        nowSelectItem = QModelIndex(self.selectItem)
-        if nowSelectItem == None:
+        if len(self.selectItems) == 0:
             self.showStatus('未选中条目')
-            return
-        isReg = self.fd.getData(nowSelectItem.row(), 3)
-        if isReg:
-            self.showStatus('条目'+str(nowSelectItem.row() + 1)+'已通告')
-            return
-        filepath = self.fd.getData(nowSelectItem.row(), 1)
-        message = '条目'+str(nowSelectItem.row() + 1)+'已通告'
-        
-        registerworker = worker(1, self.regItem_main, filepath)
-        registerworker.signals.progress.connect(self.regProgress(nowSelectItem.row()))
-        registerworker.signals.finished.connect(
-            lambda:self.regFinished(nowSelectItem.row(), 100, message))
-        self.threadpool.start(registerworker)
+        else:
+            nowSelectItem = self.selectItems.copy()
+            regitemworker = worker(1, self.regItem_multi, nowSelectItem)
+            for item in nowSelectItem:
+                regitemworker.signals.progress.connect(self.updateProgress(item, 3))
+            regitemworker.signals.finished.connect(lambda:self.showStatus('条目已通告'))
+            self.threadpool.start(regitemworker)
 
-    def regItem_main(self, filepath, progress_callback):
-        AddCacheSidUnit(filepath, 1, 0, 0, 0)
-        progress_callback.emit(20)
+    def regItem_multi(self, items, progress_callback):
+        total = len(items)
+        now = 0
+        for item in items:
+            now += 1
+            isReg = self.fd.getData(item, 3)
+            if isReg:
+                continue
+            filepath = self.fd.getData(item, 1)
+            AddCacheSidUnit(filepath, 1, 0, 0, 0)
+            progress_callback.emit(round(now*20/total))
         SidAnn()
         progress_callback.emit(100)
 
     def undoRegItem(self):
         ''' docstring: 取消通告 '''
-        nowSelectItem = QModelIndex(self.selectItem)
-        if nowSelectItem == None:
+        if len(self.selectItems) == 0:
             self.showStatus('未选中条目')
-            return
-        isReg = self.fd.getData(nowSelectItem.row(), 3)
-        if not isReg:
-            self.showStatus('条目'+str(nowSelectItem.row() + 1)+'已取消通告')
-            return
-        filepath = self.fd.getData(nowSelectItem.row(), 1)
-        message = '条目'+str(nowSelectItem.row() + 1)+'已取消通告'
-
-        cancelregworker = worker(1, self.undoRegItem_main, filepath)
-        cancelregworker.signals.progress.connect(self.regProgress(nowSelectItem.row()))
-        cancelregworker.signals.finished.connect(
-            lambda:self.regFinished(nowSelectItem.row(), 0, message))
-        self.threadpool.start(cancelregworker)
+        else:
+            nowSelectItem = self.selectItems.copy()
+            undoregworker = worker(1, self.undoRegItem_multi, nowSelectItem)
+            for item in nowSelectItem:
+                undoregworker.signals.progress.connect(self.updateProgress(item, 3))
+            undoregworker.signals.finished.connect(lambda:self.showStatus('条目已取消通告'))
+            self.threadpool.start(undoregworker)
     
-    def undoRegItem_main(self, filepath, progress_callback):
-        AddCacheSidUnit(filepath, 3, 0, 0, 0)
-        progress_callback.emit(80)
+    def undoRegItem_multi(self, items, progress_callback):
+        total = len(items)
+        now = total
+        for item in items:
+            now -= 1
+            isReg = self.fd.getData(item, 3)
+            if not isReg:
+                continue
+            filepath = self.fd.getData(item, 1)
+            AddCacheSidUnit(filepath, 3, 0, 0, 0)
+            progress_callback.emit(round(now*20/total + 80))
         SidAnn()
         progress_callback.emit(0)
 
-    def regProgress(self, row):
-        def updateProgress(value):
-            self.fd.setData(row, 3, value)
-            a = self.tablemodel.createIndex(row, 3)
+    def updateProgress(self, row, column):
+        def main(value):
+            self.fd.setData(row, column, value)
+            a = self.tablemodel.createIndex(row, column)
             self.tablemodel.dataChanged.emit(a,a)
-        return updateProgress
-
-    def regFinished(self, row, value, message):
-        self.fd.setData(row, 3, value)
-        a = self.tablemodel.createIndex(row, 3)
-        self.tablemodel.dataChanged.emit(a,a)
-        self.showStatus(message)
+        return main
 
     def switchView(self):
         ''' docstring: 切换视图按钮 '''
@@ -297,7 +321,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def openFolder(self):
         ''' docstring: 打开所选文件所在文件夹 '''
-        nowSelectItem = self.selectItem
+        nowSelectItem = self.selectItems
         if nowSelectItem == None:
             self.showStatus('未选中文件')
             return
@@ -322,17 +346,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if fpath[0]:
             self.fd.load(fpath[0], 1)
             self.modelViewUpdate()
-
-    def doubleClickItem(self, index):
-        ''' docstring: 双击条目 '''
-        if index != None:
-            self.registerwindow = registerWindow(self.fd, index.row())
-            self.registerwindow.exec_()
-            if self.registerwindow.returnValue != None:
-                # TODO: 根据返回值执行操作
-                pass
-        else:
-            self.showStatus('未选中条目')
 
     def closeEvent(self, event):
         ''' docstring: 关闭窗口时弹出警告 '''

@@ -73,17 +73,15 @@ class progressBarDelegate(QStyledItemDelegate):
 
 class MyTableView(QTableView):
     ''' docstring: class MyTableView '''
-    signal = pyqtSignal(int)
+    signal_select = pyqtSignal(object)
     def __init__(self, parent = None):
         super().__init__(parent)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.setSelectionMode(self.ExtendedSelection)
     
     def mouseReleaseEvent(self, event):
         mouseBtn = event.button()
         if mouseBtn == Qt.MouseButton.RightButton or mouseBtn == Qt.MouseButton.LeftButton:
-            rows = self.selectionModel().selectedRows()
-            if len(rows):
-                self.signal.emit(rows[0].row())
-            else:
-                self.signal.emit(-1)
+            items = self.selectionModel().selectedRows()
+            self.signal_select.emit(list(items))
         super().mouseReleaseEvent(event)

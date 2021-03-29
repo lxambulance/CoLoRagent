@@ -27,10 +27,10 @@ class serviceListModel(QAbstractListModel):
 
         if role == Qt.DecorationRole:
             value = self.services.getData(index.row(), 0)
-            if value.find('rar') == -1:
-                return QIcon(':/icon/document')
-            else:
+            if value.find('.') == -1:
                 return QIcon(':/icon/rar')
+            else:
+                return QIcon(':/icon/document')
 
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole:
@@ -41,21 +41,56 @@ class serviceListModel(QAbstractListModel):
         return self.services.rowCount()
 
     def flags(self, index):
-        return Qt.ItemIsDragEnabled | super().flags(index)
+        default = super().flags(index)
+        if index.isValid():
+            return Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled | default
+        else:
+            return Qt.ItemIsDropEnabled | default
+    
+    def supportedDropActions(self):
+        return Qt.CopyAction | Qt.MoveAction
 
 class MyListView(QListView):
     ''' docstring: class MyListView '''
-    signal = pyqtSignal(int)
+    signal_select = pyqtSignal(object)
+    signal_add = pyqtSignal(object)
     def __init__(self, parent = None):
         super().__init__(parent)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.setSelectionMode(self.ExtendedSelection)
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.setDropIndicatorShown(True)
+        self.setDragDropMode(self.DragDrop)
     
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            super().dragEnterEvent(event)
+    
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.setDropAction(Qt.CopyAction)
+            event.accept()
+        else:
+            super().dragMoveEvent(event)
+    
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.setDropAction(Qt.CopyAction)
+            event.accept()
+            urls = []
+            for url in event.mimeData().urls():
+                if url.isLocalFile():
+                    urls.append(url.toLocalFile())
+            self.signal_add.emit(urls)
+        else:
+            super().dropEvent(event)
+
     def mouseReleaseEvent(self, event):
         mouseBtn = event.button()
         if mouseBtn == Qt.MouseButton.RightButton or mouseBtn == Qt.MouseButton.LeftButton:
-            rows = self.selectionModel().selectedRows()
-            if len(rows):
-                self.signal.emit(rows[0].row())
-            else:
-                self.signal.emit(-1)
+            items = self.selectionModel().selectedRows()
+            self.signal_select.emit(list(items))
         super().mouseReleaseEvent(event)
