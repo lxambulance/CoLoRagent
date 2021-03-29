@@ -10,14 +10,17 @@ from PyQt5.QtWidgets import QApplication
 from MainWindow import MainWindow
 
 if __name__ == '__main__':
-    CM.PL.Nid = 1 # 初始化本机NID
-    
+    # 初始化本终端信息
+    CM.PL.IPv4 = '192.168.50.219'
+    CM.PL.Nid = 1
+
     thread_monitor = CM.Monitor()
     thread_monitor.setDaemon(True)
     thread_monitor.start()
 
-    CM.PL.AnnProxy()# 向RM注册本代理
-
+    # 向RM发送注册报文
+    CM.PL.AnnProxy()
+    
     app = QApplication([])
     window = MainWindow()
     window.show()
