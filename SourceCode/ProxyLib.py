@@ -18,6 +18,9 @@ AnnSidUnits = {}
 Lock_AnnSidUnits = threading.Lock()  # AnnSidUnits变量锁
 gets = {}  # 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）
 Lock_gets = threading.Lock()  # gets变量锁
+RegFlag = 0 # 代理注册成功标志，收到RM返回的Control包后置1
+PeerProxys = {} # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
+PXs = {} # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
 
 
 # 供线程调用的功能函数
@@ -76,72 +79,78 @@ def DeleteCacheSidUnit(path):
 def SidAnn(ttl=64, PublicKey='', P=1):
     # 整合已生成的SID策略单元，发送ANN报文
     # PublicKey格式为16进制字符串(不含0x前缀)
-    # 变量整理
-    V = 7
-    Package = 1
-    pkt_length = 0
-    checksum = 0
-    F = 0
-    PublicKeyLen = len(PublicKey)/2  # 字节长度
-    K = 1 if PublicKeyLen != 0 else 0
-    Lock_CacheSidUnits.acquire()
-    # 需判断MTU，判断是否拆分出多个ANN包，当前默认1个ANN，待完善 #
-    SidUnits = CacheSidUnits.copy()  # 提取缓存区的SID块
-    CacheSidUnits.clear()  # 清空原缓存区
-    Lock_CacheSidUnits.release()
-    UnitNum = len(SidUnits)
-    PXNum = 0
-    ASPathLen = 0
-    # 长度计算
-    pkt_length += 8  # 固定长度
-    for value in SidUnits.values():
-        pkt_length += value.Unit_length
-    if (K == 1):
-        pkt_length += (2 + PublicKeyLen)
-    if (P == 1):
-        pkt_length += 1
-    # 封装到bytes类型及校验和计算
-    TarPre = bytes()  # 存储CheckSum前的报文
-    TarCS = ConvertInt2Bytes(checksum, 2)  # 计算校验和时默认CS字段为0
-    TarRest = bytes()  # CheckSum后的报文
-    TarPre += ConvertInt2Bytes((V << 4) + Package, 1)
-    TarPre += ConvertInt2Bytes(ttl, 1)
-    TarPre += ConvertInt2Bytes_LE(pkt_length, 2)
-    TarRest += ConvertInt2Bytes(((F << 7)+(K << 6)+(P << 5)), 1)
-    TarRest += ConvertInt2Bytes(((UnitNum << 4)+PXNum), 1)
-    for value in SidUnits.values():
-        TarRest += value.packing()
-    if (K == 1):
-        TarRest += ConvertInt2Bytes_LE(PublicKeyLen, 2)
-        TarRest += ConvertInt2Bytes(int(PublicKey, 16), PublicKeyLen)
-    if (P == 1):
-        TarRest += ConvertInt2Bytes(ASPathLen, 1)
-    Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
-    TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
-    Tar = TarPre + TarCS + TarRest  # 计算出校验和的字节串
-    # SID块存入AnnSidUnits，发送报文
-    for key in SidUnits.keys():
-        NewKey = ''
-        if(SidUnits[key].N_sid != -1):
-            NewKey += hex(SidUnits[key].N_sid).replace('0x', '').zfill(32)
-        if(SidUnits[key].L_sid != -1):
-            NewKey += hex(SidUnits[key].L_sid).replace('0x', '').zfill(40)
-        Lock_AnnSidUnits.acquire()
-        # 可能是修改或删除情况的ANN，待完善#
-        AnnSidUnits[NewKey] = SidUnits[key]
-        Lock_AnnSidUnits.release()
-    SendIpv4(GetRMip(), Tar)
+    if(RegFlag == 1):
+        # 变量整理
+        V = 7
+        Package = 1
+        pkt_length = 0
+        checksum = 0
+        F = 0
+        PublicKeyLen = len(PublicKey)/2  # 字节长度
+        K = 1 if PublicKeyLen != 0 else 0
+        Lock_CacheSidUnits.acquire()
+        # 需判断MTU，判断是否拆分出多个ANN包，当前默认1个ANN，待完善 #
+        SidUnits = CacheSidUnits.copy()  # 提取缓存区的SID块
+        CacheSidUnits.clear()  # 清空原缓存区
+        Lock_CacheSidUnits.release()
+        UnitNum = len(SidUnits)
+        PXNum = 0
+        ASPathLen = 0
+        # 长度计算
+        pkt_length += 8  # 固定长度
+        for value in SidUnits.values():
+            pkt_length += value.Unit_length
+        if (K == 1):
+            pkt_length += (2 + PublicKeyLen)
+        if (P == 1):
+            pkt_length += 1
+        # 封装到bytes类型及校验和计算
+        TarPre = bytes()  # 存储CheckSum前的报文
+        TarCS = ConvertInt2Bytes(checksum, 2)  # 计算校验和时默认CS字段为0
+        TarRest = bytes()  # CheckSum后的报文
+        TarPre += ConvertInt2Bytes((V << 4) + Package, 1)
+        TarPre += ConvertInt2Bytes(ttl, 1)
+        TarPre += ConvertInt2Bytes_LE(pkt_length, 2)
+        TarRest += ConvertInt2Bytes(((F << 7)+(K << 6)+(P << 5)), 1)
+        TarRest += ConvertInt2Bytes(((UnitNum << 4)+PXNum), 1)
+        for value in SidUnits.values():
+            TarRest += value.packing()
+        if (K == 1):
+            TarRest += ConvertInt2Bytes_LE(PublicKeyLen, 2)
+            TarRest += ConvertInt2Bytes(int(PublicKey, 16), PublicKeyLen)
+        if (P == 1):
+            TarRest += ConvertInt2Bytes(ASPathLen, 1)
+        Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
+        TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
+        Tar = TarPre + TarCS + TarRest  # 计算出校验和的字节串
+        # SID块存入AnnSidUnits，发送报文
+        for key in SidUnits.keys():
+            NewKey = ''
+            if(SidUnits[key].N_sid != -1):
+                NewKey += hex(SidUnits[key].N_sid).replace('0x', '').zfill(32)
+            if(SidUnits[key].L_sid != -1):
+                NewKey += hex(SidUnits[key].L_sid).replace('0x', '').zfill(40)
+            Lock_AnnSidUnits.acquire()
+            # 可能是修改或删除情况的ANN，待完善#
+            AnnSidUnits[NewKey] = SidUnits[key]
+            Lock_AnnSidUnits.release()
+        SendIpv4(GetRMip(), Tar)
+    else:
+        print("错误！代理注册未完成！")
 
 
 def Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1):
     # 生成完整的Get报文，获取对应内容
     # SID：目标SID(N_sid+L_sid)的16进制字符串，path：本地存储路径（含文件名）
-    NewPkt = GetPkt(1, SID, ttl, PublicKey, QoS, SegID, A)
-    Tar = NewPkt.packing()
-    Lock_gets.acquire()
-    gets[SID] = path
-    Lock_gets.release()
-    SendIpv4(GetRMip(), Tar)
+    if(RegFlag == 1):
+        NewPkt = GetPkt(1, SID, ttl, PublicKey, QoS, SegID, A)
+        Tar = NewPkt.packing()
+        Lock_gets.acquire()
+        gets[SID] = path
+        Lock_gets.release()
+        SendIpv4(GetRMip(), Tar)
+    else:
+        print("错误！代理注册未完成！")
 
 
 def ConvertFile(path, lpointer=0, rpointer=-1):
@@ -200,7 +209,32 @@ class ControlPkt():
                 # RM同步域内信息
                 NumProxys = Pkt[pointer]
                 pointer += 1
-                return
+                self.Proxys.clear()
+                for i in range(NumProxys):
+                    tempNid = 0
+                    for j in range(16):
+                        tempNid = (tempNid << 8) + Pkt[pointer]
+                        pointer += 1
+                    tempIP = ''
+                    for j in range(4):
+                        tempIP += str(Pkt[pointer]) + '.'
+                        pointer += 1
+                    tempIP = tempIP[:-1]
+                    self.Proxys.append((tempNid, tempIP))
+                NumBRs = Pkt[pointer]
+                pointer += 1
+                self.BRs.clear()
+                for i in range(NumBRs):
+                    tempPX = 0
+                    for j in range(2):
+                        tempPX = (tempPX << 8) + Pkt[pointer]
+                        pointer += 1
+                    tempIP = ''
+                    for j in range(4):
+                        tempIP += str(Pkt[pointer]) + '.'
+                        pointer += 1
+                    tempIP = tempIP[:-1]
+                    self.BRs.append((tempPX, tempIP))
             elif(self.tag == 8) and (self.DataLenth == 20):
                 # RM分发新注册的proxy信息
                 self.ProxyIP = ''
@@ -221,9 +255,10 @@ class ControlPkt():
             self.ProxyIP = IPv4
             self.ProxyNid = Nid
             IPList = self.ProxyIP.split('.')
+            self.data = b''
             for i in IPList:
-                data += ConvertInt2Bytes(int(i), 1)
-            data += ConvertInt2Bytes(self.ProxyNid, 16)
+                self.data += ConvertInt2Bytes(int(i), 1)
+            self.data += ConvertInt2Bytes(self.ProxyNid, 16)
 
     def packing(self):
         # 计算校验和
@@ -737,6 +772,6 @@ def GetRMip():
     return '192.168.50.129'
 
 
-def GetBRip():
-    ''' docstring: 读配置文件获取BR所在IP地址(适用IPv4)'''
-    return '192.168.50.129'
+# def GetBRip():
+#     ''' docstring: 读配置文件获取BR所在IP地址(适用IPv4)'''
+#     return '192.168.50.129'
