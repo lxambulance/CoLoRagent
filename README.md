@@ -13,6 +13,9 @@
 - 2021.2.24 目前只包含前端几个页面以及一些简单的按钮逻辑。
 - 2021.3.10 前端基本完成，开始考虑前后交互的逻辑。
 - 2021.3.15 美化了前端几个界面的设计，开始阅读后端代码。
+- 2021.3.18 前后端融合完成，非常简陋的初始版本。
+- 2021.3.29 做了一定美化，暂时没有时间更新readme。
+- 2021.3.30 删除了无用的页面，增加和细化了一些功能。
 
 作为git练手，dev分支可能会出现许多无聊地提交
 
@@ -67,7 +70,7 @@
 COLUMN = ['文件名', '路径', 'SID', '是否通告', '是否下载']
 ```
 
-
+是否通告是包含两位（bit）信息，0x2表示向RM通告，0x1表示本地通告缓存。
 
 ### 代理用户层接口函数说明（from ProxyLib）
 
@@ -187,6 +190,14 @@ item的坐标原点与view一开始一致，通过setpos可以修改item坐标�
 
 > 问题描述：子线程执行时主线程的修改将会产生未定义的行为。
 
+### 6. 文件拖拽不成功 [solved]
+
+> 问题描述：按照教程实现的文件拖拽不成功，阅读qt文档做修改也一样。
+
+windows文件拖拽权限问题，explorer为中权限，运行环境为管理员权限，是最高权限，windows中不允许低权限向高权限拖拽。
+
+
+
 ## Appendix
 
 ### pyqt学习记录
@@ -257,9 +268,12 @@ fbs是跨平台pyqt5打包工具，它是基于pyinstaller的扩展版本，实�
 #### 简单操作
 
 ```python
-import json #python3.9自带
-a = json.dumps(['foo',{'bar':('baz',None,1.0,2)}]) #将json格式转化为python str
-b = json.loads(a) #将python str转化为json格式（python list）
+import json # python3.9自带
+a = json.dumps(['foo',{'bar':('baz',None,1.0,2)}]) # 将json格式转化为python str
+b = json.loads(a) # 将python str转化为json格式（python list）
+# 下面两个函数用于文件操作
+json.dump(obj, fp)
+obj = json.load(fp)
 ```
 
 #### Json Python类型转换表
