@@ -39,9 +39,12 @@ class Ui_MainWindow(object):
         self.baseTab.setObjectName("baseTab")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.baseTab)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.textBrowser = QtWidgets.QTextBrowser(self.baseTab)
-        self.textBrowser.setObjectName("textBrowser")
-        self.horizontalLayout.addWidget(self.textBrowser)
+        self.textEdit = QtWidgets.QTextEdit(self.baseTab)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.textEdit.setFont(font)
+        self.textEdit.setObjectName("textEdit")
+        self.horizontalLayout.addWidget(self.textEdit)
         self.tabWidget.addTab(self.baseTab, "")
         self.MoreTab = QtWidgets.QWidget()
         self.MoreTab.setObjectName("MoreTab")
@@ -76,10 +79,6 @@ class Ui_MainWindow(object):
         self.action_dow.setObjectName("action_dow")
         self.action_del = QtWidgets.QAction(MainWindow)
         self.action_del.setObjectName("action_del")
-        self.action_cmd = QtWidgets.QAction(MainWindow)
-        self.action_cmd.setObjectName("action_cmd")
-        self.action_video = QtWidgets.QAction(MainWindow)
-        self.action_video.setObjectName("action_video")
         self.action_hub = QtWidgets.QAction(MainWindow)
         self.action_hub.setObjectName("action_hub")
         self.action_add = QtWidgets.QAction(MainWindow)
@@ -96,8 +95,6 @@ class Ui_MainWindow(object):
         self.menu.addAction(self.action_swi)
         self.menu.addAction(self.action_reset)
         self.menu.addAction(self.action_hub)
-        self.menu.addAction(self.action_video)
-        self.menu.addAction(self.action_cmd)
         self.menu_2.addAction(self.action_add)
         self.menu_2.addAction(self.action_reg)
         self.menu_2.addAction(self.action_undoReg)
@@ -114,6 +111,13 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.textEdit.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'SimSun\'; font-size:14pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">日志记录</span></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">--------------------</span></p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;\"><br /></p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.baseTab), _translate("MainWindow", "基本信息"))
         self.label.setText(_translate("MainWindow", "TODO"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.MoreTab), _translate("MainWindow", "更多信息"))
@@ -124,13 +128,11 @@ class Ui_MainWindow(object):
         self.action_undoReg.setText(_translate("MainWindow", "取消通告"))
         self.action_dow.setText(_translate("MainWindow", "下载"))
         self.action_del.setText(_translate("MainWindow", "删除"))
-        self.action_cmd.setText(_translate("MainWindow", "命令行"))
-        self.action_video.setText(_translate("MainWindow", "视频"))
         self.action_hub.setText(_translate("MainWindow", "仓库目录"))
         self.action_add.setText(_translate("MainWindow", "添加"))
         self.action_import.setText(_translate("MainWindow", "导入数据"))
         self.action_openDir.setText(_translate("MainWindow", "打开文件夹"))
-        self.action_swi.setText(_translate("MainWindow", "切换"))
+        self.action_swi.setText(_translate("MainWindow", "切换视图"))
         self.action_reset.setText(_translate("MainWindow", "还原视图"))
 from GraphWidget import GraphWidget
 from serviceList import MyListView

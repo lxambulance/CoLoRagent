@@ -51,31 +51,44 @@ class AddItemWindow(QDialog, Ui_Dialog):
     
     def addItem(self):
         ''' docstring: 添加文件项到数据库结构 '''
-        # 检测文件名
-        a = self.fileName.text()
-        if a == '':
-            print('没有待添加文件')
-            return
-        # 检测文件路径
-        b = self.choosePath.text()
-        if (b == '...'):
-            print('文件路径不存在')
-            return
-        # 考虑到异步拷贝后续步骤可能出错，这里阻塞窗口。TODO: 处理异步
-        if self.needCopy.checkState():
-            try:
-                copyfile(b, HOME_DIR + '/' + a)
-            except IOError:
-                print("Unable to copy file %s" % a)
-            else:
-                b = HOME_DIR + '/' + a
-
-        c = self.addtext if self.addtext != None else ''
-        c.replace('(请输入附加说明文字)', '')
-        
-        self.fd.setItem(filename = a, filepath = b, fileadd = c)
-        self.newitemrow = self.fd.rowCount() - 1
-        self.needReg = int(self.needRegister.checkState() > 0)
+        nowIndex = self.tabWidget.currentIndex()
+        if nowIndex == 0:
+            # 检测文件名
+            a = self.fileName.text()
+            if a == '':
+                print('没有待添加文件')
+                return
+            # 检测文件路径
+            b = self.choosePath.text()
+            if (b == '...'):
+                print('文件路径不存在')
+                return
+            # 考虑到异步拷贝后续步骤可能出错，这里阻塞窗口。TODO: 处理异步
+            # TODO: 这里应该发信号到主线程处理。
+            if self.needCopy.checkState():
+                try:
+                    copyfile(b, HOME_DIR + '/' + a)
+                except IOError:
+                    print("Unable to copy file %s" % a)
+                else:
+                    b = HOME_DIR + '/' + a
+            c = self.addtext if self.addtext != None else ''
+            c.replace('(请输入附加说明文字)', '')
+            
+            self.fd.setItem(filename = a, filepath = b, fileadd = c)
+            self.newitemrow = self.fd.rowCount() - 1
+            self.needReg = int(self.needRegister.checkState() > 0)
+        else:
+            a = self.inputFileName.text()
+            b = HOME_DIR + '/' + a
+            d = self.inputSID.text()
+            # TODO: 更详细的检查SID合法性
+            if len(d) != 72:
+                print('输入SID不合法')
+                return
+            self.fd.setItem(filename = a, filepath = b, filehash = d)
+            self.newitemrow = self.fd.rowCount() - 1
+            self.needReg = 0
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -13,16 +13,19 @@ from PyQt5.QtGui import *
 
 from mainPage import Ui_MainWindow
 
-from VideoWindow import VideoWindow
 from AddItemWindow import AddItemWindow
-from CmdlineWindow import CmdlineWindow
 from serviceList import serviceListModel
 from serviceTable import serviceTableModel, progressBarDelegate
 
 import FileData
 from worker import worker
 
-from ProxyLib import Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit, SidAnn, Get, CacheSidUnits
+from ProxyLib import (
+    Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
+    SidAnn, Get, CacheSidUnits
+)
+# TODO: 在Get中写入Nid
+import ProxyLib as PL
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     ''' docstring: class MainWindow '''
@@ -30,6 +33,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.nid = f"{PL.Nid:032x}"
 
         # 添加右键菜单
         self.listView.addAction(self.action_reg)
@@ -58,7 +62,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.selectItems = []
 
         # 使用自定义模型
-        self.fd = FileData.FileData()
+        self.fd = FileData.FileData(nid = self.nid)
         try:
             self.fd.load()
         except:
@@ -76,11 +80,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.listView.setGridSize(QSize(80, 80))
         self.tableView.setModel(self.tablemodel)
         self.tableView.setItemDelegate(self.progressbardelegate)
-        self.tableView.setColumnWidth(0, 150)
-        self.tableView.setColumnWidth(1, 300)
-        self.tableView.setColumnWidth(2, 300)
-        self.tableView.setColumnWidth(3, 120)
-        self.tableView.setColumnWidth(4, 120)
+        self.tableView.setSortingEnabled(True)
+        self.tableView.setColumnWidth(0, 100)
+        self.tableView.setColumnWidth(1, 250)
+        self.tableView.setColumnWidth(2, 530)
+        self.tableView.setColumnWidth(3, 100)
+        self.tableView.setColumnWidth(4, 100)
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 1
@@ -98,10 +103,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 人工设置拓扑图
         self.graphics.initTopo_old()
 
+        # 设置tab选项卡只读显示
+        self.textEdit.setReadOnly(True)
+
         # 设置信号与槽的连接
         self.tableView.signal_select.connect(self.setSelectItem)
         self.listView.signal_select.connect(self.setSelectItem)
         self.listView.signal_add.connect(self.addItems)
+        self.tableView.doubleClicked.connect(self.viewInfo)
+        self.listView.doubleClicked.connect(self.viewInfo)
 
         self.action_add.triggered.connect(self.addItem)
         self.action_del.triggered.connect(self.delItem)
@@ -109,8 +119,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_reg.triggered.connect(self.regItem)
         self.action_undoReg.triggered.connect(self.undoRegItem)
         self.action_openDir.triggered.connect(self.openFolder)
-        self.action_cmd.triggered.connect(self.openCmdLinePage)
-        self.action_video.triggered.connect(self.openVideoPage)
         self.action_hub.triggered.connect(self.openHub)
         self.action_import.triggered.connect(self.importData)
         self.action_swi.triggered.connect(self.switchView)
@@ -171,7 +179,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if os.path.isfile(item_str):
                 item = item_str.replace('\\', '/')
                 pos = item.rfind('/')
-                item_hash = Sha1Hash(item_str)
+                item_hash = self.nid + Sha1Hash(item_str)
                 self.fd.setItem(filename = item[pos+1:], filepath = item, filehash = item_hash)
             elif os.path.isdir(item_str):
                 # TODO: 支持文件夹
@@ -180,7 +188,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def calcHashRet(self, row):
         ''' docstring: 这是一个返回函数的函数 '''
         def result(s):
-            s = str(s)
+            s = self.nid + s
             # print(s)
             self.fd.setData(row, 2, s)
             a = self.tablemodel.createIndex(row, 2)
@@ -193,10 +201,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.showStatus('未选中任何条目')
         else:
             nowSelectItems = self.selectItems.copy()
-            for item in nowSelectItems:
-                self.fd.removeItem(item)
-            self.modelViewUpdate()
-            self.showStatus('条目已删除')
+            delitemworker = worker(0, self.delItem_multi, nowSelectItems)
+            delitemworker.signals.finished.connect(lambda:self.modelViewUpdate())
+            delitemworker.signals.finished.connect(lambda:self.showStatus('条目已删除'))
+            self.threadpool.start(delitemworker)
+    
+    def delItem_multi(self, items):
+        items.sort(reverse = True)
+        # print(items)
+        for item in items:
+            self.fd.removeItem(item)
 
     def dowItem(self):
         ''' docstring: 从远端下载数据 '''
@@ -222,6 +236,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             filepath = self.fd.getData(item, 1)
             Get(SID, filepath)
             progress_callback.emit(round(now*100/total))
+        # TODO：涉及进度条完成状态需要通过color monitor精确判断
 
     def regItem(self):
         ''' docstring: 通告 '''
@@ -308,30 +323,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def openFolder(self):
         ''' docstring: 打开所选文件所在文件夹 '''
-        nowSelectItem = self.selectItems
-        if nowSelectItem == None:
+        nowSelectItem = self.selectItems.copy()
+        if len(nowSelectItem) == 0:
             self.showStatus('未选中文件')
             return
-        tmp = self.fd.getData(nowSelectItem.row(), 1)
+        elif len(nowSelectItem) != 1:
+            self.showStatus('选中文件过多')
+            return
+        tmp = self.fd.getData(nowSelectItem[0], 1)
         filepath = tmp[:tmp.rfind('/')]
         openfolderworker = worker(0, os.startfile, filepath)
+        openfolderworker.signals.finished.connect(lambda:self.showStatus('文件已打开'))
         self.threadpool.start(openfolderworker)
-
-    def openCmdLinePage(self):
-        ''' docstring: 打开命令行 '''
-        self.cmdlinewindow = CmdlineWindow()
-        self.cmdlinewindow.show()
-
-    def openVideoPage(self):
-        ''' docstring: 打开视频页面 '''
-        self.videowindow = VideoWindow()
-        self.videowindow.show()
 
     def importData(self):
         ''' docstring: 导入其他数据文件 '''
         fpath = QFileDialog.getOpenFileName(self, '打开文件', HOME_DIR)
         if fpath[0]:
-            self.fd.load(fpath[0], 1)
+            self.fd.load(fpath[0])
             self.modelViewUpdate()
 
     def closeEvent(self, event):
@@ -346,6 +355,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             event.accept()
         else:
             event.ignore()
+
+    def viewInfo(self, index):
+        ''' docstring: 双击条目显示文件内容 '''
+        filepath = self.fd.getData(index.row(), 1)
+        if not os.path.exists(filepath):
+            self.showStatus('文件不存在')
+            return
+        with open(filepath, 'r', encoding='utf-8') as f:
+            tmp = f.read(500)
+        filename = self.fd.getData(index.row(), 0)
+        self.textEdit.append('click file:' + filename + ' content:\n' + tmp + '\n--------------------')
 
 if __name__ == '__main__':
     app = QApplication([])
