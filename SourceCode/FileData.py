@@ -62,10 +62,10 @@ class FileData:
         if pos == -1:
             return
         with open(Path, 'r') as f:
-            if (self.__data == None):
-                self.__data = json.load(f)
+            if len(self.__data) == 0:
+                self.__data = json.load(f)['base data']
             else:
-                items = json.load(f)
+                items = json.load(f)['base data']
                 for item in items:
                     self.__data.append(item)
         if (option&1) == 1:
@@ -84,3 +84,4 @@ if __name__ == '__main__':
     a = FileData()
     print(a.__doc__, a.save.__doc__)
     print(DATA_PATH)
+    a.load()

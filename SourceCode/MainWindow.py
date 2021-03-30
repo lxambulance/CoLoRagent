@@ -13,13 +13,12 @@ from PyQt5.QtGui import *
 
 from mainPage import Ui_MainWindow
 
-from CmdlineWindow import CmdlineWindow
 from VideoWindow import VideoWindow
 from AddItemWindow import AddItemWindow
-from serviceTable import serviceTableModel, progressBarDelegate
+from CmdlineWindow import CmdlineWindow
 from serviceList import serviceListModel
+from serviceTable import serviceTableModel, progressBarDelegate
 
-from PointLine import Node, Line
 import FileData
 from worker import worker
 
@@ -84,9 +83,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.setColumnWidth(4, 120)
 
         # 设置listview(0)与tableview(1)的视图转换
-        self.switchlistortable = 0
-        self.tableView.hide()
-        self.splitter.setSizes([300,300,400])
+        self.switchlistortable = 1
+        self.listView.hide()
+        self.splitter_horizon.setSizes([400,400,400])
+        self.splitter_vertical.setSizes([400,800])
 
         # 设置线程池
         self.threadpool = QThreadPool()
@@ -96,21 +96,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             os.mkdir(HOME_DIR)
 
         # 人工设置拓扑图
-        self.node = [0] * 5
-        for i in range(5):
-            self.node[i] = Node()
-            self.graphics.scene().addItem(self.node[i])
-            a = math.pi * 2 / 5
-            R = 250
-            x, y = round(math.cos(a*3/4+a*i) * R), round(math.sin(a*3/4+a*i) * R)
-            self.node[i].setPos(x, y)
-        self.line = [0] * 5
-        for i in range(5):
-            j = (i + 2) % 5
-            self.line[i] = Line(self.node[i],self.node[j],self.graphics)
-            self.graphics.scene().addItem(self.line[i])
-        # 设置缩放比例
-        self.graphics.scaleView(0.7)
+        self.graphics.initTopo_old()
 
         # 设置信号与槽的连接
         self.tableView.signal_select.connect(self.setSelectItem)
@@ -312,7 +298,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 恢复初始视图格式 '''
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
-        self.splitter.setSizes([300,300,400])
+        self.splitter_horizon.setSizes([400,400,400])
+        self.splitter_vertical.setSizes([400,800])
 
     def openHub(self):
         ''' docstring: 打开本地仓库 '''

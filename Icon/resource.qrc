@@ -4,7 +4,8 @@
     <file alias="folder">folder.png</file>
     <file alias="rar">rar.png</file>
     <file alias="RM">database-storage.png</file>
-    <file alias="router">router.png</file>
+    <file alias="BR">router-br.png</file>
+    <file alias="router">router-wifi.png</file>
     <file alias="switching">switching.png</file>
     <file alias="cloud">weather-cloud.png</file>
     <file alias="tick">tick.png</file>
@@ -13,5 +14,7 @@
     <file alias="switchView">switchView.png</file>
     <file alias="addFile">addFile.png</file>
     <file alias="openFolder">openFolder.png</file>
+    <file alias="RM">resourceManagement.png</file>
+    <file alias="PC">personalComputer.png</file>
   </qresource>
 </RCC>

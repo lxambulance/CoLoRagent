@@ -259,9 +259,12 @@ fbs是跨平台pyqt5打包工具，它是基于pyinstaller的扩展版本，实�
 #### 简单操作
 
 ```python
-import json #python3.9自带
-a = json.dumps(['foo',{'bar':('baz',None,1.0,2)}]) #将json格式转化为python str
-b = json.loads(a) #将python str转化为json格式（python list）
+import json # python3.9自带
+a = json.dumps(['foo',{'bar':('baz',None,1.0,2)}]) # 将json格式转化为python str
+b = json.loads(a) # 将python str转化为json格式（python list）
+# 下面两个函数用于文件操作
+json.dump(obj, fp)
+obj = json.load(fp)
 ```
 
 #### Json Python类型转换表
