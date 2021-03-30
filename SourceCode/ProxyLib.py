@@ -182,7 +182,7 @@ class ControlPkt():
     checksum = 0
     HeaderLength = 0
     tag = 0
-    DataLenth = 0
+    DataLength = 0
     ProxyIP = ''
     ProxyNid = -1
     Proxys = []  # 元组（NID, IP）列表
@@ -203,7 +203,7 @@ class ControlPkt():
             pointer += 1
             self.tag = Pkt[pointer]
             pointer += 1
-            self.DataLenth = Pkt[pointer]+(Pkt[pointer+1] << 8)
+            self.DataLength = Pkt[pointer]+(Pkt[pointer+1] << 8)
             pointer += 2
             if(self.tag == 6):
                 # RM同步域内信息
@@ -235,7 +235,7 @@ class ControlPkt():
                         pointer += 1
                     tempIP = tempIP[:-1]
                     self.BRs.append((tempPX, tempIP))
-            elif(self.tag == 8) and (self.DataLenth == 20):
+            elif(self.tag == 8) and (self.DataLength == 20):
                 # RM分发新注册的proxy信息
                 self.ProxyIP = ''
                 for i in range(4):
@@ -251,7 +251,7 @@ class ControlPkt():
             self.ttl = ttl
             self.HeaderLength = 8
             self.tag = 5  # 仅存在一种情况
-            self.DataLenth = 20
+            self.DataLength = 20
             self.ProxyIP = IPv4
             self.ProxyNid = Nid
             IPList = self.ProxyIP.split('.')
@@ -269,11 +269,11 @@ class ControlPkt():
         TarPre += ConvertInt2Bytes(self.ttl, 1)
         TarRest += ConvertInt2Bytes(self.HeaderLength, 1)
         TarRest += ConvertInt2Bytes(self.tag, 1)
-        TarRest += ConvertInt2Bytes_LE(self.DataLenth, 2)
-        TarRest += self.data
+        TarRest += ConvertInt2Bytes_LE(self.DataLength, 2)
+        # TarRest += self.data
         Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
         TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
-        Tar = TarPre + TarCS + TarRest  # 计算出校验和的字节串
+        Tar = TarPre + TarCS + TarRest + self.data # 计算出校验和的字节串
         # 封装并返回
         self.Pkt = Tar
         return self.Pkt
@@ -769,7 +769,7 @@ def SendIpv4(ipdst, data):
 def GetRMip():
     ''' docstring: 读配置文件获取RM所在IP地址(适用IPv4) '''
     # TODO: 修改为与RM交互获取数据
-    return '192.168.50.129'
+    return '10.0.0.1'
 
 
 # def GetBRip():

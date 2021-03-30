@@ -27,10 +27,10 @@ class PktHandler(threading.Thread):
             if(PL.RegFlag == 0):
                 # 注册中状态
                 # 过滤掉其他格式的包。TODO：异常情况调用traceback模块输出信息
-                if PktLength < 8 or data[0] != 0x74 or data[5] != 6 or PktLength != (data[4] + data[6] + (data[7]) << 8):
+                if PktLength < 8 or data[0] != 0x74 or data[5] != 6 or PktLength != (data[4] + data[6] + ((data[7]) << 8)):
                     return
                 # 校验和检验
-                CS = PL.CalculateCS(data)
+                CS = PL.CalculateCS(data[0:8])
                 if(CS != 0):
                     return
                 # 解析报文内容
@@ -234,7 +234,7 @@ class PktHandler(threading.Thread):
                 elif (data[0] == 0x74) and (data[5] == 8):
                     # 收到网络中的control报文，此处特指新proxy信息
                     # 校验和检验
-                    CS = PL.CalculateCS(data)
+                    CS = PL.CalculateCS(data[0:8])
                     if(CS != 0):
                         return
                     # 解析报文内容
@@ -248,7 +248,7 @@ class ControlPktSender(threading.Thread):
 
     def run(self):
         # 向RM发送注册报文
-        print("向RM发送注册报文，注册IP：" + PL.IPv4 + "；注册NID：" + PL.Nid)
+        print("向RM发送注册报文，注册IP：" + PL.IPv4 + "；注册NID：" + hex(PL.Nid))
         PL.AnnProxy()
         # 重传判断
         for i in range(3):
@@ -275,4 +275,4 @@ class Monitor(threading.Thread):
         AnnSender = ControlPktSender()
         AnnSender.start()
         print("开启报文监听")
-        sniff(filter="ip", prn=self.parser, count=0)
+        sniff(filter="ip", iface = "Realtek PCIe GBE Family Controller", prn=self.parser, count=0)
