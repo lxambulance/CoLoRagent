@@ -18,6 +18,9 @@ if __name__ == '__main__':
     thread_monitor.setDaemon(True)
     thread_monitor.start()
     
+    # 向RM发送注册报文
+    # CM.PL.AnnProxy()
+    
     app = QApplication([])
     window = MainWindow()
     window.show()

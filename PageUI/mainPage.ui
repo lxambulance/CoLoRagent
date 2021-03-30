@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
-     <widget class="QSplitter" name="splitter">
+     <widget class="QSplitter" name="splitter_horizon">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
@@ -30,36 +30,39 @@
         <enum>Qt::ActionsContextMenu</enum>
        </property>
       </widget>
-      <widget class="QTabWidget" name="tabWidget">
-       <property name="currentIndex">
-        <number>0</number>
+      <widget class="QSplitter" name="splitter_vertical">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
        </property>
-       <widget class="QWidget" name="baseTab">
-        <attribute name="title">
-         <string>基本信息</string>
-        </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <widget class="GraphWidget" name="graphics"/>
-         </item>
-         <item>
-          <widget class="QTextBrowser" name="textBrowser"/>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="MoreTab">
-        <attribute name="title">
-         <string>更多信息</string>
-        </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout">
-         <item>
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>TODO</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
+       <widget class="GraphWidget" name="graphics"/>
+       <widget class="QTabWidget" name="tabWidget">
+        <property name="currentIndex">
+         <number>0</number>
+        </property>
+        <widget class="QWidget" name="baseTab">
+         <attribute name="title">
+          <string>基本信息</string>
+         </attribute>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QTextBrowser" name="textBrowser"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="MoreTab">
+         <attribute name="title">
+          <string>更多信息</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>TODO</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
        </widget>
       </widget>
      </widget>

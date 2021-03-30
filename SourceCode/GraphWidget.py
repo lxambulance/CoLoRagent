@@ -21,15 +21,12 @@ class GraphWidget(QGraphicsView):
         self.setMinimumSize(400, 400)
         self.setScene(scene)
         self.setCacheMode(QGraphicsView.CacheBackground)
-        # 设置视图更新模式，可以只更新矩形框，也可以全部更新
+        # 设置视图更新模式，可以只更新矩形框，也可以全部更新 TODO: 更新效率
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
         # self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
         self.setRenderHint(QPainter.Antialiasing)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorViewCenter)
-
-        # 用于接管scene的鼠标按下功能，测试使用，使用时不可移动
-        # scene.mousePressEvent = self.myMousePressEvent
         
     def keyPressEvent(self, event):
         ''' docstring: 键盘事件 '''
@@ -58,30 +55,50 @@ class GraphWidget(QGraphicsView):
             return
         self.scale(scaleFactor, scaleFactor)
 
-    def myMousePressEvent(self, mouseEvent):
-        ''' docstring: 自定义鼠标事件，测试使用 '''
-        print("myMousePressEvent",mouseEvent.type(),mouseEvent.scenePos())
+    def initTopo(self):
+        pass
+
+    def initTopo_old(self):
+        self.node = [0] * 6
+        for i in range(5):
+            if (i == 4):
+                self.node[i] = Node(2)
+            elif (i & 1):
+                self.node[i] = Node(0)
+            else:
+                self.node[i] = Node(1)
+            self.scene().addItem(self.node[i])
+            a = math.pi * 2 / 5
+            R = 200
+            x, y = round(math.cos(a*3/4+a*i) * R), round(math.sin(a*3/4+a*i) * R)
+            self.node[i].setPos(x, y)
+        self.node[5] = Node(3)
+        self.scene().addItem(self.node[5])
+        self.node[5].setZValue(-1)
+
+        self.line = [0] * 5
+        for i in range(5):
+            j = (i + 2) % 5
+            self.line[i] = Line(self.node[i],self.node[j],self)
+            self.scene().addItem(self.line[i])
+        self.scaleView(0.6)
 
 if __name__ == "__main__":
     # 测试了如何在外部添加物体
     import sys
+    import json
+    with open('d:/CodeHub/ProjectCloud/data.db', 'r') as f:
+        data = json.load(f)
+        topo = data['topo map']
+
     app = QApplication(sys.argv)
     widget = GraphWidget()
 
-    widget.node = [0] * 5
-    for i in range(5):
-        widget.node[i] = Node()
-        widget.scene().addItem(widget.node[i])
-        a = math.pi * 2 / 5
-        R = 300
-        x, y = round(math.cos(a*3/4+a*i) * R), round(math.sin(a*3/4+a*i) * R)
-        widget.node[i].setPos(x, y)
-    
-    widget.line = [0] * 5
-    for i in range(5):
-        j = (i + 2) % 5
-        widget.line[i] = Line(widget.node[i],widget.node[j],widget)
-        widget.scene().addItem(widget.line[i])
+    widget.initTopo_old()
 
     widget.show()
+    with open('d:/CodeHub/ProjectCloud/data.db', 'w') as f:
+        data['topo map'] = topo
+        json.dump(data, f)
+
     sys.exit(app.exec_())
