@@ -6,6 +6,7 @@ import os, sys, math
 __BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
+DATA_DIR = __BASE_DIR + '/data.db'
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -86,6 +87,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.setColumnWidth(2, 530)
         self.tableView.setColumnWidth(3, 100)
         self.tableView.setColumnWidth(4, 100)
+        # self.graphics.loadTopo(DATA_DIR) # 载入拓扑图
+        self.graphics.initTopo_old() # 人工设置拓扑图
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 1
@@ -99,9 +102,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 尝试新建文件仓库
         if not os.path.exists(HOME_DIR):
             os.mkdir(HOME_DIR)
-
-        # 人工设置拓扑图
-        self.graphics.initTopo_old()
 
         # 设置tab选项卡只读显示
         self.textEdit.setReadOnly(True)
@@ -350,6 +350,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if reply == QMessageBox.Yes:
             # 做出保存操作
             self.fd.save()
+            self.graphics.saveTopo(DATA_DIR)
             event.accept()
         elif reply == QMessageBox.No:
             event.accept()
