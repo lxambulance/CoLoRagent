@@ -217,7 +217,7 @@ class ControlPkt():
                         pointer += 1
                     tempIP = ''
                     for j in range(4):
-                        tempIP += str(Pkt[pointer]) + '.'
+                        tempIP = str(Pkt[pointer]) + '.' +tempIP
                         pointer += 1
                     tempIP = tempIP[:-1]
                     self.Proxys.append((tempNid, tempIP))
@@ -231,7 +231,7 @@ class ControlPkt():
                         pointer += 1
                     tempIP = ''
                     for j in range(4):
-                        tempIP += str(Pkt[pointer]) + '.'
+                        tempIP = str(Pkt[pointer]) + '.' + tempIP
                         pointer += 1
                     tempIP = tempIP[:-1]
                     self.BRs.append((tempPX, tempIP))
@@ -239,7 +239,7 @@ class ControlPkt():
                 # RM分发新注册的proxy信息
                 self.ProxyIP = ''
                 for i in range(4):
-                    self.ProxyIP += str(Pkt[pointer]) + '.'
+                    self.ProxyIP = str(Pkt[pointer]) + '.' + self.ProxyIP
                     pointer += 1
                 self.ProxyIP = self.ProxyIP[:-1]
                 self.ProxyNid = 0
@@ -256,7 +256,7 @@ class ControlPkt():
             self.ProxyNid = Nid
             IPList = self.ProxyIP.split('.')
             self.data = b''
-            for i in IPList:
+            for i in reversed(IPList):
                 self.data += ConvertInt2Bytes(int(i), 1)
             self.data += ConvertInt2Bytes(self.ProxyNid, 16)
 
