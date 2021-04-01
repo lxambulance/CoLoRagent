@@ -11,6 +11,14 @@ from MainWindow import MainWindow
 
 import time
 
+try:
+    # Include in try/except block if you're also targeting Mac/Linux
+    from PyQt5.QtWinExtras import QtWin
+    myappid = 'mycompany.myproduct.subproduct.version'
+    QtWin.setCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    pass
+
 if __name__ == '__main__':
     app = QApplication([])
     window = MainWindow()

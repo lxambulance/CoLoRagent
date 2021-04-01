@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="icon">
+    <file alias="color">color.png</file>
     <file alias="document">paper.png</file>
     <file alias="folder">folder.png</file>
     <file alias="rar">rar.png</file>
