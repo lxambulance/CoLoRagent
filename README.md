@@ -53,14 +53,32 @@
 
 ```json
 {
-	"base data":[[
+	"base data":[
+        [
         "name",
         "path",
         "SID",
         is_reg,
         is_down
-        ]],
-    "topo map":[]
+        ],
+        []
+    ],
+    "topo map":{
+        "node type":[
+            1,3,2
+        ],
+        "node name":[
+            "hello",
+            "",
+            "world"
+        ],
+        "edge":[
+            [1,3]
+        ],
+        "AS":{
+            2:[1,3]
+        }
+    }
 }
 ```
 
@@ -69,6 +87,14 @@
 ```python
 COLUMN = ['文件名', '路径', 'SID', '是否通告', '是否下载']
 ```
+
+拓扑中node type含义如下：
+
+```python
+NodeType = ['router', 'BR', 'RM', 'cloud']
+```
+
+
 
 ## 代理用户层接口函数说明（ProxyLib.py）
 
@@ -204,7 +230,7 @@ Model/View is a technology used to separate data from views in widgets that hand
 
 Model/view also makes it easier to use more than one view of the same data because one model can be passed on to many views. 
 
-![modelview-overview](D:\CodeHub\ProjectCloud\Icon\modelview-overview.png)
+![modelview-overview](https://doc.qt.io/qt-5/images/modelview-overview.png)
 
 All item **models** are based on the [QAbstractItemModel](https://doc.qt.io/qt-5/qabstractitemmodel.html) class. This class defines an interface that is used by views and delegates to access data. The data itself does not have to be stored in the model; it can be held in a data structure or repository provided by a separate class, a file, a database, or some other application component.
 
