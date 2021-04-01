@@ -46,7 +46,7 @@ class PktHandler(threading.Thread):
             elif(PL.RegFlag == 1):
                 # 正常运行状态
                 # 过滤掉其他格式的包。TODO：异常情况调用traceback模块输出信息
-                if PktLength < 4 or PktLength != (data[2]+(data[3] << 8)):
+                if PktLength < 4:
                     return
                 if (data[0] == 0x72):
                     # 收到网络中的get报文
