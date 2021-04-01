@@ -174,20 +174,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def addItems(self, items):
         nowitems = items.copy()
         if len(nowitems):
-            additemworker = worker(0, self.addItem_multi, nowitems)
-            additemworker.signals.finished.connect(lambda:self.modelViewUpdate())
-            self.threadpool.start(additemworker)
-    
-    def addItem_multi(self, items):
-        for item_str in items:
-            if os.path.isfile(item_str):
-                item = item_str.replace('\\', '/')
-                pos = item.rfind('/')
-                item_hash = self.nid + Sha1Hash(item_str)
-                self.fd.setItem(filename = item[pos+1:], filepath = item, filehash = item_hash)
-            elif os.path.isdir(item_str):
-                # TODO: 支持文件夹
-                pass
+            lastrow = self.fd.rowCount()
+            for item_str in nowitems:
+                if os.path.isfile(item_str):
+                    item = item_str.replace('\\', '/')
+                    pos = item.rfind('/')
+                    self.fd.setItem(filename = item[pos+1:], filepath = item)
+                elif os.path.isdir(item_str):
+                    # TODO: 支持文件夹
+                    pass
+            self.modelViewUpdate()
+            nowrow = self.fd.rowCount()
+            for i in range(lastrow, nowrow):
+                filepath = self.fd.getData(i, 1)
+                hashworker = worker(0, Sha1Hash, filepath)
+                hashworker.signals.result.connect(self.calcHashRet(i))
+                self.threadpool.start(hashworker)
 
     def calcHashRet(self, row):
         ''' docstring: 这是一个返回函数的函数 '''
@@ -214,6 +216,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         items.sort(reverse = True)
         # print(items)
         for item in items:
+            if not self.fd.getData(item, 0):
+                continue
             self.fd.removeItem(item)
 
     def dowItem(self):
@@ -233,6 +237,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         now = 0
         wait_list = []
         for item in items:
+            if not self.fd.getData(item, 0):
+                continue
             now += 1
             isDow = self.fd.getData(item, 4)
             if isDow:
@@ -270,6 +276,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         total = len(items)
         now = 0
         for item in items:
+            if not self.fd.getData(item, 0):
+                continue
             now += 1
             isReg = self.fd.getData(item, 3)
             if isReg:
@@ -296,6 +304,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         total = len(items)
         now = total
         for item in items:
+            if not self.fd.getData(item, 0):
+                continue
             now -= 1
             isReg = self.fd.getData(item, 3)
             if not isReg:
@@ -347,7 +357,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.showStatus('选中文件过多')
             return
         tmp = self.fd.getData(nowSelectItem[0], 1)
-        if not os.path.exists(filepath):
+        if not os.path.exists(tmp) or not tmp:
             self.showStatus('文件不存在')
             return
         filepath = tmp[:tmp.rfind('/')]

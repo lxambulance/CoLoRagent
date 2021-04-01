@@ -23,10 +23,14 @@ class FileData:
 
     def getData(self, row, column = 0):
         ''' docstring: 获取数据 '''
+        if row<0 or column<0 or row>=self.rowCount() or column>=self.columnCount():
+            return None
         return self.__data[row][column]
 
     def setData(self, row, column = 0, newData = None):
         ''' docstring: 写入数据 '''
+        if row<0 or column<0 or row>=self.rowCount() or column>=self.columnCount():
+            return
         self.__data[row][column] = newData
 
     def getItem(self, row):
