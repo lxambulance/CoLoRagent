@@ -36,7 +36,9 @@ class PktHandler(threading.Thread):
                 # 解析报文内容
                 NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
                 for proxy in NewCtrlPkt.Proxys:
-                    PL.PeerProxys[proxy[0]] = proxy[1]
+                    if proxy[0] != PL.Nid:
+                        # 过滤本代理信息
+                        PL.PeerProxys[proxy[0]] = proxy[1]
                 for BR in NewCtrlPkt.BRs:
                     PL.PXs[BR[0]] = BR[1]
                 print("代理注册完成，开启网络功能")
@@ -239,7 +241,9 @@ class PktHandler(threading.Thread):
                         return
                     # 解析报文内容
                     NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
-                    PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP
+                    if NewCtrlPkt.ProxyNid != PL.Nid:
+                        # 过滤本代理信息
+                        PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP
 
 
 class ControlPktSender(threading.Thread):

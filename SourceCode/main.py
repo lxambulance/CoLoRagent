@@ -9,17 +9,23 @@ from PyQt5.QtWidgets import QApplication
 
 from MainWindow import MainWindow
 
+import time
+
 if __name__ == '__main__':
     # 初始化本终端信息
-    CM.PL.IPv4 = '192.168.50.219'
-    CM.PL.Nid = 1
+    CM.PL.IPv4 = '10.0.0.5'
+    CM.PL.Nid = 0x11111111111111111111111111111110
 
     thread_monitor = CM.Monitor()
     thread_monitor.setDaemon(True)
     thread_monitor.start()
     
-    # 向RM发送注册报文
-    # CM.PL.AnnProxy()
+    # time.sleep(2)
+    # CM.PL.AddCacheSidUnit('F:\\ProjectCloud\\test\\testfile1.txt',1,1,1,1)
+    # CM.PL.SidAnn()
+    # time.sleep(2)
+    # SID = hex(CM.PL.Nid).replace('0x', '').zfill(32) + CM.PL.Sha1Hash('F:\\ProjectCloud\\test\\testfile1.txt')
+    # CM.PL.Get(SID, 'F:\\ProjectCloud\\test.txt')
     
     app = QApplication([])
     window = MainWindow()
