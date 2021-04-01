@@ -372,8 +372,10 @@ ssh -v git@github.com # ssh连接测试
 # 远程库管理
 git remote -v # 显示远程库绑定情况
 git remote rename a b # 将远程库a改名为b
+git remote add git_address # 增加远程库关联
 git clone git_address # 克隆远程库，默认下载master分支
-git checkout -b dev origin/dev # 连接本地库dev与远程库dev
+git checkout -b dev origin/dev # 新建并连接本地库dev与远程库dev
+git branch --set-upstream-to dev origin/dev # 连接远端库与本地库，远程库默认名origin，可以git remote rename改名
 
 # 其他
 git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit" # 设置命令别名
@@ -392,8 +394,8 @@ dev分支clone到本地后新建自己的分支，代码完事后合并到dev分
 # 首先配置github的ssh，拥有访问权限
 
 # 第一次获取代码
-git clone git_address
-git branch --set-upstream-to dev origin/dev # 远程库默认名origin，可以git remote rename改名
+git clone git_address # 默认下载默认库
+git checkout -b dev origin/dev
 
 # 修改后提交
 git push origin dev # dev是远程库对应分支名
@@ -427,6 +429,7 @@ sync：同步主线或分支的Bug。
 scope(可选)
 scope用于说明 commit 影响的范围，比如数据层、控制层、视图层等等，视项目不同而不同。
 例如在Angular，可以是location，browser，compile，compile，rootScope， ngHref，ngClick，ngView等。如果你的修改影响了不止一个scope，你可以使用*代替。
+本项目中没有太大的架构，可以指明文件替代。
 
 subject(必须)
 subject是commit目的的简短描述，不超过50个字符。

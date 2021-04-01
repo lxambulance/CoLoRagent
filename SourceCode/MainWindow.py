@@ -2,11 +2,13 @@
 ''' docstring: CoLoR Pan主页 '''
 
 # 添加文件路径../
-import os, sys, math
+import os, sys, math, time
 __BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
 DATA_DIR = __BASE_DIR + '/data.db'
+starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
+LOG_DIR = __BASE_DIR + f'/{starttime}.log'
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -25,8 +27,10 @@ from ProxyLib import (
     Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
     SidAnn, Get, CacheSidUnits
 )
-# TODO: 在Get中写入Nid
+# TODO: 在Get中写入Nid？
 import ProxyLib as PL
+import json
+import time
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     ''' docstring: class MainWindow '''
@@ -227,15 +231,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def dowItem_multi(self, items, progress_callback):
         total = len(items)
         now = 0
+        wait_list = []
         for item in items:
             now += 1
             isDow = self.fd.getData(item, 4)
             if isDow:
                 continue
             SID = self.fd.getData(item, 2)
+            wait_list.append(SID)
             filepath = self.fd.getData(item, 1)
             Get(SID, filepath)
-            progress_callback.emit(round(now*100/total))
+            progress_callback.emit(round(now*20/total))
+        now = 0
+        while True:
+            for SID in wait_list:
+                if not (SID in PL.gets):
+                    now += 1
+                    wait_list.remove(SID)
+            progress_callback.emit(round(now*80/total)+20)
+            if now == total:
+                time.sleep(0.05)
+                break
         # TODO：涉及进度条完成状态需要通过color monitor精确判断
 
     def regItem(self):
@@ -351,22 +367,54 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # 做出保存操作
             self.fd.save()
             self.graphics.saveTopo(DATA_DIR)
+            self.saveLog()
             event.accept()
         elif reply == QMessageBox.No:
             event.accept()
         else:
             event.ignore()
 
+    def saveLog(self):
+        with open(LOG_DIR, 'w', encoding='utf-8') as f:
+            s = self.textEdit.toPlainText()
+            f.write(s)
+
     def viewInfo(self, index):
         ''' docstring: 双击条目显示文件内容 '''
         filepath = self.fd.getData(index.row(), 1)
-        if not os.path.exists(filepath):
-            self.showStatus('文件不存在')
-            return
-        with open(filepath, 'r', encoding='utf-8') as f:
-            tmp = f.read(500)
         filename = self.fd.getData(index.row(), 0)
-        self.textEdit.append('click file:' + filename + ' content:\n' + tmp + '\n--------------------')
+        viewjsonworker = worker(0, self.viewJson, filename, filepath)
+        viewjsonworker.signals.result.connect(self.textEdit.append)
+        self.threadpool.start(viewjsonworker)
+
+    def viewJson(self, filename, filepath):
+        ret = f'double click {filename} = '
+        if not os.path.exists(filepath):
+            return ret + '本地文件不存在\n'
+        with open(filepath, 'r', encoding='utf-8') as f:
+            fcontent = ""
+            while True:
+                tmp = f.read(512)
+                if not tmp:
+                    break
+                fcontent += tmp
+                if len(fcontent) > 512 * 10:
+                    return ret + '\{...(内容过长)...\}\n'
+        try:
+            data = json.loads(fcontent)
+        except:
+            return ret + '非JSON格式文件\n'
+        ret += json.dumps(data, sort_keys=True, indent=4, separators=(', ',': '))
+        return ret
+
+    def handleMessageFromPkt(self, messageType, message):
+        if messageType == 0:
+            self.textEdit.append(message + '\n')
+        elif messageType == 1:
+            # 收到warning
+            self.textEdit.append('[warning]' + message + '\n')
+        else:
+            self.showEvent('无效的后端信息')
 
 if __name__ == '__main__':
     app = QApplication([])

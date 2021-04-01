@@ -5,7 +5,7 @@ from PyQt5.QtCore import *
 import traceback, sys
 
 class workerSignals(QObject):
-    ''' docstring: worker signal class '''
+    ''' docstring: worker signals class '''
 
     # finished用于任务结束信号
     finished = pyqtSignal()

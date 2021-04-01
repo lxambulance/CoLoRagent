@@ -77,11 +77,16 @@ class FileData:
                 item_nid = item[2][:32]
                 # print(item_nid)
                 if self.nid != item_nid:
+                    # 非本机通告文件
                     item[1] = HOME_DIR + '/' + item[0]
                     if item[3] != 100:
                         continue
                     elif not os.path.exists(item[1]) or not os.path.isfile(item[1]):
                         item[4] = 0
+                else:
+                    # 本机通告文件，存在性检测
+                    if not os.path.exists(item[1]):
+                        continue
                 self.__data.append(item)
 
     def save(self, Path = None):

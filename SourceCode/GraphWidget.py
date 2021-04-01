@@ -19,6 +19,7 @@ class GraphWidget(QGraphicsView):
         self.AS = {}
         self.topo = {}
         self.data = {}
+        qsrand(QTime(0,0,0).secsTo(QTime.currentTime()))
 
         # 设置大小和坐标
         scene.setSceneRect(-200, -200, 400, 400)
@@ -105,6 +106,7 @@ class GraphWidget(QGraphicsView):
         self.scene().addItem(self.node[5])
 
         for i in range(5):
+            self.node[5].addAS(self.node[i])
             j = (i + 2) % 5
             self.edge.append(Edge(self.node[i], self.node[j], myType = 1))
             self.scene().addItem(self.edge[i])
@@ -133,7 +135,7 @@ class GraphWidget(QGraphicsView):
         self.AS = self.topo['AS']
         for (k,v) in self.AS.items():
             for nid in v:
-                self.node[k].addAS(self.node[nid])
+                self.node[int(k)].addAS(self.node[nid])
         for item in self.scene().items():
                 if isinstance(item, Node):
                     item.setPos(-200 + qrand() % 400, -200 + qrand() % 400)
