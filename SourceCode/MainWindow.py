@@ -95,8 +95,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.graphics.initTopo_old() # 人工设置拓扑图
 
         # 设置listview(0)与tableview(1)的视图转换
-        self.switchlistortable = 1
-        self.listView.hide()
+        self.switchlistortable = 0
+        self.tableView.hide()
         self.splitter_horizon.setSizes([400,400,400])
         self.splitter_vertical.setSizes([400,800])
 
@@ -347,6 +347,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.showStatus('选中文件过多')
             return
         tmp = self.fd.getData(nowSelectItem[0], 1)
+        if not os.path.exists(filepath):
+            self.showStatus('文件不存在')
+            return
         filepath = tmp[:tmp.rfind('/')]
         openfolderworker = worker(0, os.startfile, filepath)
         openfolderworker.signals.finished.connect(lambda:self.showStatus('文件已打开'))

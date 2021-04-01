@@ -20,12 +20,12 @@ except ImportError:
     pass
 
 if __name__ == '__main__':
-    app = QApplication([])
-    window = MainWindow()
-
     # 初始化本终端信息
     CM.PL.IPv4 = '10.0.0.5'
     CM.PL.Nid = 0x11111111111111111111111111111110
+
+    app = QApplication([])
+    window = MainWindow()
 
     thread_monitor = CM.Monitor(window.handleMessageFromPkt)
     thread_monitor.setDaemon(True)
