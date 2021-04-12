@@ -48,7 +48,7 @@ class FileData:
         ''' docstring: 添加文件时的处理 '''
         filehash = kwargs.get('filehash', None)
         # TODO: 处理file addtion text
-        item = [filename, filepath, filehash, isReg, have * 100]
+        item = [filename, filepath, filehash, isReg * 100, have * 100]
         self.__data.append(item)
 
     def removeItem(self, row):

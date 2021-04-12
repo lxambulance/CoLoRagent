@@ -249,7 +249,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             Get(SID, filepath)
             progress_callback.emit(round(now*20/total))
         now = 0
-        while True:
+        while len(wait_list):
             for SID in wait_list:
                 if not (SID in PL.gets):
                     now += 1

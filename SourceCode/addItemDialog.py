@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\CodeHub\ProjectCloud\PageUI\addItemDialog.ui'
+# Form implementation generated from reading ui file 'd:\CodeHub\CoLoRagent\PageUI\addItemDialog.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.2
 #
@@ -60,15 +60,15 @@ class Ui_Dialog(object):
         self.tab_2.setObjectName("tab_2")
         self.formLayout_2 = QtWidgets.QFormLayout(self.tab_2)
         self.formLayout_2.setObjectName("formLayout_2")
-        self.inputFileName = QtWidgets.QLabel(self.tab_2)
-        self.inputFileName.setObjectName("inputFileName")
-        self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.inputFileName)
-        self.lineEdit = QtWidgets.QLineEdit(self.tab_2)
-        self.lineEdit.setObjectName("lineEdit")
-        self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.lineEdit)
         self.label_6 = QtWidgets.QLabel(self.tab_2)
         self.label_6.setObjectName("label_6")
-        self.formLayout_2.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_6)
+        self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_6)
+        self.inputFileName = QtWidgets.QLineEdit(self.tab_2)
+        self.inputFileName.setObjectName("inputFileName")
+        self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.inputFileName)
+        self.label_7 = QtWidgets.QLabel(self.tab_2)
+        self.label_7.setObjectName("label_7")
+        self.formLayout_2.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_7)
         self.inputSID = QtWidgets.QLineEdit(self.tab_2)
         self.inputSID.setObjectName("inputSID")
         self.formLayout_2.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.inputSID)
@@ -88,7 +88,7 @@ class Ui_Dialog(object):
         self.label_3.setBuddy(self.addtionText)
         self.label_4.setBuddy(self.needRegister)
         self.label_5.setBuddy(self.needCopy)
-        self.label_6.setBuddy(self.inputSID)
+        self.label_7.setBuddy(self.inputSID)
 
         self.retranslateUi(Dialog)
         self.tabWidget.setCurrentIndex(0)
@@ -106,6 +106,6 @@ class Ui_Dialog(object):
         self.label_4.setText(_translate("Dialog", "是否通告"))
         self.label_5.setText(_translate("Dialog", "是否拷贝到主目录"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_1), _translate("Dialog", "从本地添加"))
-        self.inputFileName.setText(_translate("Dialog", "文件名"))
-        self.label_6.setText(_translate("Dialog", "SID"))
+        self.label_6.setText(_translate("Dialog", "文件名"))
+        self.label_7.setText(_translate("Dialog", "SID"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("Dialog", "从网络添加"))

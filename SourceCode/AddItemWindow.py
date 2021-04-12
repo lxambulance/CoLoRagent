@@ -80,13 +80,14 @@ class AddItemWindow(QDialog, Ui_Dialog):
             self.needReg = int(self.needRegister.checkState() > 0)
         else:
             a = self.inputFileName.text()
+            print(a)
             b = HOME_DIR + '/' + a
             d = self.inputSID.text()
             # TODO: 更详细的检查SID合法性
             if len(d) != 72:
                 print('输入SID不合法')
                 return
-            self.fd.setItem(filename = a, filepath = b, filehash = d)
+            self.fd.setItem(filename = a, filepath = b, filehash = d, isReg = 1, have = 0)
             self.newitemrow = self.fd.rowCount() - 1
             self.needReg = 0
 
