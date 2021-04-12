@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QApplication
 
 from MainWindow import MainWindow
 
-import time
+# import time
 
 try:
     # Include in try/except block if you're also targeting Mac/Linux

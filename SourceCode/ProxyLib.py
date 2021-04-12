@@ -11,6 +11,7 @@ import time
 
 Nid = -0x1  # 当前终端NID，需要初始化
 IPv4 = ''  # 当前终端IPv4地址，需要初始化
+
 CacheSidUnits = {}  # 已生成但尚未通告的SID通告单元，key: path; value：class SidUnit
 Lock_CacheSidUnits = threading.Lock()  # CacheSidUnits变量锁
 # 已通告SID通告单元，key：SID(N_sid+L_sid)的16进制字符串，不存在时为空; value：class SidUnit
@@ -18,6 +19,7 @@ AnnSidUnits = {}
 Lock_AnnSidUnits = threading.Lock()  # AnnSidUnits变量锁
 gets = {}  # 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）
 Lock_gets = threading.Lock()  # gets变量锁
+
 RegFlag = 0 # 代理注册成功标志，收到RM返回的Control包后置1
 PeerProxys = {} # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
 PXs = {} # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
@@ -27,15 +29,14 @@ PXs = {} # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符�
 
 
 def AnnProxy():
-    # 向RM注册当前代理，获取域内信息
+    ''' docstring: 向RM注册当前代理，获取域内信息 '''
     NewPkt = ControlPkt(1)
     Tar = NewPkt.packing()
     SendIpv4(GetRMip(), Tar)
 
 
 def Sha1Hash(path):
-    # 计算特定文件160位hash值(Sha1)
-    # path：新文件路径
+    ''' docstring: 计算特定文件160位hash值(Sha1) path: 新文件路径 '''
     block_size = 64 * 1024  # 分块计算hash，减少内存占用
     with open(path, 'rb') as f:
         sha1 = hashlib.sha1()
@@ -49,7 +50,7 @@ def Sha1Hash(path):
 
 
 def AddCacheSidUnit(path, AM, N, L, I, level=-1):
-    # 生成单个SID通告单元
+    ''' docstring: 生成单个SID通告单元 '''
     Strategy_units = {}
     # 增添策略字段
     if(level >= 1 and level <= 10):
@@ -70,14 +71,14 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1):
 
 
 def DeleteCacheSidUnit(path):
-    # 删除已生成但未通告的SID策略单元
+    ''' docstring: 删除已生成但未通告的SID策略单元 '''
     Lock_CacheSidUnits.acquire()
     CacheSidUnits.pop(path)
     Lock_CacheSidUnits.release()
 
 
 def SidAnn(ttl=64, PublicKey='', P=1):
-    # 整合已生成的SID策略单元，发送ANN报文
+    ''' docstring: 整合已生成的SID策略单元，发送ANN报文 '''
     # PublicKey格式为16进制字符串(不含0x前缀)
     if(RegFlag == 1):
         # 变量整理
@@ -140,9 +141,9 @@ def SidAnn(ttl=64, PublicKey='', P=1):
 
 
 def Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1):
-    # 生成完整的Get报文，获取对应内容
+    ''' docstring: 生成完整的Get报文，只发送，不管收 '''
     # SID：目标SID(N_sid+L_sid)的16进制字符串，path：本地存储路径（含文件名）
-    if(RegFlag == 1):
+    if (RegFlag == 1):
         NewPkt = GetPkt(1, SID, ttl, PublicKey, QoS, SegID, A)
         Tar = NewPkt.packing()
         Lock_gets.acquire()
@@ -154,21 +155,18 @@ def Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1):
 
 
 def ConvertFile(path, lpointer=0, rpointer=-1):
-    # 将任意文件编码为二进制
-    # path：文件路径，lpointer：左截取指针，rpointer
-    f = open(path, 'rb')
-    tar = f.read()
-    if(rpointer == -1):
+    ''' docstring: 将任意文件编码为二进制 '''
+    with open(path, 'rb') as f:
+        tar = f.read()
+    if (rpointer == -1):
         rpointer = len(tar)
     return tar[lpointer: rpointer]
 
 
 def ConvertByte(tar, path):
-    # 将二进制编码写入到文件
-    # src：二进制编码，path：新文件路径
-    f = open(path, 'ab')  # 追加写入，覆盖写入为'wb'
-    f.write(tar)
-    f.close()
+    ''' docstring: 将二进制编码写入到文件 '''
+    with open(path, 'ab') as f:  # 'ab'为追加写入，覆盖写入为'wb'
+        f.write(tar)
 
 
 # 各对象定义
@@ -714,39 +712,24 @@ class GetPkt():
 
 
 def ConvertInt2Bytes(data, length):
-    # 将int类型转成bytes类型（大端存储）
-    # data：目标数字，length：目标字节数
-    data = hex(data).replace('0x', '')
-    data = '0'*(length*2 - len(data)) + data
-    data_bytes = bytes.fromhex(data)
-    return data_bytes
+    ''' docstring: 将int类型转成bytes类型（大端存储）
+    data: 目标数字，length: 目标字节数 '''
+    return data.to_bytes(length, byteorder='big')
 
 
 def ConvertInt2Bytes_LE(data, length):
-    # 将int类型转成bytes类型（小端存储）
-    # data：目标数字，length：目标字节数
-    data = hex(data).replace('0x', '')
-    data = '0'*(length*2 - len(data)) + data
-    data_LE = ''
-    temp = ''
-    pointer = 0
-    while(pointer < len(data)):
-        temp += data[pointer]
-        pointer += 1
-        if(pointer % 2 == 0):
-            data_LE = temp + data_LE
-            temp = ''
-    data_bytes = bytes.fromhex(data_LE)
-    return data_bytes
+    ''' docstring: 将int类型转成bytes类型（小端存储）
+    # data：目标数字，length：目标字节数 '''
+    return data.to_bytes(length, byteorder='little')
 
 
 def CalculateCS(tar):
-    ''' docstring: 校验和计算 '''
-    # tar：bytes字符串
+    ''' docstring: 校验和计算 tar: bytes字符串 '''
     length = len(tar)
     pointer = 0
     sum = 0
     while (length - pointer > 1):
+        # 两字节相加
         temp = tar[pointer] << 8
         temp += tar[pointer+1]
         pointer += 2
@@ -759,8 +742,8 @@ def CalculateCS(tar):
 
 
 def SendIpv4(ipdst, data):
-    # 封装IPv4网络包并发送
-    # ipdst: 目标IP地址，data：IP包正文内容
+    ''' docstring: 封装IPv4网络包并发送
+    ipdst: 目标IP地址，data: IP包正文内容，proto: 约定值150 '''
     pkt = IP(dst=ipdst, proto=150) / data
     # pkt.show()
     send(pkt, verbose=0)
@@ -772,6 +755,11 @@ def GetRMip():
     return '10.0.0.1'
 
 
-# def GetBRip():
-#     ''' docstring: 读配置文件获取BR所在IP地址(适用IPv4)'''
-#     return '192.168.50.129'
+def GetBRip():
+    ''' docstring: 读配置文件获取BR所在IP地址(适用IPv4)'''
+    return '192.168.50.129'
+
+
+if __name__ == '__main__':
+    print(ConvertInt2Bytes_LE(123,4))
+    print((123).to_bytes(4,byteorder='little'))
