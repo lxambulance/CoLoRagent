@@ -33,7 +33,7 @@ class Ui_MainWindow(object):
         self.splitter_vertical = QtWidgets.QSplitter(self.splitter_horizon)
         self.splitter_vertical.setOrientation(QtCore.Qt.Horizontal)
         self.splitter_vertical.setObjectName("splitter_vertical")
-        self.graphics = GraphWidget(self.splitter_vertical)
+        self.graphics = GraphicWindow(self.splitter_vertical)
         self.graphics.setObjectName("graphics")
         self.tabWidget = QtWidgets.QTabWidget(self.splitter_vertical)
         self.tabWidget.setObjectName("tabWidget")
@@ -48,14 +48,24 @@ class Ui_MainWindow(object):
         self.textEdit.setObjectName("textEdit")
         self.horizontalLayout.addWidget(self.textEdit)
         self.tabWidget.addTab(self.baseTab, "")
-        self.MoreTab = QtWidgets.QWidget()
-        self.MoreTab.setObjectName("MoreTab")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.MoreTab)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.label = QtWidgets.QLabel(self.MoreTab)
-        self.label.setObjectName("label")
-        self.verticalLayout.addWidget(self.label)
-        self.tabWidget.addTab(self.MoreTab, "")
+        self.TopoTab = QtWidgets.QWidget()
+        self.TopoTab.setObjectName("TopoTab")
+        self.gridLayout = QtWidgets.QGridLayout(self.TopoTab)
+        self.gridLayout.setObjectName("gridLayout")
+        self.nodeType = QtWidgets.QComboBox(self.TopoTab)
+        self.nodeType.setCurrentText("")
+        self.nodeType.setObjectName("nodeType")
+        self.gridLayout.addWidget(self.nodeType, 1, 1, 1, 1)
+        self.scaling = QtWidgets.QPushButton(self.TopoTab)
+        self.scaling.setObjectName("scaling")
+        self.gridLayout.addWidget(self.scaling, 0, 0, 1, 1)
+        self.addNode = QtWidgets.QPushButton(self.TopoTab)
+        self.addNode.setObjectName("addNode")
+        self.gridLayout.addWidget(self.addNode, 1, 0, 1, 1)
+        self.addLine = QtWidgets.QPushButton(self.TopoTab)
+        self.addLine.setObjectName("addLine")
+        self.gridLayout.addWidget(self.addLine, 2, 0, 1, 1)
+        self.tabWidget.addTab(self.TopoTab, "")
         self.verticalLayout_2.addWidget(self.splitter_horizon)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
@@ -107,7 +117,8 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menu_2.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
+        self.nodeType.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -121,8 +132,10 @@ class Ui_MainWindow(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">--------------------</span></p>\n"
 "<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;\"><br /></p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.baseTab), _translate("MainWindow", "基本信息"))
-        self.label.setText(_translate("MainWindow", "TODO"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.MoreTab), _translate("MainWindow", "更多信息"))
+        self.scaling.setText(_translate("MainWindow", "放大/还原"))
+        self.addNode.setText(_translate("MainWindow", "添加节点"))
+        self.addLine.setText(_translate("MainWindow", "添加连线"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.TopoTab), _translate("MainWindow", "拓扑相关"))
         self.menu.setTitle(_translate("MainWindow", "菜单"))
         self.menu_2.setTitle(_translate("MainWindow", "编辑"))
         self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
@@ -136,7 +149,7 @@ class Ui_MainWindow(object):
         self.action_openDir.setText(_translate("MainWindow", "打开文件夹"))
         self.action_swi.setText(_translate("MainWindow", "切换视图"))
         self.action_reset.setText(_translate("MainWindow", "还原视图"))
-from GraphWidget import GraphWidget
+from GraphicWindow import GraphicWindow
 from serviceList import MyListView
 from serviceTable import MyTableView
 import resource_rc
