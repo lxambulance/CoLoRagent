@@ -12,6 +12,7 @@ class GraphicWindow(QWidget):
         super().__init__(parent)
         self.scene = topoGraphScene(self)
         self.view = topoGraphView(self.scene, self)
+        self.addedgeenable = False
 
         # 设置最小大小
         self.setMinimumSize(400, 400)

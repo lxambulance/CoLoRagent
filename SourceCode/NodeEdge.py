@@ -24,10 +24,9 @@ class Node(QGraphicsItem):
         self.n2l = nlSignal()
 
         # 设置点可选中可移动
-        self.setFlag(self.ItemIsSelectable)
-        self.setFlag(self.ItemIsMovable)
+        self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
         # 设置缓存类型，与渲染速度有关。TODO：更有效的渲染方式
-        self.setCacheMode(self.DeviceCoordinateCache)
+        # self.setCacheMode(self.DeviceCoordinateCache)
 
         self.type = myType
         self.name = name or NodeName[myType]
@@ -40,14 +39,21 @@ class Node(QGraphicsItem):
         self.AS.append(node)
 
     def boundingRect(self):
+        if self.type < 0:
+            return QRectF(0,0,0,0)
         adjust = 2.0
         length = NodeBRectLen[self.type]
         return QRectF(QPointF(-length - adjust, -length - adjust),
                       QPointF(length + adjust, length + adjust))
 
     def paint(self, painter, option, widget):
+        if self.type < 0:
+            return
         length = NodeBRectLen[self.type]
         qimagestr = NodeImageStr[self.type]
+        painter.setPen(QPen(Qt.yellow, 2))
+        if self.isSelected():
+            painter.drawRect(self.boundingRect())
         painter.drawImage(-length, -length, QImage(qimagestr))
 
         font = painter.font()
@@ -59,15 +65,24 @@ class Node(QGraphicsItem):
 
 class Edge(QGraphicsItem):
     ''' docstring: 边类，包含两个Node的指针，通过信号槽更新 '''
-    def __init__(self, n1, n2, *, myType = 0):
+    def __init__(self, n1, n2 = None, *, myType = 0):
         super().__init__()
         self.n1 = n1
-        self.n2 = n2
         self.n1.n2l.nl.connect(self.update)
-        self.n2.n2l.nl.connect(self.update)
+        if n2 is not None:
+            self.n2 = n2
+            self.n2.n2l.nl.connect(self.update)
+        else:
+            self.n2 = n1
         self.setZValue(0)
         # TODO: 通过记号决定画的线的类型，虚线或实线
         self.type = myType
+
+    def setEdgeDst(self, dst):
+        ''' docstring: 设置边n2点位置，初始化时允许为None '''
+        self.n2 = dst
+        self.n2.n2l.nl.connect(self.update)
+        self.update()
 
     def changeType(self, newType):
         ''' docstring: 边类型改变，触发更新 '''
@@ -75,6 +90,7 @@ class Edge(QGraphicsItem):
         self.update()
 
     def boundingRect(self):
+        # TODO: 修改边选中框为线条
         adjust = 2.0
         mx = min(self.n1.scenePos().x(), self.n2.scenePos().x())
         Mx = max(self.n1.scenePos().x(), self.n2.scenePos().x())
@@ -84,10 +100,13 @@ class Edge(QGraphicsItem):
                       QPointF(Mx + adjust, My + adjust))
 
     def paint(self, painter, option, widget):
+        if self.n1.isSelected() or self.n2.isSelected():
+            painter.setPen(QPen(Qt.yellow, 4))
+            painter.drawLine(self.n1.scenePos(), self.n2.scenePos())
         if (self.type == 1):
-            pen = QPen(QColor('#cc0099'), 2)
+            pen = QPen(QColor('#cc0000'), 2)
             pen.setStyle(Qt.DashDotDotLine)
         else:
-            pen = QPen(Qt.black, 2)
+            pen = QPen(QColor('#0099ff'), 2)
         painter.setPen(pen)
         painter.drawLine(self.n1.scenePos(), self.n2.scenePos())

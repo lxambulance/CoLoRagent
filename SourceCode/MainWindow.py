@@ -132,6 +132,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_openfolder.triggered.connect(self.openFolder)
         self.button_addfile.triggered.connect(self.addItem)
 
+        self.scaling.clicked.connect(self.setTopoSize)
+        self.addLine.clicked.connect(self.setTopoEdgeEnable)
+
+    def setTopoEdgeEnable(self):
+        self.graphics.addedgeenable = True
+
+    def setTopoSize(self, s):
+        ''' docstring: 设置拓扑图大小 '''
+        if s:
+            self.scaling.setText('还原')
+            self.splitter_horizon.setSizes([200,200,600])
+            self.splitter_vertical.setSizes([800,400])
+        else:
+            self.scaling.setText('放大')
+            self.resetView()
+
     def setSelectItem(self, items):
         if len(items) == 0:
             self.selectItems = []

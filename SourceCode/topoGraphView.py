@@ -14,7 +14,11 @@ class topoGraphView(QGraphicsView):
 
         # 设置场景坐标
         self.setScene(scene)
-        scene.setSceneRect(-200, -200, 400, 400)
+        scene.setSceneRect(-1000, -1000, 2000, 2000)
+        self.newEdge = None
+        self.dstNode = Node(myType = -1)
+        self.scene().addItem(self.dstNode)
+
         # 设置视图更新模式，可以只更新矩形框，也可以全部更新 TODO: 更新效率
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
         # 设置渲染属性
@@ -34,7 +38,7 @@ class topoGraphView(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setDragMode(self.RubberBandDrag)
 
-        self._color_background = QColor('#ffffff')
+        self._color_background = QColor('#4d4d4d')
         self.setBackgroundBrush(self._color_background)
     
     def getItemAtClick(self, event):
@@ -49,7 +53,34 @@ class topoGraphView(QGraphicsView):
         if event.button() == Qt.LeftButton:
             item = self.getItemAtClick(event)
             if isinstance(item, Node):
-                print(f"Node[{item.type}]")
+                print(f"clicked Node[{item.type}]")
+                if self.parent().addedgeenable and item.type < 3:
+                    self.newEdge = Edge(item)
+                    self.scene().addItem(self.newEdge)
+    
+    def mouseMoveEvent(self, event):
+        ''' docstring: 鼠标移动事件 '''
+        super().mouseMoveEvent(event)
+        if self.newEdge is not None and self.parent().addedgeenable:
+            pos = event.pos()
+            scenepos = self.mapToScene(pos)
+            self.dstNode.setPos(scenepos)
+            # TODO: 更好的EdgeDst更新方式
+            self.newEdge.setEdgeDst(self.dstNode)
+    
+    def mouseReleaseEvent(self, event):
+        ''' docstring: 鼠标回弹事件 '''
+        super().mouseReleaseEvent(event)
+        if self.parent().addedgeenable:
+            self.parent().addedgeenable = False
+            if self.newEdge is not None:
+                item = self.getItemAtClick(event)
+                if isinstance(item, Node):
+                    self.newEdge.setEdgeDst(item)
+                    self.scene().edge.append(self.newEdge)
+                else:
+                    self.scene().removeItem(self.newEdge)
+                self.newEdge = None
 
     def keyPressEvent(self, event):
         ''' docstring: 键盘按压事件 '''
