@@ -19,6 +19,8 @@
 
 作为git练习，dev分支可能会出现许多无聊地、甚至错误地提交。
 
+warning: proxylib后端耦合度太高，可以适当拆分。但重构他人代码可能是大忌，修改的同时容易埋更多bug，不建议修改，能用就行。
+
 ## 界面需求分析
 
 ### 主界面功能
@@ -46,6 +48,16 @@
 ### 易用性
 
 主要还是体现在图形化界面操作和收发包显示上。
+
+#### Topological graphic配色说明
+
+router，带天线路由器，灰白
+
+BR，带端口路由器，灰蓝
+
+RM，服务器，黄蓝
+
+虚线，虚连接（不知道具体连接），红
 
 ## 前端数据文件存储
 
@@ -261,6 +273,8 @@ The view has a [setItemDelegate()](https://doc.qt.io/qt-5/qabstractitemview.html
 - Managing item state, such as selection and focus handling
 - Providing untransformed rendering functionality; mainly for printing
 
+Qt provides four classes for handling image data: QImage , QPixmap , QBitmap and QPicture . QImage is designed and optimized for I/O, and for direct pixel access and manipulation, while QPixmap is designed and optimized for showing images on screen. QBitmap is only a convenience class that inherits QPixmap , ensuring a depth of 1. Finally, the QPicture class is a paint device that records and replays QPainter commands.
+
 #### Extra data signal
 
 占坑
@@ -339,6 +353,17 @@ obj = json.load(fp)
 |     true     |  True  |
 |    false     | False  |
 |     null     |  None  |
+
+### pylint代码书写规则
+
+1. 模块，类，函数都要用格式'''docstring:...'''写docstring且不能为空，描述相应对象用来做什么即可
+2. 模块命名采用snake_case naming style，即单词用小写，连接单词用下划线
+3. 类命名采用PascalCase naming style，即类名第一个字母大写，其他小写
+4. 代码块最后多且仅多一行
+5. 等号左右都有空格
+6. 用逗号分隔参数时，逗号后要有一个空格
+7. 一个类最好至少两个public函数
+8. constant常量用全大写来命名
 
 ### git
 

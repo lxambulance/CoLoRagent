@@ -5,11 +5,9 @@ import sys
 
 import ColorMonitor as CM
 
-from PyQt5.QtWidgets import QApplication
+from MainWindow import MainWindow, CoLoRApp
 
-from MainWindow import MainWindow
-
-import time
+# import time
 
 try:
     # Include in try/except block if you're also targeting Mac/Linux
@@ -24,19 +22,20 @@ if __name__ == '__main__':
     CM.PL.IPv4 = '10.0.0.5'
     CM.PL.Nid = 0x11111111111111111111111111111110
 
-    app = QApplication([])
+    app = CoLoRApp(sys.argv)
     window = MainWindow()
+    app.setConnection(window)
 
     thread_monitor = CM.Monitor(window.handleMessageFromPkt)
     thread_monitor.setDaemon(True)
     thread_monitor.start()
-    
+
     # time.sleep(2)
     # CM.PL.AddCacheSidUnit('F:\\ProjectCloud\\test\\testfile1.txt',1,1,1,1)
     # CM.PL.SidAnn()
     # time.sleep(2)
     # SID = hex(CM.PL.Nid).replace('0x', '').zfill(32) + CM.PL.Sha1Hash('F:\\ProjectCloud\\test\\testfile1.txt')
     # CM.PL.Get(SID, 'F:\\ProjectCloud\\test.txt')
-    
+
     window.show()
     sys.exit(app.exec_())

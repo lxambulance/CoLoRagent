@@ -14,7 +14,8 @@
    <string>CoLoRagent</string>
   </property>
   <property name="windowIcon">
-   <iconset theme=":/icon/color"/>
+   <iconset theme=":/icon/color">
+    <normaloff>.</normaloff>.</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -37,10 +38,10 @@
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
-       <widget class="GraphWidget" name="graphics"/>
+       <widget class="GraphicWindow" name="graphics" native="true"/>
        <widget class="QTabWidget" name="tabWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="baseTab">
          <attribute name="title">
@@ -67,15 +68,45 @@ p, li { white-space: pre-wrap; }
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="MoreTab">
+        <widget class="QWidget" name="TopoTab">
          <attribute name="title">
-          <string>更多信息</string>
+          <string>拓扑相关</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <item>
-           <widget class="QLabel" name="label">
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="2" column="0">
+           <widget class="QPushButton" name="addNode">
             <property name="text">
-             <string>TODO</string>
+             <string>添加节点</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QComboBox" name="nodeType">
+            <property name="currentText">
+             <string/>
+            </property>
+            <property name="currentIndex">
+             <number>-1</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QPushButton" name="scaling">
+            <property name="text">
+             <string>放大</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QPushButton" name="addLine">
+            <property name="text">
+             <string>添加连线</string>
+            </property>
+            <property name="checkable">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -116,8 +147,18 @@ p, li { white-space: pre-wrap; }
     <addaction name="action_del"/>
     <addaction name="action_openDir"/>
    </widget>
+   <widget class="QMenu" name="menu_3">
+    <property name="title">
+     <string>主题</string>
+    </property>
+    <addaction name="actionWindows"/>
+    <addaction name="actionwindowsvista"/>
+    <addaction name="actionFusion"/>
+    <addaction name="actionQdarkstyle"/>
+   </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
+   <addaction name="menu_3"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -187,6 +228,26 @@ p, li { white-space: pre-wrap; }
     <string>还原视图</string>
    </property>
   </action>
+  <action name="actionWindows">
+   <property name="text">
+    <string>Windows</string>
+   </property>
+  </action>
+  <action name="actionFusion">
+   <property name="text">
+    <string>Fusion</string>
+   </property>
+  </action>
+  <action name="actionQdarkstyle">
+   <property name="text">
+    <string>Qdarkstyle</string>
+   </property>
+  </action>
+  <action name="actionwindowsvista">
+   <property name="text">
+    <string>WindowsVista</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -200,9 +261,10 @@ p, li { white-space: pre-wrap; }
    <header>serviceList</header>
   </customwidget>
   <customwidget>
-   <class>GraphWidget</class>
-   <extends>QGraphicsView</extends>
-   <header>GraphWidget</header>
+   <class>GraphicWindow</class>
+   <extends>QWidget</extends>
+   <header location="global">GraphicWindow</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>
