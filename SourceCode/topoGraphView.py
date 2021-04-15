@@ -38,7 +38,7 @@ class topoGraphView(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setDragMode(self.RubberBandDrag)
 
-        self._color_background = QColor('#4d4d4d')
+        self._color_background = QColor('#eee5ff')
         self.setBackgroundBrush(self._color_background)
     
     def getItemAtClick(self, event):

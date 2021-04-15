@@ -32,6 +32,38 @@ import ProxyLib as PL
 import json
 import time
 
+import qdarkstyle as qds
+
+class CoLoRApp(QApplication):
+    ''' docstring: CoLoR应用类 '''
+    def __init__(self, argv):
+        super().__init__(argv)
+        self.setStyle('Fusion')
+    
+    def setConnection(self, window):
+        ''' docstring: 设置连接 '''
+        window.actionWindows.triggered.connect(self._setStyle)
+        window.actionwindowsvista.triggered.connect(self._setStyle)
+        window.actionFusion.triggered.connect(self._setStyle)
+        window.actionQdarkstyle.triggered.connect(self._setStyle)
+        self.w = window
+
+    def _setStyle(self):
+        ''' docstring: 切换格式 '''
+        # 取消qss格式
+        self.setStyleSheet('')
+        self.w.graphics.setBackground('#eee5ff')
+        # 获取信号发起者名称，前6位为action，后面是相应主题名
+        tmp = self.sender().objectName()[6:]
+        # print(tmp)
+        if tmp in QStyleFactory.keys():
+            self.setStyle(tmp)
+        elif tmp == 'Qdarkstyle':
+            self.setStyleSheet(qds.load_stylesheet_pyqt5())
+            self.w.graphics.setBackground('#4d4d4d')
+        else:
+            self.w.showStatus('该系统下没有 主题 <' + tmp + '>')
+
 class MainWindow(QMainWindow, Ui_MainWindow):
     ''' docstring: class MainWindow '''
 

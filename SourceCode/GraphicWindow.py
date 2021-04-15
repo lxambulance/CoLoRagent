@@ -2,6 +2,7 @@
 ''' docstring: scene/view模型框架 '''
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from PyQt5.QtGui import QColor
 
 from topoGraphView import topoGraphView
 from topoGraphScene import topoGraphScene
@@ -25,6 +26,13 @@ class GraphicWindow(QWidget):
         self.scene.initTopo_old()
         self.view.scaleView(0.6)
         self.scene.edge[0].changeType(0)
+    
+    def saveTopo(self, path):
+        self.scene.saveTopo(path)
+
+    def setBackground(self, colorstr):
+        self.view._color_background = QColor(colorstr)
+        self.view.setBackgroundBrush(self.view._color_background)
         
 if __name__ == "__main__":
     import sys

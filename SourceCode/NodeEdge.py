@@ -41,7 +41,7 @@ class Node(QGraphicsItem):
     def boundingRect(self):
         if self.type < 0:
             return QRectF(0,0,0,0)
-        adjust = 2.0
+        adjust = 4.0
         length = NodeBRectLen[self.type]
         return QRectF(QPointF(-length - adjust, -length - adjust),
                       QPointF(length + adjust, length + adjust))
@@ -51,8 +51,8 @@ class Node(QGraphicsItem):
             return
         length = NodeBRectLen[self.type]
         qimagestr = NodeImageStr[self.type]
-        painter.setPen(QPen(Qt.yellow, 2))
         if self.isSelected():
+            painter.setPen(QPen(Qt.yellow, 4))
             painter.drawRect(self.boundingRect())
         painter.drawImage(-length, -length, QImage(qimagestr))
 
@@ -101,12 +101,12 @@ class Edge(QGraphicsItem):
 
     def paint(self, painter, option, widget):
         if self.n1.isSelected() or self.n2.isSelected():
-            painter.setPen(QPen(Qt.yellow, 4))
+            painter.setPen(QPen(QColor('#99ff99'), 12))
             painter.drawLine(self.n1.scenePos(), self.n2.scenePos())
         if (self.type == 1):
-            pen = QPen(QColor('#cc0000'), 2)
+            pen = QPen(QColor('#00cc00'), 4)
             pen.setStyle(Qt.DashDotDotLine)
         else:
-            pen = QPen(QColor('#0099ff'), 2)
+            pen = QPen(QColor('#0099ff'), 4)
         painter.setPen(pen)
         painter.drawLine(self.n1.scenePos(), self.n2.scenePos())
