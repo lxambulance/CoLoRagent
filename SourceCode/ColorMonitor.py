@@ -127,7 +127,7 @@ class PktHandler(threading.Thread):
                 elif (data[0] == 0x73):
                     # 收到网络中的data报文(ACK)
                     # 校验和检验
-                    HeaderLength = data[2] + (data[3] << 8)
+                    HeaderLength = data[6]
                     CS = PL.CalculateCS(data[0:HeaderLength])
                     if(CS != 0):
                         return
