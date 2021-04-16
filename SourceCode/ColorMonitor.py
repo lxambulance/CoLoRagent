@@ -191,7 +191,7 @@ class PktHandler(threading.Thread):
                                 self.signals.output.emit(1, 
                                     "未知的NID：" + hex(RecvDataPkt.nid_pro).replace('0x', '').zfill(32))
                         else:
-                            PX = RecvDataPkt.PIDs[1] >> 112
+                            PX = RecvDataPkt.PIDs[1] >> 16
                             if (PX in PL.PXs.keys()):
                                 ReturnIP = PL.PXs[PX]
                             else:
@@ -227,7 +227,7 @@ class PktHandler(threading.Thread):
                                     self.signals.output(
                                         "未知的NID：" + hex(SendingSid[NewSid][3]).replace('0x', '').zfill(32))
                             else:
-                                PX = SendingSid[NewSid][4][-1] >> 112
+                                PX = SendingSid[NewSid][4][-1] >> 16
                                 if (PX in PL.PXs.keys()):
                                     ReturnIP = PL.PXs[PX]
                                 else:
