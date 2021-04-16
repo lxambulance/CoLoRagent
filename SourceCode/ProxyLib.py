@@ -225,7 +225,7 @@ class ControlPkt():
                 for i in range(NumBRs):
                     tempPX = 0
                     for j in range(2):
-                        tempPX = (tempPX << 8) + Pkt[pointer]
+                        tempPX += (Pkt[pointer] << (8*j))
                         pointer += 1
                     tempIP = ''
                     for j in range(4):
@@ -443,7 +443,7 @@ class DataPkt():
             for i in range(self.PID_num + self.R):
                 tempPID = 0
                 for j in range(4):
-                    tempPID += tempPID << 8 + Pkt[pointer]
+                    tempPID += (Pkt[pointer] << (8*j))
                     pointer += 1
                 self.PIDs.append(tempPID)
             while(pointer < len(Pkt)):
@@ -542,7 +542,7 @@ class DataPkt():
         if(self.S == 1):
             TarRest += ConvertInt2Bytes_LE(self.SegID, 4)
         for pid in self.PIDs:
-            TarRest += ConvertInt2Bytes(pid, 4)
+            TarRest += ConvertInt2Bytes_LE(pid, 4)
         TarRest += self.load
         Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
         TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
@@ -632,7 +632,7 @@ class GetPkt():
             for i in range(self.PID_num):
                 tempPID = 0
                 for j in range(4):
-                    tempPID += tempPID << 8 + Pkt[pointer]
+                    tempPID += (Pkt[pointer] << (8*j))
                     pointer += 1
                 self.PIDs.append(tempPID)
         elif (flag == 1):
