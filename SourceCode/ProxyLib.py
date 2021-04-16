@@ -543,10 +543,10 @@ class DataPkt():
             TarRest += ConvertInt2Bytes_LE(self.SegID, 4)
         for pid in self.PIDs:
             TarRest += ConvertInt2Bytes_LE(pid, 4)
-        TarRest += self.load
+        # TarRest += self.load
         Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
         TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
-        Tar = TarPre + TarCS + TarRest  # 计算出校验和的字节串
+        Tar = TarPre + TarCS + TarRest + self.load  # 计算出校验和的字节串
         # 封装并返回
         self.Pkt = Tar
         return self.Pkt
