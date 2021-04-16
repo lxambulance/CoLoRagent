@@ -23,10 +23,8 @@ if __name__ == '__main__':
     CM.PL.Nid = 0x11111111111111111111111111111110
 
     app = CoLoRApp(sys.argv)
-    window = MainWindow()
-    app.setConnection(window)
 
-    thread_monitor = CM.Monitor(window.handleMessageFromPkt)
+    thread_monitor = CM.Monitor(app.window.handleMessageFromPkt)
     thread_monitor.setDaemon(True)
     thread_monitor.start()
 
@@ -37,5 +35,4 @@ if __name__ == '__main__':
     # SID = hex(CM.PL.Nid).replace('0x', '').zfill(32) + CM.PL.Sha1Hash('F:\\ProjectCloud\\test\\testfile1.txt')
     # CM.PL.Get(SID, 'F:\\ProjectCloud\\test.txt')
 
-    window.show()
     sys.exit(app.exec_())
