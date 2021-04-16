@@ -73,40 +73,92 @@ p, li { white-space: pre-wrap; }
           <string>拓扑相关</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout">
-          <item row="2" column="0">
-           <widget class="QPushButton" name="addNode">
-            <property name="text">
-             <string>添加节点</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QComboBox" name="nodeType">
-            <property name="currentText">
-             <string/>
-            </property>
-            <property name="currentIndex">
-             <number>-1</number>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="0">
-           <widget class="QPushButton" name="scaling">
-            <property name="text">
-             <string>放大</string>
+           <widget class="QSplitter" name="splitter_vertical_tab">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
+            <widget class="QWidget" name="layoutWidget">
+             <layout class="QFormLayout" name="formLayout">
+              <item row="0" column="0">
+               <widget class="QPushButton" name="scaling">
+                <property name="text">
+                 <string>放大</string>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QPushButton" name="addNode">
+                <property name="text">
+                 <string>添加节点</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QComboBox" name="nodeType">
+                <property name="currentText">
+                 <string/>
+                </property>
+                <property name="currentIndex">
+                 <number>-1</number>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QPushButton" name="addLine">
+                <property name="text">
+                 <string>添加连线</string>
+                </property>
+                <property name="checkable">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QPushButton" name="choosePath">
+                <property name="text">
+                 <string>指定路径</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QLineEdit" name="lineEdit">
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QTreeWidget" name="dataPktReceive">
+             <property name="minimumSize">
+              <size>
+               <width>300</width>
+               <height>300</height>
+              </size>
+             </property>
+             <column>
+              <property name="text">
+               <string notr="true">1</string>
+              </property>
+             </column>
+            </widget>
            </widget>
           </item>
-          <item row="3" column="0">
-           <widget class="QPushButton" name="addLine">
+         </layout>
+        </widget>
+        <widget class="QWidget" name="otherTab">
+         <attribute name="title">
+          <string>其他</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="0" column="0">
+           <widget class="QLabel" name="todo">
             <property name="text">
-             <string>添加连线</string>
-            </property>
-            <property name="checkable">
-             <bool>false</bool>
+             <string>TODO</string>
             </property>
            </widget>
           </item>

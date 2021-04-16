@@ -2,45 +2,45 @@
 ''' docstring: CoLoR Pan主页 '''
 
 # 添加文件路径../
-import os, sys, math, time
-__BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
+import qdarkstyle as qds
+import time
+import json
+import ProxyLib as PL
+from ProxyLib import (
+    Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
+    SidAnn, Get, CacheSidUnits
+)
+from worker import worker
+import FileData
+from serviceTable import serviceTableModel, progressBarDelegate
+from serviceList import serviceListModel
+from AddItemWindow import AddItemWindow
+from mainPage import Ui_MainWindow
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+import os
+import sys
+import math
+import time
+
+__BASE_DIR = os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
 DATA_DIR = __BASE_DIR + '/data.db'
 starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
 LOG_DIR = __BASE_DIR + f'/{starttime}.log'
 
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-
-from mainPage import Ui_MainWindow
-
-from AddItemWindow import AddItemWindow
-from serviceList import serviceListModel
-from serviceTable import serviceTableModel, progressBarDelegate
-
-import FileData
-from worker import worker
-
-from ProxyLib import (
-    Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
-    SidAnn, Get, CacheSidUnits
-)
-# TODO: 在Get中写入Nid？
-import ProxyLib as PL
-import json
-import time
-
-import qdarkstyle as qds
 
 class CoLoRApp(QApplication):
     ''' docstring: CoLoR应用类 '''
+
     def __init__(self, argv):
         super().__init__(argv)
         self.setStyle('Fusion')
         self.window = MainWindow()
-    
+
         # 设置连接
         self.window.actionWindows.triggered.connect(self._setStyle)
         self.window.actionwindowsvista.triggered.connect(self._setStyle)
@@ -65,12 +65,15 @@ class CoLoRApp(QApplication):
         else:
             self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
 
+
 class MainWindow(QMainWindow, Ui_MainWindow):
     ''' docstring: class MainWindow '''
 
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
+        # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
 
         # 添加右键菜单
@@ -84,12 +87,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.addAction(self.action_del)
         self.listView.addAction(self.action_openDir)
         self.tableView.addAction(self.action_openDir)
-        
+
         # 添加toolbar按钮
         self.button_swi = QAction(QIcon(":/icon/switchView"), "切换", self)
         self.button_swi.setStatusTip("视图切换")
         self.toolBar.addAction(self.button_swi)
-        self.button_openfolder = QAction(QIcon(":/icon/openFolder"), "打开", self)
+        self.button_openfolder = QAction(
+            QIcon(":/icon/openFolder"), "打开", self)
         self.button_openfolder.setStatusTip("打开文件夹")
         self.toolBar.addAction(self.button_openfolder)
         self.button_addfile = QAction(QIcon(":/icon/addFile"), "添加", self)
@@ -100,7 +104,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.selectItems = []
 
         # 使用自定义模型
-        self.fd = FileData.FileData(nid = self.nid)
+        self.fd = FileData.FileData(nid=self.nid)
         try:
             self.fd.load()
         except:
@@ -125,15 +129,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.setColumnWidth(3, 100)
         self.tableView.setColumnWidth(4, 100)
         # self.graphics.loadTopo(DATA_DIR) # 载入拓扑图
-        self.graphics.initTopo_old() # 人工设置拓扑图
+        self.graphics.initTopo_old()  # 人工设置拓扑图
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
         self.tableView.hide()
-        self.splitter_horizon.setSizes([400,400,400])
-        self.splitter_vertical.setSizes([400,800])
+        self.splitter_horizon.setSizes([400, 400, 400])
+        self.splitter_vertical.setSizes([400, 800])
 
-        # 设置线程池
+        # 设置线程池 TODO: 线程池放到窗口外面
         self.threadpool = QThreadPool()
 
         # 尝试新建文件仓库
@@ -168,6 +172,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scaling.clicked.connect(self.setTopoSize)
         self.addLine.clicked.connect(self.setTopoEdgeEnable)
 
+    def getPathFromPkt(self, Type, name, paths):
+        print(Type, name, paths)
+
     def setTopoEdgeEnable(self):
         self.graphics.addedgeenable = True
 
@@ -175,8 +182,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 设置拓扑图大小 '''
         if s:
             self.scaling.setText('还原')
-            self.splitter_horizon.setSizes([200,200,600])
-            self.splitter_vertical.setSizes([800,400])
+            self.splitter_horizon.setSizes([200, 200, 600])
+            self.splitter_vertical.setSizes([800, 400])
         else:
             self.scaling.setText('放大')
             self.resetView()
@@ -228,7 +235,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if os.path.isfile(item_str):
                     item = item_str.replace('\\', '/')
                     pos = item.rfind('/')
-                    self.fd.setItem(filename = item[pos+1:], filepath = item)
+                    self.fd.setItem(filename=item[pos+1:], filepath=item)
                 elif os.path.isdir(item_str):
                     # TODO: 支持文件夹
                     pass
@@ -247,7 +254,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # print(s)
             self.fd.setData(row, 2, s)
             a = self.tablemodel.createIndex(row, 2)
-            self.tablemodel.dataChanged.emit(a,a)
+            self.tablemodel.dataChanged.emit(a, a)
         return result
 
     def delItem(self):
@@ -257,12 +264,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             nowSelectItems = self.selectItems.copy()
             delitemworker = worker(0, self.delItem_multi, nowSelectItems)
-            delitemworker.signals.finished.connect(lambda:self.modelViewUpdate())
-            delitemworker.signals.finished.connect(lambda:self.showStatus('条目已删除'))
+            delitemworker.signals.finished.connect(
+                lambda: self.modelViewUpdate())
+            delitemworker.signals.finished.connect(
+                lambda: self.showStatus('条目已删除'))
             self.threadpool.start(delitemworker)
-    
+
     def delItem_multi(self, items):
-        items.sort(reverse = True)
+        items.sort(reverse=True)
         # print(items)
         for item in items:
             if not self.fd.getData(item, 0):
@@ -277,10 +286,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             nowSelectItems = self.selectItems.copy()
             dowitemworker = worker(1, self.dowItem_multi, nowSelectItems)
             for item in nowSelectItems:
-                dowitemworker.signals.progress.connect(self.updateProgress(item, 4))
-            dowitemworker.signals.finished.connect(lambda:self.showStatus('条目已下载'))
+                dowitemworker.signals.progress.connect(
+                    self.updateProgress(item, 4))
+            dowitemworker.signals.finished.connect(
+                lambda: self.showStatus('条目已下载'))
             self.threadpool.start(dowitemworker)
-    
+
     def dowItem_multi(self, items, progress_callback):
         total = len(items)
         now = 0
@@ -317,8 +328,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             nowSelectItem = self.selectItems.copy()
             regitemworker = worker(1, self.regItem_multi, nowSelectItem)
             for item in nowSelectItem:
-                regitemworker.signals.progress.connect(self.updateProgress(item, 3))
-            regitemworker.signals.finished.connect(lambda:self.showStatus('条目已通告'))
+                regitemworker.signals.progress.connect(
+                    self.updateProgress(item, 3))
+            regitemworker.signals.finished.connect(
+                lambda: self.showStatus('条目已通告'))
             self.threadpool.start(regitemworker)
 
     def regItem_multi(self, items, progress_callback):
@@ -345,10 +358,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             nowSelectItem = self.selectItems.copy()
             undoregworker = worker(1, self.undoRegItem_multi, nowSelectItem)
             for item in nowSelectItem:
-                undoregworker.signals.progress.connect(self.updateProgress(item, 3))
-            undoregworker.signals.finished.connect(lambda:self.showStatus('条目已取消通告'))
+                undoregworker.signals.progress.connect(
+                    self.updateProgress(item, 3))
+            undoregworker.signals.finished.connect(
+                lambda: self.showStatus('条目已取消通告'))
             self.threadpool.start(undoregworker)
-    
+
     def undoRegItem_multi(self, items, progress_callback):
         total = len(items)
         now = total
@@ -369,7 +384,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         def main(value):
             self.fd.setData(row, column, value)
             a = self.tablemodel.createIndex(row, column)
-            self.tablemodel.dataChanged.emit(a,a)
+            self.tablemodel.dataChanged.emit(a, a)
         return main
 
     def switchView(self):
@@ -388,8 +403,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 恢复初始视图格式 '''
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
-        self.splitter_horizon.setSizes([400,400,400])
-        self.splitter_vertical.setSizes([400,800])
+        self.splitter_horizon.setSizes([400, 400, 400])
+        self.splitter_vertical.setSizes([400, 800])
 
     def openHub(self):
         ''' docstring: 打开本地仓库 '''
@@ -411,7 +426,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
         filepath = tmp[:tmp.rfind('/')]
         openfolderworker = worker(0, os.startfile, filepath)
-        openfolderworker.signals.finished.connect(lambda:self.showStatus('文件已打开'))
+        openfolderworker.signals.finished.connect(
+            lambda: self.showStatus('文件已打开'))
         self.threadpool.start(openfolderworker)
 
     def importData(self):
@@ -466,7 +482,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             data = json.loads(fcontent)
         except:
             return ret + '非JSON格式文件\n'
-        ret += json.dumps(data, sort_keys=True, indent=4, separators=(', ',': '))
+        ret += json.dumps(data, sort_keys=True, indent=4,
+                          separators=(', ', ': '))
         return ret
 
     def handleMessageFromPkt(self, messageType, message):

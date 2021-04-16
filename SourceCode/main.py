@@ -24,7 +24,10 @@ if __name__ == '__main__':
 
     app = CoLoRApp(sys.argv)
 
-    thread_monitor = CM.Monitor(app.window.handleMessageFromPkt)
+    thread_monitor = CM.Monitor(
+        message = app.window.handleMessageFromPkt,
+        path = app.window.getPathFromPkt
+    )
     thread_monitor.setDaemon(True)
     thread_monitor.start()
 
