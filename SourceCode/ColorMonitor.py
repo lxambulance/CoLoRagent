@@ -15,21 +15,24 @@ RTO = 1  # 超时重传时间
 
 
 class pktSignals(QObject):
-    ''' docstring: pktHandler signals class '''
-
+    ''' docstring: 包处理的信号 '''
     # finished用于任务结束信号
     finished = pyqtSignal()
     # output用于输出信号
     output = pyqtSignal(int, object)
+    # pathdata用于输出路径相关信息
+    pathdata = pyqtSignal(int, str, object)
 
 
 class PktHandler(threading.Thread):
+    ''' docstring: 收包处理程序 '''
     packet = ''
 
     def __init__(self, packet):
         threading.Thread.__init__(self)
         self.packet = packet
-        # 请将所有需要输出(print())的内容改写为信号的发射(self.signals.output.emit())
+        # 请将所有需要输出print()的内容改写为信号的发射(self.signals.output.emit())
+        # TODO：异常情况调用traceback模块输出信息
         self.signals = pktSignals()
 
     def run(self):
@@ -38,7 +41,7 @@ class PktHandler(threading.Thread):
             PktLength = len(data)
             if(PL.RegFlag == 0):
                 # 注册中状态
-                # 过滤掉其他格式的包。TODO：异常情况调用traceback模块输出信息
+                # 过滤掉其他格式的包。
                 if PktLength < 8 or data[0] != 0x74 or data[5] != 6 or PktLength != (data[4] + data[6] + ((data[7]) << 8)):
                     return
                 # 校验和检验
@@ -57,7 +60,7 @@ class PktHandler(threading.Thread):
                 PL.RegFlag = 1
             elif(PL.RegFlag == 1):
                 # 正常运行状态
-                # 过滤掉其他格式的包。TODO：异常情况调用traceback模块输出信息
+                # 过滤掉其他格式的包。
                 if PktLength < 4:
                     return
                 if (data[0] == 0x72):
@@ -140,6 +143,8 @@ class PktHandler(threading.Thread):
                     if RecvDataPkt.L_sid != 0:
                         NewSid += hex(RecvDataPkt.L_sid).replace('0x',
                                                                  '').zfill(40)
+                    # 暂时将全部收到的校验和正确的data包显示出来
+                    self.signals.pathdata.emit(int(NewSid in PL.gets.keys()), NewSid, RecvDataPkt.PIDs)
                     if(RecvDataPkt.B == 0):
                         # 收到数据包，存储到本地并返回ACK
                         # 判断是否为当前代理请求内容
@@ -281,21 +286,23 @@ class ControlPktSender(threading.Thread):
 class Monitor(threading.Thread):
     ''' docstring: 自行实现的监听线程类，继承自线程类 '''
 
-    def __init__(self, dest_func):
+    def __init__(self, message = None, path = None):
         threading.Thread.__init__(self)
         # 需要绑定的目标函数，初始化时保存，后面绑定
-        self.dest_func = dest_func
+        self.message = message
+        self.path = path
 
     def parser(self, packet):
         ''' docstring: 调用通用语法解析器线程 '''
         GeneralHandler = PktHandler(packet)
         # 绑定输出到目标函数
-        GeneralHandler.signals.output.connect(self.dest_func)
+        GeneralHandler.signals.output.connect(self.message)
+        GeneralHandler.signals.pathdata.connect(self.path)
         GeneralHandler.start()
 
     def run(self):
         AnnSender = ControlPktSender()
-        AnnSender.signals.output.connect(self.dest_func)
+        AnnSender.signals.output.connect(self.message)
         AnnSender.signals.output.emit(0, "开启报文监听")
         AnnSender.start()
         # sniff(filter="ip", iface = "Realtek PCIe GBE Family Controller", prn=self.parser, count=0)
