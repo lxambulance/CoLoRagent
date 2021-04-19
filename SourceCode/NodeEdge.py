@@ -8,10 +8,11 @@ from PyQt5.QtGui import QPen, QColor, QImage
 import resource_rc
 
 NodeTypeLen = 5
-NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR', ':/icon/router', ':/icon/switching']
-NodeZValue = [-50, 4, 3, 2, 1]
+NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR', 
+    ':/icon/router', ':/icon/switching']
+NodeZValue = [-50, 3, 3, 3, 3]
 NodeName = ['cloud', 'RM', 'BR', 'router', 'switch']
-NodeSize = [32, 32, 32, 32, 32]
+NodeSize = [512, 64, 64, 64, 64]
 
 class nlSignal(QObject):
     ''' docstring: 用于Node触发Line更新的信号 '''
@@ -19,7 +20,7 @@ class nlSignal(QObject):
 
 class Node(QGraphicsItem):
     ''' docstring: 点类 '''
-    def __init__(self, *, nodetype = 0, nodename = None, nodesize = 0, nodenid = 0):
+    def __init__(self, *, nodetype = 0, nodename = None, nodesize = 0, nodenid = None):
         super().__init__()
         self.n2l = nlSignal()
 
@@ -32,7 +33,7 @@ class Node(QGraphicsItem):
         self.name = nodename or NodeName[nodetype]
         self.size = nodesize or NodeSize[nodetype]
         self.nid = nodenid
-        # TODO: nid==0需要特殊处理
+        # TODO: nid==None需要特殊处理
 
         self.setZValue(NodeZValue[nodetype])
 
@@ -40,22 +41,20 @@ class Node(QGraphicsItem):
         if self.type < 0:
             return QRectF(0,0,0,0)
         adjust = 4.0
-        length = self.size
+        length = self.size / 2
         return QRectF(QPointF(-length - adjust, -length - adjust),
                       QPointF(length + adjust, length + adjust))
 
     def paint(self, painter, option, widget):
         if self.type < 0:
             return
-        length = self.size
+        length = self.size / 2
         qimagestr = NodeImageStr[self.type]
         if self.isSelected():
             painter.setPen(QPen(Qt.yellow, 4))
             painter.drawRect(self.boundingRect())
-            print(self.type, self.size)
-        img = QImage(qimagestr)
-        if self.type == 0:
-            img = img.scaled(self.size, self.size)
+            # print(self.type, self.size)
+        img = QImage(qimagestr).scaled(self.size, self.size)
         painter.drawImage(-length, -length, img)
 
         font = painter.font()
@@ -67,7 +66,7 @@ class Node(QGraphicsItem):
 
 class Edge(QGraphicsItem):
     ''' docstring: 边类，包含两个Node的指针，通过信号槽更新 '''
-    def __init__(self, n1, n2 = None, *, myType = 0):
+    def __init__(self, n1, n2 = None, *, linetype = 0):
         super().__init__()
         self.n1 = n1
         self.n1.n2l.nl.connect(self.update)
@@ -77,8 +76,8 @@ class Edge(QGraphicsItem):
         else:
             self.n2 = n1
         self.setZValue(0)
-        # TODO: 通过记号决定画的线的类型，虚线或实线
-        self.type = myType
+        # TODO: 通过记号决定画的线的类型，虚线1或实线0
+        self.type = linetype
 
     def setEdgeDst(self, dst):
         ''' docstring: 设置边n2点位置，初始化时允许为None '''

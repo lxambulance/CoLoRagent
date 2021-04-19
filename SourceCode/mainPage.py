@@ -19,8 +19,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.gridLayout_3 = QtWidgets.QGridLayout(self.centralwidget)
+        self.gridLayout_3.setObjectName("gridLayout_3")
         self.splitter_horizon = QtWidgets.QSplitter(self.centralwidget)
         self.splitter_horizon.setOrientation(QtCore.Qt.Vertical)
         self.splitter_horizon.setObjectName("splitter_horizon")
@@ -35,6 +35,8 @@ class Ui_MainWindow(object):
         self.splitter_vertical.setObjectName("splitter_vertical")
         self.graphics = GraphicWindow(self.splitter_vertical)
         self.graphics.setObjectName("graphics")
+        self.graphics_local = GraphicWindow(self.splitter_vertical)
+        self.graphics_local.setObjectName("graphics_local")
         self.tabWidget = QtWidgets.QTabWidget(self.splitter_vertical)
         self.tabWidget.setObjectName("tabWidget")
         self.baseTab = QtWidgets.QWidget()
@@ -96,7 +98,11 @@ class Ui_MainWindow(object):
         self.todo.setObjectName("todo")
         self.gridLayout_2.addWidget(self.todo, 0, 0, 1, 1)
         self.tabWidget.addTab(self.otherTab, "")
+<<<<<<< HEAD
         self.verticalLayout_2.addWidget(self.splitter_horizon)
+=======
+        self.gridLayout_3.addWidget(self.splitter_horizon, 0, 0, 1, 1)
+>>>>>>> lx
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1200, 23))
@@ -162,7 +168,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menu_3.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         self.nodeType.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
