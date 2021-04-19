@@ -16,7 +16,7 @@ class topoGraphView(QGraphicsView):
         self.setScene(scene)
         scene.setSceneRect(-1000, -1000, 2000, 2000)
         self.newEdge = None
-        self.dstNode = Node(myType = -1)
+        self.dstNode = Node(nodetype = -1)
         self.scene().addItem(self.dstNode)
 
         # 设置视图更新模式，可以只更新矩形框，也可以全部更新 TODO: 更新效率

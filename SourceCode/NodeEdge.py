@@ -7,11 +7,11 @@ from PyQt5.QtGui import QPen, QColor, QImage
 
 import resource_rc
 
-NodeTypeLen = 4
-NodeName = ['router', 'BR', 'RM', 'cloud']
-NodeBRectLen = [32, 32, 32, 256]
-NodeImageStr = [':/icon/router', ':/icon/BR', ':/icon/RM', ':/icon/cloud']
-NodeZValue = [1, 2, 3, -1]
+NodeTypeLen = 5
+NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR', ':/icon/router', ':/icon/switching']
+NodeZValue = [-50, 4, 3, 2, 1]
+NodeName = ['cloud', 'RM', 'BR', 'router', 'switch']
+NodeSize = [32, 32, 32, 32, 32]
 
 class nlSignal(QObject):
     ''' docstring: 用于Node触发Line更新的信号 '''
@@ -19,7 +19,7 @@ class nlSignal(QObject):
 
 class Node(QGraphicsItem):
     ''' docstring: 点类 '''
-    def __init__(self, *, myType = 0, name = None, nid = -1):
+    def __init__(self, *, nodetype = 0, nodename = None, nodesize = 0, nodenid = 0):
         super().__init__()
         self.n2l = nlSignal()
 
@@ -28,33 +28,35 @@ class Node(QGraphicsItem):
         # 设置缓存类型，与渲染速度有关。TODO：更有效的渲染方式
         # self.setCacheMode(self.DeviceCoordinateCache)
 
-        self.type = myType
-        self.name = name or NodeName[myType]
-        self.setZValue(NodeZValue[myType])
-        self.nid = nid
-        # TODO：AS包含关系数据不要放在这里
-        self.AS = []
+        self.type = nodetype
+        self.name = nodename or NodeName[nodetype]
+        self.size = nodesize or NodeSize[nodetype]
+        self.nid = nodenid
+        # TODO: nid==0需要特殊处理
 
-    def addAS(self, node):
-        self.AS.append(node)
+        self.setZValue(NodeZValue[nodetype])
 
     def boundingRect(self):
         if self.type < 0:
             return QRectF(0,0,0,0)
         adjust = 4.0
-        length = NodeBRectLen[self.type]
+        length = self.size
         return QRectF(QPointF(-length - adjust, -length - adjust),
                       QPointF(length + adjust, length + adjust))
 
     def paint(self, painter, option, widget):
         if self.type < 0:
             return
-        length = NodeBRectLen[self.type]
+        length = self.size
         qimagestr = NodeImageStr[self.type]
         if self.isSelected():
             painter.setPen(QPen(Qt.yellow, 4))
             painter.drawRect(self.boundingRect())
-        painter.drawImage(-length, -length, QImage(qimagestr))
+            print(self.type, self.size)
+        img = QImage(qimagestr)
+        if self.type == 0:
+            img = img.scaled(self.size, self.size)
+        painter.drawImage(-length, -length, img)
 
         font = painter.font()
         font.setPixelSize(20)
