@@ -6,7 +6,7 @@
     <file alias="rar">rar.png</file>
     <file alias="RM">database-storage.png</file>
     <file alias="BR">router-br.png</file>
-    <file alias="router">router-wifi.png</file>
+    <file alias="router">router.png</file>
     <file alias="switching">switching.png</file>
     <file alias="cloud">weather-cloud.png</file>
     <file alias="tick">tick.png</file>

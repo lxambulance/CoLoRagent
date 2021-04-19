@@ -22,15 +22,19 @@ class GraphicWindow(QWidget):
         layout.addWidget(self.view)
         self.setLayout(layout)
     
-    def initTopo_old(self):
-        self.scene.initTopo_old()
+    def initTopo(self):
+        self.scene.initTopo_startest()
         self.view.scaleView(0.6)
-        self.scene.edge[0].changeType(0)
+        # self.scene.edge[0].changeType(0) # 测试修改功能
     
+    def loadTopo(self, path):
+        pass
+
     def saveTopo(self, path):
         self.scene.saveTopo(path)
 
     def setBackground(self, colorstr):
+        ''' docstring: 修改拓扑背景颜色以适配风格修改 '''
         self.view._color_background = QColor(colorstr)
         self.view.setBackgroundBrush(self.view._color_background)
         
@@ -40,6 +44,6 @@ if __name__ == "__main__":
 
     app = QApplication([])
     window = GraphicWindow()
-    window.initTopo_old()
+    window.initTopo()
     window.show()
     sys.exit(app.exec_())

@@ -73,6 +73,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
+        # TODO: 暂时放弃拓扑图添加节点与连线功能
+        self.addNode.hide()
+        self.addLine.hide()
+        self.nodeType.hide()
+
         # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
 
@@ -128,8 +133,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.setColumnWidth(2, 530)
         self.tableView.setColumnWidth(3, 100)
         self.tableView.setColumnWidth(4, 100)
-        # self.graphics.loadTopo(DATA_DIR) # 载入拓扑图
-        self.graphics.initTopo_old()  # 人工设置拓扑图
+        self.graphics.loadTopo(DATA_DIR) # 载入拓扑图
+        self.graphics.initTopo()  # 人工设置拓扑图
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
@@ -182,7 +187,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 设置拓扑图大小 '''
         if s:
             self.scaling.setText('还原')
-            self.splitter_horizon.setSizes([200, 200, 600])
+            self.splitter_horizon.setSizes([100, 100, 700])
             self.splitter_vertical.setSizes([800, 400])
         else:
             self.scaling.setText('放大')
@@ -217,11 +222,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if (ret) and (row != None):
             self.modelViewUpdate()
             # 计算hash值
-            filepath = self.fd.getData(row, 1)
-            hashworker = worker(0, Sha1Hash, filepath)
-            # print('start calc hash: ', filepath)
-            hashworker.signals.result.connect(self.calcHashRet(row))
-            self.threadpool.start(hashworker)
+            if not self.fd.getData(row, 2):
+                filepath = self.fd.getData(row, 1)
+                hashworker = worker(0, Sha1Hash, filepath)
+                # print('start calc hash: ', filepath)
+                hashworker.signals.result.connect(self.calcHashRet(row))
+                self.threadpool.start(hashworker)
             # 检查needReg，进行通告流程
             if needReg:
                 self.selectItems = [row]

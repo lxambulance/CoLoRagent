@@ -7,43 +7,44 @@ from PyQt5.QtWidgets import QGraphicsScene
 
 from NodeEdge import Node, Edge
 
+
 class topoGraphScene(QGraphicsScene):
     ''' docstring: 场景模型类 '''
-    def __init__(self, parent = None):
+
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.node = []
         self.edge = []
         self.AS = {}
         self.topo = {}
         self.data = {}
-    
+
     def initTopo(self):
         pass
 
-    def initTopo_old(self):
-        ''' docstring: 测试topu显示功能，画一个五角星 '''
+    def initTopo_startest(self):
+        ''' docstring: 测试topo显示功能，画一个五角星 '''
         for i in range(5):
             self.node.append(Node)
             if (i == 4):
-                self.node[i] = Node(myType = 2, nid = i)
+                self.node[i] = Node(nodetype=1)
             elif (i & 1):
-                self.node[i] = Node(myType = 0, nid = i)
+                self.node[i] = Node(nodetype=2)
             else:
-                self.node[i] = Node(myType = 1, nid = i)
+                self.node[i] = Node(nodetype=3)
             self.addItem(self.node[i])
             a = pi * 2 / 5
             R = 200
             x, y = round(cos(a*3/4+a*i) * R), round(sin(a*3/4+a*i) * R)
             self.node[i].setPos(x, y)
-        self.node.append(Node(myType = 3, nid = 5))
+        self.node.append(Node(nodetype=0))
         self.addItem(self.node[5])
 
         for i in range(5):
-            self.node[5].addAS(self.node[i])
             j = (i + 2) % 5
-            self.edge.append(Edge(self.node[i], self.node[j], myType = 1))
+            self.edge.append(Edge(self.node[i], self.node[j], myType=1))
             self.addItem(self.edge[i])
-    
+
     def loadTopo(self, path):
         ''' docstring: 载入拓扑图 '''
         with open(path, 'r') as f:
@@ -55,23 +56,24 @@ class topoGraphScene(QGraphicsScene):
         nodename = self.topo['node name']
         for i in range(len(nodetype)):
             if len(nodename[i]):
-                self.node.append(Node(myType = nodetype[i], name = nodename[i], nid = i))
+                self.node.append(
+                    Node(nodetype=nodnodeetype[i], name=nodename[i], nid=i))
             else:
-                self.node.append(Node(myType = nodetype[i], nid = i))
+                self.node.append(Node(nodetype=nodnodeetype[i], nid=i))
             self.addItem(self.node[i])
         edges = self.topo['edge']
         for edge in edges:
             x = edge[0]
             y = edge[1]
-            self.edge.append(Edge(self.node[x], self.node[y], myType = 1))
+            self.edge.append(Edge(self.node[x], self.node[y], myType=1))
             self.addItem(self.edge[-1])
         self.AS = self.topo['AS']
-        for (k,v) in self.AS.items():
+        for (k, v) in self.AS.items():
             for nid in v:
                 self.node[int(k)].addAS(self.node[nid])
         for item in self.items():
-                if isinstance(item, Node):
-                    item.setPos(-200 + qrand() % 400, -200 + qrand() % 400)
+            if isinstance(item, Node):
+                item.setPos(-200 + qrand() % 400, -200 + qrand() % 400)
 
     def saveTopo(self, path):
         ''' docstring: 存储拓扑图 '''
