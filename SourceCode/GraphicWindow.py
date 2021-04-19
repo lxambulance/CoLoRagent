@@ -28,10 +28,11 @@ class GraphicWindow(QWidget):
         # self.scene.edge[0].changeType(0) # 测试修改功能
     
     def loadTopo(self, path):
-        pass
+        self.scene._loadTopo(path)
+        self.view.scaleView(0.5)
 
     def saveTopo(self, path):
-        self.scene.saveTopo(path)
+        self.scene._saveTopo(path)
 
     def setBackground(self, colorstr):
         ''' docstring: 修改拓扑背景颜色以适配风格修改 '''
@@ -44,6 +45,6 @@ if __name__ == "__main__":
 
     app = QApplication([])
     window = GraphicWindow()
-    window.initTopo()
+    window.loadTopo('D:/CodeHub/CoLoRagent/test/datatest_human.db')
     window.show()
     sys.exit(app.exec_())

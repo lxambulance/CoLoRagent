@@ -13,8 +13,9 @@ class topoGraphView(QGraphicsView):
         qsrand(QTime(0,0,0).secsTo(QTime.currentTime()))
 
         # 设置场景坐标
+        # self.scene = scene
         self.setScene(scene)
-        scene.setSceneRect(-1000, -1000, 2000, 2000)
+        scene.setSceneRect(-5000, -5000, 10000, 10000)
         self.newEdge = None
         self.dstNode = Node(nodetype = -1)
         self.scene().addItem(self.dstNode)
@@ -53,10 +54,15 @@ class topoGraphView(QGraphicsView):
         if event.button() == Qt.LeftButton:
             item = self.getItemAtClick(event)
             if isinstance(item, Node):
-                print(f"clicked Node[{item.type}]")
+                print(f"clicked NodeType<{item.type}>")
                 if self.parent().addedgeenable and item.type < 3:
                     self.newEdge = Edge(item)
                     self.scene().addItem(self.newEdge)
+                if item.type == 0:
+                    print('AS', item.nid)
+                    tmpitem, nodelist = self.scene().ASinfo[item.nid]
+                    for node in nodelist:
+                        node.setSelected(True)
     
     def mouseMoveEvent(self, event):
         ''' docstring: 鼠标移动事件 '''
@@ -93,7 +99,7 @@ class topoGraphView(QGraphicsView):
             # 按到空格或回车时随机排布场景中物体
             for item in self.scene().items():
                 if isinstance(item, Node):
-                    item.setPos(-200 + qrand() % 400, -200 + qrand() % 400)
+                    item.setPos(-1000 + qrand() % 2000, -1000 + qrand() % 2000)
         else:
             super().keyPressEvent(event)
 
@@ -105,7 +111,7 @@ class topoGraphView(QGraphicsView):
         ''' docstring: 调整视图大小 '''
         factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
         # 对于单位矩阵宽度超出阈值的行为不与响应
-        if factor < 0.1 or factor > 20:
+        if factor < 0.05 or factor > 20:
             return
         self.scale(scaleFactor, scaleFactor)
 

@@ -133,14 +133,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.setColumnWidth(2, 530)
         self.tableView.setColumnWidth(3, 100)
         self.tableView.setColumnWidth(4, 100)
-        self.graphics.loadTopo(DATA_DIR) # 载入拓扑图
-        self.graphics.initTopo()  # 人工设置拓扑图
+
+        # self.graphics.loadTopo(DATA_DIR) # 载入拓扑图
+        # self.graphics.initTopo()
+        self.graphics.loadTopo(DATA_DIR)
+        self.graphics_local.hide() # TODO: 暂时隐藏第二张局部图
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
         self.tableView.hide()
         self.splitter_horizon.setSizes([400, 400, 400])
-        self.splitter_vertical.setSizes([400, 800])
+        self.splitter_vertical.setSizes([400, 400, 800])
 
         # 设置线程池 TODO: 线程池放到窗口外面
         self.threadpool = QThreadPool()
@@ -188,9 +191,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if s:
             self.scaling.setText('还原')
             self.splitter_horizon.setSizes([100, 100, 700])
-            self.splitter_vertical.setSizes([800, 400])
+            self.splitter_vertical.setSizes([800, 800, 400])
         else:
-            self.scaling.setText('放大')
             self.resetView()
 
     def setSelectItem(self, items):
@@ -410,7 +412,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
         self.splitter_horizon.setSizes([400, 400, 400])
-        self.splitter_vertical.setSizes([400, 800])
+        self.splitter_vertical.setSizes([400, 400, 800])
+        if self.scaling.isChecked():
+            self.scaling.setText('放大')
+            self.scaling.setChecked(False)
 
     def openHub(self):
         ''' docstring: 打开本地仓库 '''
