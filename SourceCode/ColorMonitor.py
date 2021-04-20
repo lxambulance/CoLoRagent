@@ -186,7 +186,7 @@ class PktHandler(threading.Thread):
                                 return
                         # 返回ACK
                         NewDataPkt = PL.DataPkt(
-                            1, 1, 0, 0, NewSid, nid_pro=RecvDataPkt.nid_pro, SegID=RecvDataPkt.SegID, PIDs=RecvDataPkt.PIDs[1:])
+                            1, 1, 0, 0, NewSid, nid_pro=RecvDataPkt.nid_pro, SegID=RecvDataPkt.SegID, PIDs=RecvDataPkt.PIDs[1:][::-1])
                         Tar = NewDataPkt.packing()
                         ReturnIP = ''
                         if (len(RecvDataPkt.PIDs) == 1):
