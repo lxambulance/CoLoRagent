@@ -1,21 +1,27 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架 '''
 
+from random import shuffle
 from math import pi
 from json import load, dump
 from math import pi, sin, cos
 from PyQt5.QtWidgets import QGraphicsScene
-from PyQt5.QtCore import qsrand, qrand, QTime
+from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal
 
 from NodeEdge import Node, Edge
 
 
 class topoGraphScene(QGraphicsScene):
     ''' docstring: 场景模型类 '''
+    chooseRouter = pyqtSignal(str)
+    choosePath = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         qsrand(QTime(0,0,0).secsTo(QTime.currentTime()))
+        self.node_me = None
+        self.nid_me = None
+
         self.nodes = []
         self.edges = []
         self.ASinfo = []
@@ -25,8 +31,61 @@ class topoGraphScene(QGraphicsScene):
         self.topo = {}
         self.data = {}
 
-    def initTopo(self):
-        pass
+    def initTopo_config(self, path):
+        ''' docstring: 初始化拓扑为配置文件信息 '''
+        with open(path, 'r') as f:
+            self.data = load(f)
+            self.topo = self.data.get('topo map', {})
+        if len(self.topo) == 0:
+            return
+        # 添加节点
+        self.nodes = []
+        tmpas = []
+        for i in range(len(self.topo['nodes'])):
+            node = self.topo['nodes'][i]
+            ntp = node['type']
+            if ntp == 0:
+                item = Node(nodetype = ntp, nodename = node.get('name', None), 
+                    nodesize = node['size'], nodenid = str(len(tmpas)))
+                tmpas.append((i, item))
+            elif ntp == 1:
+                item = Node(nodetype = ntp, nodename = node.get('name', None), nodenid = node['nid'])
+            elif ntp == 2 or ntp == 3:
+                item = Node(nodetype = ntp, nodenid = node['nid'])
+            elif ntp == 4:
+                item = Node(nodetype = ntp)
+            self.addItem(item)
+            self.nodes.append(item)
+        # 添加边
+        self.edges = []
+        for (x, y) in self.topo['edges']:
+            item = Edge(self.nodes[x], self.nodes[y], linetype = 0)
+            self.addItem(item)
+            self.edges.append(item)
+            self.nodes[x].edgenext[self.nodes[y].nid] = (self.nodes[y], item)
+            self.nodes[y].edgenext[self.nodes[x].nid] = (self.nodes[x], item)
+        # 添加AS信息
+        self.ASinfo = []
+        self.R = 0
+        self.belongAS = {}
+        for (i, item) in tmpas:
+            nodelist = [self.nodes[x] for x in self.topo['ASinfo'][str(i)]]
+            # 随机打乱
+            shuffle(nodelist)
+            # 为了后续显示方便，将RM放首位置
+            for (j, node) in enumerate(nodelist):
+                if node.type == 1:
+                    nodelist[0], nodelist[j] = nodelist[j], nodelist[0]
+            self.ASinfo.append((item, nodelist))
+            self.R = max(self.R, len(nodelist))
+            self.belongAS[item.nid] = self.ASinfo[-1]
+            for x in self.topo['ASinfo'][str(i)]:
+                self.belongAS[self.nodes[x].nid]=self.ASinfo[-1]
+        # 根据AS信息修改边类型
+        for i, (x, y) in enumerate(self.topo['edges']):
+            if self.belongAS[self.nodes[x].nid][0].nid != self.belongAS[self.nodes[y].nid][0].nid:
+                self.edges[i].changeType(1)
+        self.calcItemsPos()
 
     def initTopo_startest(self):
         ''' docstring: 测试topo显示功能，画一个五角星 '''
@@ -43,7 +102,6 @@ class topoGraphScene(QGraphicsScene):
             x, y = round(cos(a*3/4+a*i) * R), round(sin(a*3/4+a*i) * R)
             tmpitem.setPos(x, y)
         self.addItem(Node(nodetype=0))
-
         nodes = self.items()
         for i in range(5):
             j = (i + 2) % 5
@@ -62,60 +120,17 @@ class topoGraphScene(QGraphicsScene):
         for i, (item, nodelist) in enumerate(self.ASinfo):
             alpha = pi * 2 / num1 * i
             X, Y = (-sin(alpha)*self.R, -cos(alpha)*self.R)
-            print(i, ':', alpha, '(', X, Y, ')', item.nid)
+            # print(i, ':', alpha, '(', X, Y, ')', item.nid)
             item.setPos(X, Y)
             num2 = len(nodelist)
             r = num2*64*sin(pi/num1)
             for j, node in enumerate(nodelist):
-                beta = pi*2 / num2 * j
+                beta = pi * 2 / num2 * j + alpha
                 x = X-sin(beta)*r
                 y = Y-cos(beta)*r
                 node.setPos(x, y)
 
-    def _loadTopo(self, path):
-        ''' docstring: 载入拓扑图 '''
-        with open(path, 'r') as f:
-            self.data = load(f)
-            self.topo = self.data.get('topo map', {})
-        if len(self.topo) == 0:
-            return
-        self.nodes = []
-        tmpas = []
-        for i in range(len(self.topo['nodes'])):
-            node = self.topo['nodes'][i]
-            ntp = node['type']
-            if ntp == 0:
-                item = Node(nodetype = ntp, nodename = node.get('name', None), 
-                    nodesize = node['size'], nodenid = len(tmpas))
-                tmpas.append((i, item))
-            elif ntp == 1:
-                item = Node(nodetype = ntp, nodename = node.get('name', None), nodenid = node['nid'])
-            elif ntp == 2 or ntp == 3:
-                item = Node(nodetype = ntp, nodenid = node['nid'])
-            elif ntp == 4:
-                item = Node(nodetype = ntp)
-            self.addItem(item)
-            self.nodes.append(item)
-        self.edges = []
-        for (x, y) in self.topo['edges']:
-            item = Edge(self.nodes[x], self.nodes[y], linetype = 0)
-            self.addItem(item)
-            self.edges.append(item)
-        self.ASinfo = []
-        self.R = 0
-        self.belongAS = {}
-        for (i, item) in tmpas:
-            nodelist = [self.nodes[x] for x in self.topo['ASinfo'][str(i)]]
-            self.ASinfo.append((item, nodelist))
-            self.R = max(self.R, len(nodelist))
-            for x in self.topo['ASinfo'][str(i)]:
-                self.belongAS[x]=len(self.ASinfo)
-        for i, (x, y) in enumerate(self.topo['edges']):
-            if self.belongAS[x] != self.belongAS[y]:
-                self.edges[i].changeType(1)
-        self.calcItemsPos()
-
-    def _saveTopo(self, path):
+    def saveTopo(self, path):
         ''' docstring: 存储拓扑图（未完成） '''
         # TODO: 存储时如何不影响已经写了的部分
         with open(path, 'r') as f:

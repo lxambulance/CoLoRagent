@@ -38,11 +38,10 @@
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
-       <widget class="GraphicWindow" name="graphics" native="true"/>
-       <widget class="GraphicWindow" name="graphics_local" native="true"/>
+       <widget class="GraphicWindow" name="graphics_global" native="true"/>
        <widget class="QTabWidget" name="tabWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="baseTab">
          <attribute name="title">
@@ -101,11 +100,41 @@ p, li { white-space: pre-wrap; }
               <item row="1" column="1">
                <widget class="QComboBox" name="nodeType">
                 <property name="currentText">
-                 <string/>
+                 <string>边界路由器</string>
                 </property>
                 <property name="currentIndex">
-                 <number>-1</number>
+                 <number>0</number>
                 </property>
+                <item>
+                 <property name="text">
+                  <string>边界路由器</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>普通路由器</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>交换机</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>电脑</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>资源管理器</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>自治域</string>
+                 </property>
+                </item>
                </widget>
               </item>
               <item row="2" column="0">
@@ -118,15 +147,56 @@ p, li { white-space: pre-wrap; }
                 </property>
                </widget>
               </item>
-              <item row="3" column="0">
+              <item row="2" column="1">
+               <widget class="QComboBox" name="lineType">
+                <item>
+                 <property name="text">
+                  <string>虚线</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>实线</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="4" column="0">
                <widget class="QPushButton" name="choosePath">
                 <property name="text">
                  <string>指定路径</string>
                 </property>
                </widget>
               </item>
+              <item row="4" column="1">
+               <widget class="QLineEdit" name="path">
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <spacer name="horizontalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="3" column="0">
+               <widget class="QPushButton" name="chooseRouter">
+                <property name="text">
+                 <string>选择接入路由器</string>
+                </property>
+               </widget>
+              </item>
               <item row="3" column="1">
-               <widget class="QLineEdit" name="lineEdit">
+               <widget class="QLineEdit" name="routerAndAS">
                 <property name="readOnly">
                  <bool>true</bool>
                 </property>
