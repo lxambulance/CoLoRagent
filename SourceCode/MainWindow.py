@@ -53,7 +53,7 @@ class CoLoRApp(QApplication):
         ''' docstring: 切换格式 '''
         # 取消qss格式
         self.setStyleSheet('')
-        self.window.graphics.setBackground('#eee5ff')
+        self.window.graphics_global.setBackground('#eee5ff')
         # 获取信号发起者名称，前6位为action，后面是相应主题名
         tmp = self.sender().objectName()[6:]
         # print(tmp)
@@ -61,7 +61,7 @@ class CoLoRApp(QApplication):
             self.setStyle(tmp)
         elif tmp == 'Qdarkstyle':
             self.setStyleSheet(qds.load_stylesheet_pyqt5())
-            self.window.graphics.setBackground('#4d4d4d')
+            self.window.graphics_global.setBackground('#4d4d4d')
         else:
             self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
 
@@ -77,9 +77,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.addNode.hide()
         self.addLine.hide()
         self.nodeType.hide()
+        self.lineType.hide()
 
         # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
+        self.graphics_global.setNid(self.nid)
 
         # 添加右键菜单
         self.listView.addAction(self.action_reg)
@@ -134,16 +136,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.setColumnWidth(3, 100)
         self.tableView.setColumnWidth(4, 100)
 
-        # self.graphics.loadTopo(DATA_DIR) # 载入拓扑图
-        # self.graphics.initTopo()
-        self.graphics.loadTopo(DATA_DIR)
-        self.graphics_local.hide() # TODO: 暂时隐藏第二张局部图
+        # 载入拓扑图
+        self.graphics_global.loadTopo(DATA_DIR)
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
         self.tableView.hide()
         self.splitter_horizon.setSizes([400, 400, 400])
-        self.splitter_vertical.setSizes([400, 400, 800])
+        self.splitter_vertical.setSizes([400, 800])
 
         # 设置线程池 TODO: 线程池放到窗口外面
         self.threadpool = QThreadPool()
@@ -180,18 +180,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scaling.clicked.connect(self.setTopoSize)
         self.addLine.clicked.connect(self.setTopoEdgeEnable)
 
+        self.graphics_global.scene.chooseRouter.connect(self.setAccessRouter)
+        self.graphics_global.scene.choosePath.connect(self.setPath)
+        self.chooseRouter.clicked.connect(self.setTopoRouterEnable)
+
+    def setAccessRouter(self, s):
+        self.routerAndAS.setText(s)
+
+    def setPath(self, paths):
+        print(paths)
+
     def getPathFromPkt(self, Type, name, paths):
         print(Type, name, paths)
 
+    def setTopoRouterEnable(self):
+        self.graphics_global.accessrouterenable = True
+
     def setTopoEdgeEnable(self):
-        self.graphics.addedgeenable = True
+        self.graphics_global.addedgeenable = True
 
     def setTopoSize(self, s):
         ''' docstring: 设置拓扑图大小 '''
         if s:
             self.scaling.setText('还原')
             self.splitter_horizon.setSizes([100, 100, 700])
-            self.splitter_vertical.setSizes([800, 800, 400])
+            self.splitter_vertical.setSizes([800, 400])
         else:
             self.resetView()
 
@@ -412,7 +425,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
         self.splitter_horizon.setSizes([400, 400, 400])
-        self.splitter_vertical.setSizes([400, 400, 800])
+        self.splitter_vertical.setSizes([400, 800])
         if self.scaling.isChecked():
             self.scaling.setText('放大')
             self.scaling.setChecked(False)
@@ -455,7 +468,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if reply == QMessageBox.Yes:
             # 做出保存操作
             self.fd.save()
-            self.graphics.saveTopo(DATA_DIR)
+            self.graphics_global.saveTopo(DATA_DIR)
             self.saveLog()
             event.accept()
         elif reply == QMessageBox.No:
@@ -472,24 +485,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 双击条目显示文件内容 '''
         filepath = self.fd.getData(index.row(), 1)
         filename = self.fd.getData(index.row(), 0)
-        viewjsonworker = worker(0, self.viewJson, filename, filepath)
+        filepid = self.fd.getData(index.row(), 2)
+        viewjsonworker = worker(0, self.viewJson, filename, filepath, filepid)
         viewjsonworker.signals.result.connect(self.textEdit.append)
         self.threadpool.start(viewjsonworker)
 
-    def viewJson(self, filename, filepath):
-        ret = f'double click {filename} = '
+    def viewJson(self, filename, filepath, filepid):
+        ret = f'double click {filename} <PID:{filepid}> = '
         if not os.path.exists(filepath):
             return ret + '本地文件不存在\n'
-        with open(filepath, 'r', encoding='utf-8') as f:
-            fcontent = ""
-            while True:
-                tmp = f.read(512)
-                if not tmp:
-                    break
-                fcontent += tmp
-                if len(fcontent) > 512 * 10:
-                    return ret + '\{...(内容过长)...\}\n'
         try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                fcontent = ""
+                while True:
+                    tmp = f.read(512)
+                    if not tmp:
+                        break
+                    fcontent += tmp
+                    if len(fcontent) > 512 * 10:
+                        return ret + '\{...(内容过长)...\}\n'
             data = json.loads(fcontent)
         except:
             return ret + '非JSON格式文件\n'
@@ -507,7 +521,5 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.showEvent('无效的后端信息')
 
 if __name__ == '__main__':
-    app = QApplication([])
-    window = MainWindow()
-    window.show()
+    app = CoLoRApp(sys.argv)
     sys.exit(app.exec_())

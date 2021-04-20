@@ -2,17 +2,17 @@
 ''' docstring: scene/view模型框架的两个基类 '''
 
 from PyQt5.QtWidgets import QGraphicsItem
-from PyQt5.QtCore import QObject, pyqtSignal, QRectF, QPointF, Qt
+from PyQt5.QtCore import QObject, pyqtSignal, QRectF, QPointF, Qt, qsrand, qrand, QTime
 from PyQt5.QtGui import QPen, QColor, QImage
 
 import resource_rc
 
-NodeTypeLen = 5
+NodeTypeLen = 6
 NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR', 
-    ':/icon/router', ':/icon/switching']
-NodeZValue = [-50, 3, 3, 3, 3]
-NodeName = ['cloud', 'RM', 'BR', 'router', 'switch']
-NodeSize = [512, 64, 64, 64, 64]
+    ':/icon/router', ':/icon/switching', ':/icon/PC']
+NodeZValue = [-1, 10, 10, 10, 10, 10]
+NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
+NodeSize = [512, 64, 64, 64, 64, 64]
 
 class nlSignal(QObject):
     ''' docstring: 用于Node触发Line更新的信号 '''
@@ -29,11 +29,15 @@ class Node(QGraphicsItem):
         # 设置缓存类型，与渲染速度有关。TODO：更有效的渲染方式
         # self.setCacheMode(self.DeviceCoordinateCache)
 
+        self.edgenext = {}
         self.type = nodetype
         self.name = nodename or NodeName[nodetype]
         self.size = nodesize or NodeSize[nodetype]
+        if not nodenid:
+            nodenid = ''
+            for i in range(32):
+                nodenid += f"{qrand()%16:x}"
         self.nid = nodenid
-        # TODO: nid==None需要特殊处理
 
         self.setZValue(NodeZValue[nodetype])
 

@@ -38,10 +38,10 @@ class topoGraphView(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setDragMode(self.RubberBandDrag)
-
+    
         self._color_background = QColor('#eee5ff')
         self.setBackgroundBrush(self._color_background)
-    
+
     def getItemAtClick(self, event):
         ''' docstring: 返回点击的物体 '''
         pos = event.pos()
@@ -54,16 +54,37 @@ class topoGraphView(QGraphicsView):
         if event.button() == Qt.LeftButton:
             item = self.getItemAtClick(event)
             if isinstance(item, Node):
-                print(f"clicked NodeType<{item.type}>")
+                print(f"clicked {item.name}<{item.nid}>")
                 if self.parent().addedgeenable and item.type < 3:
                     self.newEdge = Edge(item)
                     self.scene().addItem(self.newEdge)
                 if item.type == 0:
                     print('AS', item.nid)
-                    tmpitem, nodelist = self.scene().ASinfo[item.nid]
+                    tmpitem, nodelist = self.scene().belongAS[item.nid]
                     for node in nodelist:
                         node.setSelected(True)
-    
+                if self.parent().accessrouterenable and item.type > 1 and item.type < 5:
+                    if not self.scene().node_me:
+                        self.scene().node_me = Node(nodetype=5, nodenid=self.scene().nid_me)
+                        self.scene().addItem(self.scene().node_me)
+                    if len(self.scene().node_me.edgenext) > 0:
+                        for nextnode, nextedge in self.scene().node_me.edgenext.values():
+                            del nextnode.edgenext[self.scene().node_me.nid]
+                            self.scene().edges.remove(nextedge)
+                            self.scene().removeItem(nextedge)
+                        self.scene().node_me.edgenext.clear()
+                    edgeitem = Edge(self.scene().node_me, item, linetype = 0)
+                    self.scene().edges.append(edgeitem)
+                    self.scene().addItem(edgeitem)
+                    self.scene().node_me.edgenext[item.nid] = (item, edgeitem)
+                    item.edgenext[self.scene().node_me.nid] = (self.scene().node_me, edgeitem)
+                    
+                    for tmpitem in self.scene().items():
+                        if isinstance(tmpitem, Node):
+                            print(tmpitem.nid, tmpitem.name)
+                        if isinstance(tmpitem, Edge):
+                            print('<', tmpitem.n1.nid, tmpitem.n2.nid, '>')
+
     def mouseMoveEvent(self, event):
         ''' docstring: 鼠标移动事件 '''
         super().mouseMoveEvent(event)
@@ -87,6 +108,8 @@ class topoGraphView(QGraphicsView):
                 else:
                     self.scene().removeItem(self.newEdge)
                 self.newEdge = None
+        if self.parent().accessrouterenable:
+            self.parent().accessrouterenable = False
 
     def keyPressEvent(self, event):
         ''' docstring: 键盘按压事件 '''
