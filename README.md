@@ -224,6 +224,10 @@ item的坐标原点与view一开始一致，通过setpos可以修改item坐标�
 
 windows文件拖拽权限问题，explorer为中权限，运行环境为管理员权限，是最高权限，windows中不允许低权限向高权限拖拽。
 
+#### 7. 图元操作异常 [unsolved]
+
+> 问题描述：删除连边不成功。
+
 ## Appendix
 
 ### pyqt学习记录
