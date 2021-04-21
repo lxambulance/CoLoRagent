@@ -73,12 +73,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
-        # TODO: 暂时放弃拓扑图添加节点与连线功能
-        self.addNode.hide()
-        self.addLine.hide()
-        self.nodeType.hide()
-        self.lineType.hide()
-
         # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
         self.graphics_global.setNid(self.nid)
@@ -183,6 +177,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.graphics_global.scene.chooseRouter.connect(self.setAccessRouter)
         self.graphics_global.scene.choosePath.connect(self.setPath)
         self.chooseRouter.clicked.connect(self.setTopoRouterEnable)
+        self.graphics_global.signal_ret.choosenid.connect(lambda s:self.routerAndAS.setText(s))
 
     def setAccessRouter(self, s):
         self.routerAndAS.setText(s)

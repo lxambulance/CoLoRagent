@@ -3,15 +3,24 @@
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from PyQt5.QtGui import QColor
+from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal, QObject
 
 from topoGraphView import topoGraphView
 from topoGraphScene import topoGraphScene
 
+
+class GraphicMessage(QObject):
+    ''' docstring: 拓扑图专用信号返回 '''
+    choosenid = pyqtSignal(str)
+
+
 class GraphicWindow(QWidget):
     ''' docstring: 拓扑图窗口类 '''
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super().__init__(parent)
+        qsrand(QTime(0, 0, 0).secsTo(QTime.currentTime()))
+        self.signal_ret = GraphicMessage()
         self.scene = topoGraphScene(self)
         self.view = topoGraphView(self.scene, self)
         self.addedgeenable = False
@@ -39,12 +48,13 @@ class GraphicWindow(QWidget):
     def setNid(self, nid):
         self.scene.nid_me = nid
 
+
 if __name__ == "__main__":
     import sys
     from PyQt5.QtWidgets import QApplication
 
     app = QApplication([])
     window = GraphicWindow()
-    window.loadTopo('D:/CodeHub/CoLoRagent/test/datatest_human.db')
+    window.scene.initTopo_config("D:/CodeHub/CoLoRagent/test/datatest_human.db")
     window.show()
     sys.exit(app.exec_())
