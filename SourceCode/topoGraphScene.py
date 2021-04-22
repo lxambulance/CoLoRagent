@@ -5,6 +5,7 @@ from random import shuffle
 from math import pi
 from json import load, dump
 from math import pi, sin, cos
+from queue import Queue
 from PyQt5.QtWidgets import QGraphicsScene
 from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal
 
@@ -40,14 +41,48 @@ class topoGraphScene(QGraphicsScene):
         tmplist = self.nextedges.get(n2.nid, [])
         tmplist.append((n1, edge))
         self.nextedges[n2.nid] = tmplist
-        # 绑定对应点nid，便于删除
-        edge.nid1 = n1.nid
-        edge.nid2 = n2.nid
+        # 绑定对应点，便于删除
+        edge.node1 = n1
+        edge.node2 = n2
 
     def delEdge(self, n1, n2, edge):
         ''' docstring: 与上面操作相反 '''
         self.nextedges[n1.nid].remove((n2, edge))
         self.nextedges[n2.nid].remove((n1, edge))
+
+    def findPath(self, dest):
+        ''' docstring: 根据目标地址选择路径，返回经过节点nid路径 '''
+        if self.node_me == None:
+            return None
+        # print('init')
+        for item in self.items():
+            if isinstance(item, Node):
+                item.setSelected(False)
+                item.isvisited = False
+                item.prenode = None
+        # print('start')
+        tmpqueue = Queue()
+        tmpqueue.put(self.node_me)
+        self.node_me.isvisited = True
+        while not tmpqueue.empty():
+            topnode = tmpqueue.get()
+            for nextnode, nextedge in self.nextedges[topnode.nid]:
+                if not nextnode.isvisited:
+                    tmpqueue.put(nextnode)
+                    nextnode.isvisited = True
+                    nextnode.prenode = topnode
+        # print('get ans')
+        if not dest.isvisited:
+            return None
+        else:
+            ret = []
+            now = dest
+            while now:
+                ret.append(now.nid)
+                now.setSelected(True)
+                now = now.prenode
+            ret.reverse()
+            return ret
 
     def initTopo_config(self, path):
         ''' docstring: 初始化拓扑为配置文件信息 '''
@@ -112,11 +147,14 @@ class topoGraphScene(QGraphicsScene):
                 y = Y-cos(beta)*r
                 node.setPos(x, y)
         # 添加边
-        for (x, y) in self.topo['edges']:
+        for (x, y, PX) in self.topo['edges']:
             lt = 0
             if self.belongAS[tmpnodes[x].nid] is not self.belongAS[tmpnodes[y].nid]:
                 lt = 1
-            edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt)
+            if not len(PX):
+                edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt)
+            else:
+                edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt, linePX = PX)
             self.addItem(edgeitem)
             self.addEdge(tmpnodes[x], tmpnodes[y], edgeitem)
 

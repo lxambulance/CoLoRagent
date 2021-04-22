@@ -132,6 +132,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # 载入拓扑图
         self.graphics_global.loadTopo(DATA_DIR)
+        # TODO: 暂时将添加点功能关闭
+        self.addNode.hide()
+        self.nodeType.hide()
+        self.nodeAS.hide()
+        self.chooseAS.hide()
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
@@ -178,6 +183,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.graphics_global.scene.choosePath.connect(self.setPath)
         self.chooseRouter.clicked.connect(self.setTopoRouterEnable)
         self.graphics_global.signal_ret.choosenid.connect(lambda s:self.routerAndAS.setText(s))
+        self.graphics_global.signal_ret.chooseitem.connect(self.showItemNameNid)
+        self.addLine.clicked.connect(self.topoAddLine)
+        self.changeName.textChanged.connect(
+            lambda x:self.graphics_global.changeItem(x,self.changeNid.text()))
+        self.changeNid.textChanged.connect(
+            lambda x:self.graphics_global.changeItem(self.changeName.text(),x))
+
+    def showItemNameNid(self, name, nid):
+        self.changeName.setText(name)
+        self.changeNid.setText(nid)
+
+    def topoAddLine(self):
+        self.graphics_global.addedgeenable = True
+        self.graphics_global.addedgetype = self.lineType.currentIndex()
 
     def setAccessRouter(self, s):
         self.routerAndAS.setText(s)
