@@ -76,6 +76,8 @@ class topoGraphView(QGraphicsView):
                 self.parent().signal_ret.choosenid.emit(f"{item.name}<{item.nid}>")
                 if not self.scene().node_me:
                     self.scene().node_me = Node(nodetype=5, nodenid=self.scene().nid_me)
+                    if self.parent().labelenable:
+                        self.scene().node_me.label.show()
                     self.scene().addItem(self.scene().node_me)
                 mynode = self.scene().node_me
                 # 删除原有连边
@@ -88,6 +90,8 @@ class topoGraphView(QGraphicsView):
                 newedge = Edge(mynode.scenePos(), item.scenePos(), linetype=0)
                 self.scene().addItem(newedge)
                 self.scene().addEdge(mynode, item, newedge)
+                self.scene().belongAS[mynode.nid] = self.scene().belongAS[item.nid]
+
         elif self.parent().findpathenable:
             if event.button() == Qt.LeftButton and isinstance(item, Node) and item.type:
                 # TODO: 多线程处理
@@ -95,8 +99,9 @@ class topoGraphView(QGraphicsView):
                 print(nidlist)
         else:
             if event.button() == Qt.LeftButton and isinstance(item, Node):
-                self.parent().signal_ret.chooseitem.emit(item.name, item.nid)
-                self.parent().chooseitem = item
+                asitem = self.scene().belongAS[item.nid]
+                asstr = f"{asitem.name}<{asitem.nid}>"
+                self.parent().signal_ret.chooseitem.emit(item.name, item.nid, asstr)
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -125,10 +130,6 @@ class topoGraphView(QGraphicsView):
             if self.scene().tmpedge:
                 if isinstance(item, Node) and item.type and item is not self.scene().tmpnode:
                     self.scene().tmpedge.changeLine(self.scene().tmpnode.scenePos(), item.scenePos())
-                    # tmpa = self.scene().belongAS.get(self.scene().tmpnode.nid, None)
-                    # tmpb = self.scene().belongAS.get(item.nid, None)
-                    # if tmpa and tmpb and tmpa is not tmpb:
-                    #     self.scene().tmpedge.changeType(1)
                     self.scene().addEdge(self.scene().tmpnode, item, self.scene().tmpedge)
                 else:
                     self.scene().removeItem(self.scene().tmpedge)
@@ -160,6 +161,8 @@ class topoGraphView(QGraphicsView):
                 s += f'{qrand()%16:x}'
             newnode = Node(nodetype=qrand() %
                            6, nodename='test-only', nodenid=s)
+            if self.parent().labelenable:
+                newnode.label.show()
             self.scene().addItem(newnode)
         elif key == Qt.Key_E:
             self.parent().addedgeenable = True

@@ -26,7 +26,7 @@ class topoGraphScene(QGraphicsScene):
         self.nid_me = None
 
         self.ASinfo = {} # ASnid:[node,...]
-        self.belongAS = {} # nid:ASnid
+        self.belongAS = {} # nid:ASitem
         self.nextedges = {} # nid:[(nextnode, edge),...]
         self.R = 0 # 布局中大圆半径
 
