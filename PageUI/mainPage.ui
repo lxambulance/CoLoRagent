@@ -41,14 +41,14 @@
        <widget class="GraphicWindow" name="graphics_global" native="true"/>
        <widget class="QTabWidget" name="tabWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="baseTab">
          <attribute name="title">
           <string>基本信息</string>
          </attribute>
-         <layout class="QHBoxLayout" name="horizontalLayout">
-          <item>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="0" column="0">
            <widget class="QTextEdit" name="textEdit">
             <property name="font">
              <font>
@@ -117,47 +117,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
-           <widget class="QComboBox" name="nodeType">
-            <property name="currentText">
-             <string>边界路由器</string>
-            </property>
-            <property name="currentIndex">
-             <number>0</number>
-            </property>
-            <item>
-             <property name="text">
-              <string>边界路由器</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>普通路由器</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>交换机</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>电脑</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>资源管理器</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>自治域</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item row="4" column="0">
+          <item row="3" column="0">
            <widget class="QPushButton" name="addLine">
             <property name="text">
              <string>添加连线</string>
@@ -167,7 +127,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="4" column="1">
+          <item row="3" column="1">
            <widget class="QComboBox" name="lineType">
             <item>
              <property name="text">
@@ -181,35 +141,60 @@ p, li { white-space: pre-wrap; }
             </item>
            </widget>
           </item>
-          <item row="5" column="0">
-           <widget class="QLabel" name="itemname">
+          <item row="4" column="0">
+           <widget class="QLabel" name="itemname_label">
             <property name="text">
-             <string>修改名称</string>
+             <string>节点名称</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLineEdit" name="itemname">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="itemnid_label">
+            <property name="text">
+             <string>节点NID</string>
             </property>
            </widget>
           </item>
           <item row="5" column="1">
-           <widget class="QLineEdit" name="changeName"/>
+           <widget class="QLineEdit" name="itemnid">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
           </item>
           <item row="6" column="0">
-           <widget class="QLabel" name="itemnid">
+           <widget class="QLabel" name="itemas_label">
             <property name="text">
-             <string>修改NID</string>
+             <string>节点所属AS</string>
             </property>
            </widget>
           </item>
           <item row="6" column="1">
-           <widget class="QLineEdit" name="changeNid"/>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="nodeAS">
-            <property name="text">
-             <string>节点AS</string>
+           <widget class="QLineEdit" name="itemas">
+            <property name="readOnly">
+             <bool>true</bool>
             </property>
            </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QComboBox" name="chooseAS"/>
           </item>
          </layout>
         </widget>
@@ -251,7 +236,17 @@ p, li { white-space: pre-wrap; }
            <widget class="QComboBox" name="comboBox"/>
           </item>
           <item row="0" column="2">
-           <widget class="QTextEdit" name="textEdit_2"/>
+           <widget class="QTextEdit" name="ANNpaths"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="metricsTab">
+         <attribute name="title">
+          <string>统计</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_5">
+          <item row="0" column="0">
+           <widget class="QTextEdit" name="metrics"/>
           </item>
          </layout>
         </widget>

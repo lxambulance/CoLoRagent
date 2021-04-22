@@ -53,6 +53,7 @@ class Node(QGraphicsPixmapItem):
         self.label.setZValue(NodeZValue[nodetype])
     
     def updateLabel(self, name, nid):
+        print('lxsb', name, nid)
         self.name = name
         self.nid = nid
         tmps = f"{self.name}<{self.nid}>"
@@ -65,6 +66,7 @@ class Node(QGraphicsPixmapItem):
         super().mousePressEvent(event)
         # AS选中时选中其中所有点
         if self.isSelected() and not self.type:
+            # print(self.nid, self.name)
             for node in self.scene().ASinfo[self.nid]:
                 node.setSelected(True)
 
@@ -92,7 +94,7 @@ class Edge(QGraphicsLineItem):
         self.setLine(QLineF(n1, n2))
         self.n1 = n1
         self.n2 = n2
-        # self.setFlags(self.ItemIsSelectable)
+        self.setFlags(self.ItemIsSelectable)
 
         # 添加一个子文本类显示名字
         self.PX = linePX
@@ -131,8 +133,9 @@ class Edge(QGraphicsLineItem):
         self.update()
 
     def paint(self, painter, option, widget):
-        if self.node1 and self.node2 and self.node1.isSelected() and self.node2.isSelected():
-            painter.setPen(QPen(QColor('#cc99ff'), 12))
+        if self.node1 and self.node2 and \
+            (self.node1.isSelected() and self.node2.isSelected() or self.isSelected()):
+            painter.setPen(QPen(QColor('#66ff66'), 12))
             painter.drawLine(self.n1, self.n2)
         super().paint(painter, option, widget)
         

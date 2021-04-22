@@ -12,7 +12,7 @@ from topoGraphScene import topoGraphScene
 class GraphicMessage(QObject):
     ''' docstring: 拓扑图专用信号返回 '''
     choosenid = pyqtSignal(str)
-    chooseitem = pyqtSignal(str, str)
+    chooseitem = pyqtSignal(str, str, str)
 
 class GraphicWindow(QWidget):
     ''' docstring: 拓扑图窗口类 '''
@@ -28,7 +28,6 @@ class GraphicWindow(QWidget):
         self.accessrouterenable = False
         self.findpathenable = False
         self.labelenable = False
-        self.chooseitem = None
 
         # 设置最小大小
         self.setMinimumSize(400, 400)
@@ -51,10 +50,6 @@ class GraphicWindow(QWidget):
 
     def setNid(self, nid):
         self.scene.nid_me = nid
-
-    def changeItem(self, name, nid):
-        if self.chooseitem in self.scene.items():
-            self.chooseitem.updateLabel(name, nid)
 
 
 if __name__ == "__main__":
