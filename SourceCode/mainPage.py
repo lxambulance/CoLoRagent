@@ -137,11 +137,7 @@ class Ui_MainWindow(object):
         self.todo.setObjectName("todo")
         self.gridLayout_2.addWidget(self.todo, 0, 0, 1, 1)
         self.tabWidget.addTab(self.otherTab, "")
-<<<<<<< HEAD
-        self.verticalLayout_2.addWidget(self.splitter_horizon)
-=======
         self.gridLayout_3.addWidget(self.splitter_horizon, 0, 0, 1, 1)
->>>>>>> lx
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1200, 23))
