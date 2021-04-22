@@ -3,7 +3,7 @@
 
 from NodeEdge import Node, Edge
 from PyQt5.QtWidgets import QGraphicsView
-from PyQt5.QtCore import Qt, qrand, QRectF
+from PyQt5.QtCore import Qt, qrand, QRectF, QPointF
 from PyQt5.QtGui import QPainter, QColor
 
 
@@ -12,6 +12,9 @@ class topoGraphView(QGraphicsView):
 
     def __init__(self, scene, parent=None):
         super().__init__(parent)
+        self.allmove = False
+        self.tmppos = None
+
         # 设置场景坐标
         self.setScene(scene)
         scene.setSceneRect(-5000, -5000, 10000, 10000)
@@ -57,11 +60,16 @@ class topoGraphView(QGraphicsView):
         if event.button() == Qt.RightButton:
             if isinstance(item, Node):
                 self.removeNode(item)
+            elif isinstance(item, Edge):
+                pass
+            else:
+                self.tmppos = self.mapToScene(event.pos())
+                self.allmove = True
         elif self.parent().addedgeenable:
             if event.button() == Qt.LeftButton and isinstance(item, Node) and item.type:
                 self.scene().tmpnode = item
                 pos = self.mapToScene(event.pos())
-                self.scene().tmpedge = Edge(item.scenePos(), pos)
+                self.scene().tmpedge = Edge(item.scenePos(), pos, linetype = self.parent().addedgetype)
                 self.scene().addItem(self.scene().tmpedge)
         elif self.parent().accessrouterenable:
             if event.button() == Qt.LeftButton and isinstance(item, Node) and item.type in range(2,5):
@@ -80,14 +88,33 @@ class topoGraphView(QGraphicsView):
                 newedge = Edge(mynode.scenePos(), item.scenePos(), linetype=0)
                 self.scene().addItem(newedge)
                 self.scene().addEdge(mynode, item, newedge)
+        elif self.parent().findpathenable:
+            if event.button() == Qt.LeftButton and isinstance(item, Node) and item.type:
+                # TODO: 多线程处理
+                nidlist = self.scene().findPath(item)
+                print(nidlist)
         else:
+            if event.button() == Qt.LeftButton and isinstance(item, Node):
+                self.parent().signal_ret.chooseitem.emit(item.name, item.nid)
+                self.parent().chooseitem = item
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         ''' docstring: 鼠标移动事件 '''
+        pos = self.mapToScene(event.pos())
         if self.parent().addedgeenable and self.scene().tmpedge:
-            pos = self.mapToScene(event.pos())
             self.scene().tmpedge.changeLine(self.scene().tmpnode.scenePos(), pos)
+        if self.allmove:
+            for item in self.scene().items():
+                if isinstance(item, Node):
+                    itempos = item.scenePos()
+                    x = itempos.x() + (pos.x() - self.tmppos.x())
+                    y = itempos.y() + (pos.y() - self.tmppos.y())
+                    item.setPos(QPointF(x, y))
+            for item in self.scene().items():
+                if isinstance(item, Edge):
+                    item.changeLine(item.node1.scenePos(), item.node2.scenePos())
+            self.tmppos = pos
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
@@ -98,19 +125,22 @@ class topoGraphView(QGraphicsView):
             if self.scene().tmpedge:
                 if isinstance(item, Node) and item.type and item is not self.scene().tmpnode:
                     self.scene().tmpedge.changeLine(self.scene().tmpnode.scenePos(), item.scenePos())
-                    tmpa = self.scene().belongAS.get(self.scene().tmpnode.nid, None)
-                    tmpb = self.scene().belongAS.get(item.nid, None)
-                    if tmpa and tmpb and tmpa is not tmpb:
-                        self.scene().tmpedge.changeType(1)
+                    # tmpa = self.scene().belongAS.get(self.scene().tmpnode.nid, None)
+                    # tmpb = self.scene().belongAS.get(item.nid, None)
+                    # if tmpa and tmpb and tmpa is not tmpb:
+                    #     self.scene().tmpedge.changeType(1)
                     self.scene().addEdge(self.scene().tmpnode, item, self.scene().tmpedge)
                 else:
                     self.scene().removeItem(self.scene().tmpedge)
             self.scene().tmpedge = None
             self.scene().tmpnode = None
-        elif self.parent().accessrouterenable:
+        if self.parent().accessrouterenable:
             self.parent().accessrouterenable = False
-        else:
-            super().mouseReleaseEvent(event)
+        if self.parent().findpathenable:
+            self.parent().findpathenable = False
+        if self.allmove:
+            self.allmove = False
+        super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event):
         ''' docstring: 键盘按事件 '''
@@ -133,6 +163,18 @@ class topoGraphView(QGraphicsView):
             self.scene().addItem(newnode)
         elif key == Qt.Key_E:
             self.parent().addedgeenable = True
+        elif key == Qt.Key_A:
+            self.parent().accessrouterenable = True
+        elif key == Qt.Key_F:
+            self.parent().findpathenable = True
+        elif key == Qt.Key_S:
+            self.parent().labelenable = not self.parent().labelenable
+            for item in self.items():
+                if isinstance(item, Node) or isinstance(item, Edge):
+                    if self.parent().labelenable:
+                        item.label.show()
+                    else:
+                        item.label.hide()
         else:
             super().keyPressEvent(event)
 
