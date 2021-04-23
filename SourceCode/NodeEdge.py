@@ -74,10 +74,10 @@ class Node(QGraphicsPixmapItem):
         super().mouseMoveEvent(event)
         # 选中移动时更新所连边类
         for item in self.scene().selectedItems():
-            tmplist = self.scene().nextedges.get(item.nid, [])
-            for nextnode, nextedge in tmplist:
-                nextedge.changeLine(item.scenePos(), nextnode.scenePos())
-
+            if isinstance(item, Node):
+                tmplist = self.scene().nextedges.get(item.nid, [])
+                for nextnode, nextedge in tmplist:
+                    nextedge.changeLine(item.scenePos(), nextnode.scenePos())
 
 class Edge(QGraphicsLineItem):
     ''' docstring: 边类'''
