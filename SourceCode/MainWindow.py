@@ -530,4 +530,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     app = CoLoRApp(sys.argv)
+
+    treeWidget = app.window.dataPktReceive
+    treeWidget.setColumnCount(1)
+    treeWidget.setHeaderLabels(['package', 'SID', 'PXs'])
+    items = []
+    for x in range(10):
+        if x:
+            name = f'packet piece<{x}/9>'
+            sid = ''
+            px = f'PX{qrand()%100:05x}-PX{qrand()%1048576:05x}'
+        else:
+            name = f'item{x}'
+            sid = f'{qrand()%100000:032x}'
+            px = ''
+        items.append(QTreeWidgetItem(items[0] if x else None, [name, sid, px]))
+    treeWidget.insertTopLevelItems(0, items)
+    app.window.update()
+
     sys.exit(app.exec_())
