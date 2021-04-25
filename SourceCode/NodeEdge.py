@@ -1,6 +1,7 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架的两个基类 '''
 
+from math import fabs
 from re import compile
 from PyQt5.QtWidgets import (
     QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem)
@@ -113,8 +114,10 @@ class Edge(QGraphicsLineItem):
         self.setZValue(0)
 
     def midpoint(self, n1, n2):
-        x = (n1.x() + n2.x()) / 2
-        y = (n1.y() + n2.y()) / 2
+        if n1.x()>n2.x() or fabs(n1.x()-n2.x())<1e-8 and n1.y()>n2.y():
+            n1, n2 = n2, n1
+        x = (n1.x()*3 + n2.x()*2) / 5
+        y = (n1.y()*3 + n2.y()*2) / 5
         return QPointF(x, y)
 
     def changeLine(self, n1, n2):
