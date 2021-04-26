@@ -336,17 +336,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             wait_list.append(SID)
             filepath = self.fd.getData(item, 1)
             Get(SID, filepath)
-            progress_callback.emit(round(now*20/total))
-        now = 0
-        while len(wait_list):
-            for SID in wait_list:
-                if not (SID in PL.gets):
-                    now += 1
-                    wait_list.remove(SID)
-            progress_callback.emit(round(now*80/total)+20)
-            if now == total:
-                time.sleep(0.05)
-                break
+            progress_callback.emit(round(now*100/total))
         # TODO：涉及进度条完成状态需要通过color monitor精确判断
 
     def regItem(self):
@@ -374,7 +364,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if isReg:
                 continue
             filepath = self.fd.getData(item, 1)
-            AddCacheSidUnit(filepath, 1, 0, 0, 0)
+            AddCacheSidUnit(filepath, 1, 1, 1, 1)
             progress_callback.emit(round(now*20/total))
         SidAnn()
         progress_callback.emit(100)
@@ -404,7 +394,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if not isReg:
                 continue
             filepath = self.fd.getData(item, 1)
-            AddCacheSidUnit(filepath, 3, 0, 0, 0)
+            AddCacheSidUnit(filepath, 3, 1, 1, 1)
             progress_callback.emit(round(now*20/total + 80))
         SidAnn()
         progress_callback.emit(0)
