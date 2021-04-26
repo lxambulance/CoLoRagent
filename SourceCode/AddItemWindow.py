@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: CoLoR Pan 添加条目对话 '''
+''' docstring: CoLoR 添加条目对话 '''
 
 # 添加文件路径../
 import os
@@ -40,7 +40,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
         # print('text changed', self.addtext)
 
     def chooseFilePath(self):
-        fpath = QFileDialog.getOpenFileName(self, 'Open file', HOME_DIR)
+        fpath = QFileDialog.getOpenFileName(self, '请选择文件路径', HOME_DIR)
         if fpath[0]:
             # print(fpath[0], fpath[0].split('/'))
             nametmplist = fpath[0].split('/')

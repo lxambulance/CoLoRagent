@@ -19,7 +19,7 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_3">
-    <item row="0" column="0">
+    <item row="0" column="1">
      <widget class="QSplitter" name="splitter_horizon">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -41,7 +41,7 @@
        <widget class="GraphicWindow" name="graphics_global" native="true"/>
        <widget class="QTabWidget" name="tabWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="baseTab">
          <attribute name="title">
@@ -74,50 +74,30 @@ p, li { white-space: pre-wrap; }
          </attribute>
          <layout class="QFormLayout" name="formLayout">
           <item row="0" column="0">
-           <widget class="QPushButton" name="scaling">
-            <property name="text">
-             <string>放大</string>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>872</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="1" column="0">
            <widget class="QPushButton" name="chooseRouter">
             <property name="text">
              <string>选择接入点</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item row="0" column="1">
            <widget class="QLineEdit" name="routerAndAS">
             <property name="readOnly">
              <bool>true</bool>
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QPushButton" name="addNode">
+          <item row="1" column="0">
+           <widget class="QLabel" name="additem_label">
             <property name="text">
              <string>添加节点</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="0">
+          <item row="1" column="1">
+           <widget class="GraphicWindow" name="nodeType" native="true"/>
+          </item>
+          <item row="2" column="0">
            <widget class="QPushButton" name="addLine">
             <property name="text">
              <string>添加连线</string>
@@ -127,7 +107,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
+          <item row="2" column="1">
            <widget class="QComboBox" name="lineType">
             <item>
              <property name="text">
@@ -141,46 +121,39 @@ p, li { white-space: pre-wrap; }
             </item>
            </widget>
           </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>搜索</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLineEdit" name="lineEdit"/>
+          </item>
           <item row="4" column="0">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>实体列表</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QListWidget" name="listWidget"/>
+          </item>
+          <item row="5" column="0">
            <widget class="QLabel" name="itemname_label">
             <property name="text">
              <string>节点名称</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="1">
+          <item row="5" column="1">
            <widget class="QLineEdit" name="itemname">
             <property name="readOnly">
              <bool>true</bool>
             </property>
            </widget>
-          </item>
-          <item row="5" column="0">
-           <widget class="QLabel" name="itemnid_label">
-            <property name="text">
-             <string>节点NID</string>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="1">
-           <widget class="QLineEdit" name="itemnid">
-            <property name="readOnly">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <spacer name="horizontalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
           </item>
           <item row="6" column="0">
            <widget class="QLabel" name="itemas_label">
@@ -193,6 +166,20 @@ p, li { white-space: pre-wrap; }
            <widget class="QLineEdit" name="itemas">
             <property name="readOnly">
              <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0">
+           <widget class="QLabel" name="itemnid_label">
+            <property name="text">
+             <string>节点NID</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QLineEdit" name="itemnid">
+            <property name="readOnly">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -213,7 +200,17 @@ p, li { white-space: pre-wrap; }
             </property>
             <column>
              <property name="text">
-              <string notr="true">1</string>
+              <string notr="true">文件/包</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>PXs</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>SID</string>
              </property>
             </column>
            </widget>

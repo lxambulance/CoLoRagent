@@ -15,6 +15,7 @@ import FileData
 from serviceTable import serviceTableModel, progressBarDelegate
 from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
+from logInWindow import logInWindow
 from mainPage import Ui_MainWindow
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -39,14 +40,21 @@ class CoLoRApp(QApplication):
     def __init__(self, argv):
         super().__init__(argv)
         self.setStyle('Fusion')
-        self.window = MainWindow()
 
-        # 设置连接
+        # 由于外部需要设置信号，要求先启动mainwindow但不显示
+        self.window = MainWindow()
+        self.loginwindow = logInWindow()
+        self.loginwindow.show()
+
+        # 设置信号与槽连接
+        self.loginwindow.buttonBox.accepted.connect(self.start_main)
+
+    def start_main(self):
+        # TODO: 判断登录选项是否合理
         self.window.actionWindows.triggered.connect(self._setStyle)
         self.window.actionwindowsvista.triggered.connect(self._setStyle)
         self.window.actionFusion.triggered.connect(self._setStyle)
         self.window.actionQdarkstyle.triggered.connect(self._setStyle)
-
         self.window.show()
 
     def _setStyle(self):
@@ -132,8 +140,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # 载入拓扑图
         self.graphics_global.loadTopo(DATA_DIR)
-        # TODO: 暂时将添加点功能关闭
-        self.addNode.hide()
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
@@ -173,7 +179,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_openfolder.triggered.connect(self.openFolder)
         self.button_addfile.triggered.connect(self.addItem)
 
-        self.scaling.clicked.connect(self.setTopoSize)
         self.addLine.clicked.connect(self.setTopoEdgeEnable)
 
         self.graphics_global.scene.chooseRouter.connect(self.setAccessRouter)
@@ -206,15 +211,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def setTopoEdgeEnable(self):
         self.graphics_global.addedgeenable = True
-
-    def setTopoSize(self, s):
-        ''' docstring: 设置拓扑图大小 '''
-        if s:
-            self.scaling.setText('还原')
-            self.splitter_horizon.setSizes([100, 100, 700])
-            self.splitter_vertical.setSizes([800, 400])
-        else:
-            self.resetView()
 
     def setSelectItem(self, items):
         if len(items) == 0:
@@ -521,21 +517,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 if __name__ == '__main__':
     app = CoLoRApp(sys.argv)
 
-    treeWidget = app.window.dataPktReceive
-    treeWidget.setColumnCount(1)
-    treeWidget.setHeaderLabels(['package', 'SID', 'PXs'])
-    items = []
-    for x in range(10):
-        if x:
-            name = f'packet piece<{x}/9>'
-            sid = ''
-            px = f'PX{qrand()%100:05x}-PX{qrand()%1048576:05x}'
-        else:
-            name = f'item{x}'
-            sid = f'{qrand()%100000:032x}'
-            px = ''
-        items.append(QTreeWidgetItem(items[0] if x else None, [name, sid, px]))
-    treeWidget.insertTopLevelItems(0, items)
-    app.window.update()
+    # treeWidget = app.window.dataPktReceive
+    # treeWidget.setColumnCount(1)
+    # treeWidget.setHeaderLabels(['package', 'SID', 'PXs'])
+    # items = []
+    # for x in range(10):
+    #     if x:
+    #         name = f'packet piece<{x}/9>'
+    #         sid = ''
+    #         px = f'PX{qrand()%100:05x}-PX{qrand()%1048576:05x}'
+    #     else:
+    #         name = f'item{x}'
+    #         sid = f'{qrand()%100000:032x}'
+    #         px = ''
+    #     items.append(QTreeWidgetItem(items[0] if x else None, [name, sid, px]))
+    # treeWidget.insertTopLevelItems(0, items)
+    # app.window.update()
 
     sys.exit(app.exec_())
