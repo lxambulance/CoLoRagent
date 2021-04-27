@@ -2,7 +2,6 @@
 ''' docstring: scene/view模型框架的两个基类 '''
 
 from math import fabs
-from re import compile
 from PyQt5.QtWidgets import (
     QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem)
 from PyQt5.QtGui import QPen, QColor, QPixmap, QColor, QFont
@@ -10,7 +9,6 @@ from PyQt5.QtCore import QObject, pyqtSignal, QRectF, QPointF, QLineF, Qt, qsran
 
 import resource_rc
 
-pattern = compile('.{12}')
 NodeTypeLen = 6
 NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR',
                 ':/icon/router', ':/icon/switching', ':/icon/PC']
@@ -28,8 +26,8 @@ class Node(QGraphicsPixmapItem):
         self.name = nodename or NodeName[nodetype]
         self.size = nodesize or NodeSize[nodetype]
         if not nodenid:
-            nodenid = ''
-            for i in range(32):
+            nodenid = '142857'
+            for i in range(26):
                 nodenid += f"{qrand()%16:x}"
         self.nid = nodenid
 
@@ -40,7 +38,8 @@ class Node(QGraphicsPixmapItem):
         # 添加一个子文本类显示名字
         tmps = f"{self.name}<{self.nid}>"
         if self.type:
-            tmps = '\n'.join(pattern.findall(tmps))
+            tmps = '\n'.join([tmps[x:x+12] for x in range(0,len(tmps),12)])
+            # print(tmps)
         self.label = QGraphicsSimpleTextItem(tmps, self)
         # self.label.setFont(QFont("Times", 8))
         self.label.setPos(-self.size/2, self.size/2)
@@ -53,13 +52,14 @@ class Node(QGraphicsPixmapItem):
         self.setZValue(NodeZValue[nodetype])
         self.label.setZValue(NodeZValue[nodetype])
     
-    def updateLabel(self, name, nid):
-        print('lxsb', name, nid)
-        self.name = name
-        self.nid = nid
+    def updateLabel(self, *, name = None, nid = None):
+        if name:
+            self.name = name
+        if nid:
+            self.nid = nid
         tmps = f"{self.name}<{self.nid}>"
         if self.type:
-            tmps = '\n'.join(pattern.findall(tmps))
+            tmps = '\n'.join([tmps[x:x+12] for x in range(0,len(tmps),12)])
         self.label.setText(tmps)
         self.update()
 

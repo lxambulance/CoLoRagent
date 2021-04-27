@@ -45,7 +45,7 @@
         </property>
         <widget class="QWidget" name="baseTab">
          <attribute name="title">
-          <string>基本信息</string>
+          <string>消息</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_6">
           <item row="0" column="0">
@@ -55,14 +55,15 @@
               <pointsize>14</pointsize>
              </font>
             </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
             <property name="html">
              <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'SimSun'; font-size:14pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;日志记录&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;--------------------&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
            </widget>
           </item>
@@ -70,7 +71,7 @@ p, li { white-space: pre-wrap; }
         </widget>
         <widget class="QWidget" name="TopoTab">
          <attribute name="title">
-          <string>拓扑相关</string>
+          <string>拓扑</string>
          </attribute>
          <layout class="QFormLayout" name="formLayout">
           <item row="0" column="0">
@@ -81,21 +82,18 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLineEdit" name="routerAndAS">
+           <widget class="QLineEdit" name="accessRouter">
             <property name="readOnly">
              <bool>true</bool>
             </property>
            </widget>
           </item>
           <item row="1" column="0">
-           <widget class="QLabel" name="additem_label">
+           <widget class="QLabel" name="addNode_label">
             <property name="text">
              <string>添加节点</string>
             </property>
            </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="GraphicWindow" name="nodeType" native="true"/>
           </item>
           <item row="2" column="0">
            <widget class="QPushButton" name="addLine">
@@ -122,24 +120,24 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item row="3" column="0">
-           <widget class="QLabel" name="label_2">
+           <widget class="QLabel" name="search_label">
             <property name="text">
              <string>搜索</string>
             </property>
            </widget>
           </item>
           <item row="3" column="1">
-           <widget class="QLineEdit" name="lineEdit"/>
+           <widget class="QLineEdit" name="searchItem"/>
           </item>
           <item row="4" column="0">
-           <widget class="QLabel" name="label">
+           <widget class="QLabel" name="itemlist_label">
             <property name="text">
              <string>实体列表</string>
             </property>
            </widget>
           </item>
           <item row="4" column="1">
-           <widget class="QListWidget" name="listWidget"/>
+           <widget class="QListWidget" name="itemlist"/>
           </item>
           <item row="5" column="0">
            <widget class="QLabel" name="itemname_label">
@@ -151,7 +149,7 @@ p, li { white-space: pre-wrap; }
           <item row="5" column="1">
            <widget class="QLineEdit" name="itemname">
             <property name="readOnly">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -159,13 +157,6 @@ p, li { white-space: pre-wrap; }
            <widget class="QLabel" name="itemas_label">
             <property name="text">
              <string>节点所属AS</string>
-            </property>
-           </widget>
-          </item>
-          <item row="6" column="1">
-           <widget class="QLineEdit" name="itemas">
-            <property name="readOnly">
-             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -177,11 +168,95 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item row="7" column="1">
-           <widget class="QLineEdit" name="itemnid">
-            <property name="readOnly">
-             <bool>false</bool>
+           <widget class="QLineEdit" name="itemnid"/>
+          </item>
+          <item row="1" column="1">
+           <widget class="QListWidget" name="addNodes">
+            <property name="minimumSize">
+             <size>
+              <width>260</width>
+              <height>60</height>
+             </size>
             </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>65</height>
+             </size>
+            </property>
+            <property name="dragEnabled">
+             <bool>true</bool>
+            </property>
+            <property name="dragDropMode">
+             <enum>QAbstractItemView::DragDrop</enum>
+            </property>
+            <property name="viewMode">
+             <enum>QListView::IconMode</enum>
+            </property>
+            <item>
+             <property name="text">
+              <string>cloud</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <selectedon>:/icon/cloud</selectedon>
+              </iconset>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>RM</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/icon/RM</normalon>
+              </iconset>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>BR</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/icon/BR</normalon>
+              </iconset>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>router</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/icon/router</normalon>
+              </iconset>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>switch</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/icon/switching</normalon>
+              </iconset>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>PC</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/icon/PC</normalon>
+              </iconset>
+             </property>
+            </item>
            </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QLineEdit" name="itemas"/>
           </item>
          </layout>
         </widget>
@@ -205,12 +280,17 @@ p, li { white-space: pre-wrap; }
             </column>
             <column>
              <property name="text">
+              <string>SID</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
               <string>PXs</string>
              </property>
             </column>
             <column>
              <property name="text">
-              <string>SID</string>
+              <string>大小（字节）</string>
              </property>
             </column>
            </widget>
@@ -255,7 +335,7 @@ p, li { white-space: pre-wrap; }
           <item row="0" column="0">
            <widget class="QLabel" name="todo">
             <property name="text">
-             <string>TODO</string>
+             <string>待开发</string>
             </property>
            </widget>
           </item>

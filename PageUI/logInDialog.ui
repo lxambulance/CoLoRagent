@@ -13,6 +13,11 @@
   <property name="windowTitle">
    <string>CoLoR代理-登录</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normalon>:/icon/color</normalon>
+   </iconset>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <spacer name="verticalSpacer">
@@ -66,14 +71,14 @@
      <item row="1" column="1">
       <widget class="QLineEdit" name="agentNID"/>
      </item>
-     <item row="2" column="0">
+     <item row="3" column="0">
       <widget class="QLabel" name="filetmp_label">
        <property name="text">
         <string>文件存储目录</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
+     <item row="3" column="1">
       <layout class="QHBoxLayout" name="filetmppath_horizontalLayout">
        <item>
         <widget class="QLineEdit" name="showpath_filetmp"/>
@@ -92,6 +97,16 @@
         </widget>
        </item>
       </layout>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="agentIPv4_label">
+       <property name="text">
+        <string>代理IPv4</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="agentIPv4"/>
      </item>
     </layout>
    </item>
@@ -123,7 +138,9 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../Icon/resource.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBox</sender>

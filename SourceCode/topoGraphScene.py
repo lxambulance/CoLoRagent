@@ -24,6 +24,7 @@ class topoGraphScene(QGraphicsScene):
 
         self.node_me = None
         self.nid_me = None
+        self.waitlist = []
 
         self.ASinfo = {} # ASnid:[node,...]
         self.belongAS = {} # nid:ASitem
@@ -125,6 +126,7 @@ class topoGraphScene(QGraphicsScene):
                     break
             nodelist.append(asitem)
             self.ASinfo[asitem.nid] = nodelist
+            # print([nodelist[x].name for x in range(len(nodelist))])
             self.belongAS[asitem.nid] = asitem
             for x in self.topo['ASinfo'][str(i)]:
                 self.belongAS[tmpnodes[x].nid] = asitem
@@ -146,6 +148,7 @@ class topoGraphScene(QGraphicsScene):
                 x = X-sin(beta)*r
                 y = Y-cos(beta)*r
                 node.setPos(x, y)
+            nodelist.append(asitem)
         # 添加边
         for (x, y, PX) in self.topo['edges']:
             lt = 0
@@ -181,10 +184,57 @@ class topoGraphScene(QGraphicsScene):
             self.addEdge(nodes[i*2+1], nodes[j*2+1], tmpedge)
 
     def saveTopo(self, path):
-        ''' docstring: 存储拓扑图（未完成） '''
-        # TODO: 存储时如何不影响已经写了的部分
+        ''' docstring: 存储拓扑图 '''
         with open(path, 'r') as f:
             self.data = load(f)
+        self.topo = {}
+        # 添加点
+        tmpnodes = []
+        tmpnodemap = {}
+        num = 0
+        for item in self.items():
+            if isinstance(item, Node):
+                node = {}
+                node['type'] = item.type
+                if item.type == 0:
+                    node['name'] = item.name
+                    node['size'] = item.size
+                elif item.type == 1:
+                    node['name'] = item.name
+                    node['nid'] = item.nid
+                elif item.type in range(2,4):
+                    node['nid'] = item.nid
+                elif item.type == 4:
+                    pass
+                elif item.type == 5:
+                    # TODO: 代理节点特殊记录
+                    pass
+                tmpnodes.append(node)
+                tmpnodemap[item.nid] = num
+                num += 1
+        self.topo['nodes'] = tmpnodes
+        # 添加边
+        tmpedges = []
+        for item in self.items():
+            if isinstance(item, Edge):
+                x = tmpnodemap[item.node1.nid]
+                y = tmpnodemap[item.node2.nid]
+                px = ""
+                if hasattr(item, 'PX'):
+                    px = item.PX
+                tmpedges.append([x, y, px])
+        self.topo['edges'] = tmpedges
+        # 添加AS信息
+        tmpasinfo = {}
+        for asnid, nodes in self.ASinfo.items():
+            x = tmpnodemap[asnid]
+            y = []
+            for node in nodes:
+                z = tmpnodemap[node.nid]
+                if x != z:
+                    y.append(z)
+            tmpasinfo[str(x)] = y
+        self.topo['ASinfo'] = tmpasinfo
         with open(path, 'w') as f:
-            # TODO: 需要用现有信息改写topo内容
+            self.data['topo map'] = self.topo
             dump(self.data, f)

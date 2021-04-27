@@ -2,7 +2,6 @@
 ''' docstring: CoLoR Pan主页 '''
 
 # 添加文件路径../
-import qdarkstyle as qds
 import time
 import json
 import ProxyLib as PL
@@ -15,11 +14,10 @@ import FileData
 from serviceTable import serviceTableModel, progressBarDelegate
 from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
-from logInWindow import logInWindow
 from mainPage import Ui_MainWindow
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QSize, QThreadPool
+from PyQt5.QtWidgets import QApplication, QMainWindow, QAction, QMessageBox, QStyleFactory
 import os
 import sys
 import math
@@ -32,46 +30,6 @@ HOME_DIR = __BASE_DIR + '/.tmp'
 DATA_DIR = __BASE_DIR + '/data.db'
 starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
 LOG_DIR = __BASE_DIR + f'/{starttime}.log'
-
-
-class CoLoRApp(QApplication):
-    ''' docstring: CoLoR应用类 '''
-
-    def __init__(self, argv):
-        super().__init__(argv)
-        self.setStyle('Fusion')
-
-        # 由于外部需要设置信号，要求先启动mainwindow但不显示
-        self.window = MainWindow()
-        self.loginwindow = logInWindow()
-        self.loginwindow.show()
-
-        # 设置信号与槽连接
-        self.loginwindow.buttonBox.accepted.connect(self.start_main)
-
-    def start_main(self):
-        # TODO: 判断登录选项是否合理
-        self.window.actionWindows.triggered.connect(self._setStyle)
-        self.window.actionwindowsvista.triggered.connect(self._setStyle)
-        self.window.actionFusion.triggered.connect(self._setStyle)
-        self.window.actionQdarkstyle.triggered.connect(self._setStyle)
-        self.window.show()
-
-    def _setStyle(self):
-        ''' docstring: 切换格式 '''
-        # 取消qss格式
-        self.setStyleSheet('')
-        self.window.graphics_global.setBackground('#eee5ff')
-        # 获取信号发起者名称，前6位为action，后面是相应主题名
-        tmp = self.sender().objectName()[6:]
-        # print(tmp)
-        if tmp in QStyleFactory.keys():
-            self.setStyle(tmp)
-        elif tmp == 'Qdarkstyle':
-            self.setStyleSheet(qds.load_stylesheet_pyqt5())
-            self.window.graphics_global.setBackground('#4d4d4d')
-        else:
-            self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -140,6 +98,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # 载入拓扑图
         self.graphics_global.loadTopo(DATA_DIR)
+        # 设置禁止自添加
+        self.addNodes.setAcceptDrops(False)
+        # TODO: 暂时隐藏搜索功能
+        self.search_label.hide()
+        self.searchItem.hide()
+        self.itemlist_label.hide()
+        self.itemlist.hide()
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
@@ -153,9 +118,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 尝试新建文件仓库
         if not os.path.exists(HOME_DIR):
             os.mkdir(HOME_DIR)
-
-        # 设置tab选项卡只读显示
-        self.textEdit.setReadOnly(True)
 
         # 设置信号与槽的连接
         self.tableView.signal_select.connect(self.setSelectItem)
@@ -184,9 +146,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.graphics_global.scene.chooseRouter.connect(self.setAccessRouter)
         self.graphics_global.scene.choosePath.connect(self.setPath)
         self.chooseRouter.clicked.connect(self.setTopoRouterEnable)
-        self.graphics_global.signal_ret.choosenid.connect(lambda s:self.routerAndAS.setText(s))
+        self.graphics_global.signal_ret.choosenid.connect(
+            lambda s: self.accessRouter.setText(s))
         self.graphics_global.signal_ret.chooseitem.connect(self.showItem)
         self.addLine.clicked.connect(self.topoAddLine)
+        self.itemnid.returnPressed.connect(
+            lambda: self.graphics_global.modifyItem(itemnid=self.itemnid.text()))
+        self.itemas.returnPressed.connect(
+            lambda: self.graphics_global.modifyItem(itemas=self.itemas.text()))
+        self.itemname.returnPressed.connect(
+            lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
 
     def showItem(self, name, nid, AS):
         self.itemname.setText(name)
@@ -198,7 +167,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.graphics_global.addedgetype = self.lineType.currentIndex()
 
     def setAccessRouter(self, s):
-        self.routerAndAS.setText(s)
+        self.accessRouter.setText(s)
 
     def setPath(self, paths):
         print(paths)
@@ -514,10 +483,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.showEvent('无效的后端信息')
 
-if __name__ == '__main__':
-    app = CoLoRApp(sys.argv)
 
-    # treeWidget = app.window.dataPktReceive
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+
+    window = MainWindow()
+    window.show()
+
+    # treeWidget = window.dataPktReceive
     # treeWidget.setColumnCount(1)
     # treeWidget.setHeaderLabels(['package', 'SID', 'PXs'])
     # items = []
@@ -532,6 +505,6 @@ if __name__ == '__main__':
     #         px = ''
     #     items.append(QTreeWidgetItem(items[0] if x else None, [name, sid, px]))
     # treeWidget.insertTopLevelItems(0, items)
-    # app.window.update()
+    # window.update()
 
     sys.exit(app.exec_())

@@ -22,13 +22,29 @@ class logInWindow(QDialog, Ui_Dialog):
             self.configpath = None
             self.filetmppath = None
             self.myNID = None
+            self.myIPv4 = None
         else:
             self.autoFillForm(DATAPATH)
         # 设置信号与槽连接
         self.choosepath_config.clicked.connect(self.getConfigPath)
         self.choosepath_filetmp.clicked.connect(self.getFiletmpPath)
+        self.buttonBox.accepted.connect(self.checkInput)
+
+    def checkInput(self):
+        ''' docstring: TODO 验证输入合法性 '''
+        flag = True
+        pass
+        if flag:
+            with open(self.configpath, 'r') as f:
+                __raw_data = json.load(f)
+            __raw_data['filetmppath'] = self.filetmppath
+            __raw_data['myNID'] = self.myNID
+            __raw_data['myIPv4'] = self.myIPv4
+            with open(self.configpath, 'w') as f:
+                json.dump(__raw_data, f)
 
     def autoFillForm(self, path):
+        ''' docstring: 根据*.db文件内容填写表单剩余项 '''
         self.configpath = path
         self.showpath_config.setText(self.configpath)
         with open(self.configpath, 'r') as f:
@@ -37,6 +53,8 @@ class logInWindow(QDialog, Ui_Dialog):
             self.showpath_filetmp.setText(self.filetmppath)
             self.myNID = __raw_data.get('myNID', None)
             self.agentNID.setText(self.myNID)
+            self.myIPv4 = __raw_data.get('myIPv4', None)
+            self.agentIPv4.setText(self.myIPv4)
 
     def getConfigPath(self):
         configpath = QFileDialog.getOpenFileName(self, '请选择配置文件', BASE_DIR)

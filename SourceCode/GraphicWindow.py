@@ -1,9 +1,10 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架 '''
 
+from NodeEdge import Node, Edge
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal, QObject
+from PyQt5.QtGui import QColor, QStandardItemModel
+from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal, QObject, Qt, QModelIndex
 
 from topoGraphView import topoGraphView
 from topoGraphScene import topoGraphScene
@@ -13,6 +14,7 @@ class GraphicMessage(QObject):
     ''' docstring: 拓扑图专用信号返回 '''
     choosenid = pyqtSignal(str)
     chooseitem = pyqtSignal(str, str, str)
+
 
 class GraphicWindow(QWidget):
     ''' docstring: 拓扑图窗口类 '''
@@ -28,13 +30,62 @@ class GraphicWindow(QWidget):
         self.accessrouterenable = False
         self.findpathenable = False
         self.labelenable = False
+        self.chooseItem = None
 
         # 设置最小大小
-        self.setMinimumSize(400, 400)
+        # self.setMinimumSize(400, 400)
+        # 设置属性，允许拖放
+        self.setAcceptDrops(True)
+        self.view.setAcceptDrops(True)
+        # 接管view视图中所有拖放事件
+        self.view.dragEnterEvent = self.dragEnterEvent
+        self.view.dragMoveEvent = self.dragMoveEvent
+        self.view.dragLeaveEvent = self.dragLeaveEvent
+        self.view.dropEvent = self.dropEvent
         # 设置垂直布局方式
         layout = QVBoxLayout()
         layout.addWidget(self.view)
         self.setLayout(layout)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat('application/x-qabstractitemmodeldatalist'):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasFormat('application/x-qabstractitemmodeldatalist'):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragLeaveEvent(self, event):
+        pass
+
+    def dropEvent(self, event):
+        if event.mimeData().hasFormat('application/x-qabstractitemmodeldatalist'):
+            data = event.mimeData()
+            source_item = QStandardItemModel()
+            source_item.dropMimeData(data, Qt.CopyAction, 0, 0, QModelIndex())
+            nodename = source_item.item(0, 0).text()
+            print(nodename)
+            if nodename == 'cloud':
+                node = Node(nodetype=0)
+                self.scene.addItem(node)
+                self.scene.belongAS[node.nid] = node
+                self.scene.ASinfo[node.nid] = [node]
+            elif nodename == 'RM':
+                node = Node(nodetype=1)
+                self.scene.addItem(node)
+                self.scene.waitlist.append(node)
+            elif nodename == 'BR':
+                pass
+            elif nodename == 'router':
+                pass
+            elif nodename == 'switch':
+                pass
+            elif nodename == 'PC':
+                pass
 
     def loadTopo(self, path):
         self.scene.initTopo_config(path)
@@ -50,6 +101,27 @@ class GraphicWindow(QWidget):
 
     def setNid(self, nid):
         self.scene.nid_me = nid
+
+    def modifyItem(self, *, itemname=None, itemnid=None, itemas=None):
+        if not self.chooseItem:
+            return
+        if itemname:
+            self.chooseItem.name = itemname
+            self.chooseItem.updateLabel(name=itemname)
+        if itemnid and self.chooseItem in self.scene.waitlist:
+            self.chooseItem.nid = itemnid
+            self.chooseItem.updateLabel(nid=itemnid)
+            self.scene.waitlist.remove(self.chooseItem)
+        if itemas and not self.chooseItem in self.scene.waitlist \
+                and not self.scene.belongAS.get(self.chooseItem.nid, None):
+            l = itemas.find('<')
+            r = itemas.find('>')
+            if l<0 or r<0 or l+1>=r or r-l-1 != 32:
+                return
+            itemas = itemas[l+1:r]
+            chooseAS = self.scene.belongAS[itemas]
+            self.scene.belongAS[self.chooseItem.nid]=chooseAS
+            self.scene.ASinfo[itemas].append(self.chooseItem)
 
 
 if __name__ == "__main__":

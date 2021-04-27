@@ -2,10 +2,11 @@
 ''' docstring: 主程序 '''
 
 import sys
-
+import qdarkstyle as qds
 import ColorMonitor as CM
-
-from MainWindow import MainWindow, CoLoRApp
+from MainWindow import MainWindow
+from logInWindow import logInWindow
+from PyQt5.QtWidgets import QApplication, QStyleFactory
 
 # import time
 
@@ -17,25 +18,61 @@ try:
 except ImportError:
     pass
 
+
+class CoLoRApp(QApplication):
+    ''' docstring: CoLoR应用类 '''
+
+    def __init__(self, argv):
+        ''' docstring: 初始化应用 '''
+        super().__init__(argv)
+        self.setStyle('Fusion')
+
+        self.loginwindow = logInWindow()
+        self.loginwindow.show()
+
+        # 设置信号与槽连接
+        self.loginwindow.buttonBox.accepted.connect(self.start_main)
+
+    def start_main(self):
+        # 初始化本终端信息
+        CM.PL.IPv4 = self.loginwindow.myIPv4
+        CM.PL.Nid = int('0x'+self.loginwindow.myNID, 16)
+        self.window = MainWindow()
+        self.window.actionWindows.triggered.connect(self._setStyle)
+        self.window.actionwindowsvista.triggered.connect(self._setStyle)
+        self.window.actionFusion.triggered.connect(self._setStyle)
+        self.window.actionQdarkstyle.triggered.connect(self._setStyle)
+        self.window.show()
+        thread_monitor = CM.Monitor(
+            message = app.window.handleMessageFromPkt,
+            path = app.window.getPathFromPkt
+        )
+        thread_monitor.setDaemon(True)
+        thread_monitor.start()
+        # time.sleep(2)
+        # CM.PL.AddCacheSidUnit('F:\\ProjectCloud\\test\\testfile1.txt',1,1,1,1)
+        # CM.PL.SidAnn()
+        # time.sleep(2)
+        # SID = hex(CM.PL.Nid).replace('0x', '').zfill(32) + CM.PL.Sha1Hash('F:\\ProjectCloud\\test\\testfile1.txt')
+        # CM.PL.Get(SID, 'F:\\ProjectCloud\\test.txt')
+
+    def _setStyle(self):
+        ''' docstring: 切换格式 '''
+        # 取消qss格式
+        self.setStyleSheet('')
+        self.window.graphics_global.setBackground('#eee5ff')
+        # 获取信号发起者名称，前6位为action，后面是相应主题名
+        tmp = self.sender().objectName()[6:]
+        # print(tmp)
+        if tmp in QStyleFactory.keys():
+            self.setStyle(tmp)
+        elif tmp == 'Qdarkstyle':
+            self.setStyleSheet(qds.load_stylesheet_pyqt5())
+            self.window.graphics_global.setBackground('#4d4d4d')
+        else:
+            self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
+
+
 if __name__ == '__main__':
-    # 初始化本终端信息
-    CM.PL.IPv4 = '10.0.0.5'
-    CM.PL.Nid = 0x11111111111111111111111111111110
-
     app = CoLoRApp(sys.argv)
-
-    thread_monitor = CM.Monitor(
-        message = app.window.handleMessageFromPkt,
-        path = app.window.getPathFromPkt
-    )
-    thread_monitor.setDaemon(True)
-    thread_monitor.start()
-
-    # time.sleep(2)
-    # CM.PL.AddCacheSidUnit('F:\\ProjectCloud\\test\\testfile1.txt',1,1,1,1)
-    # CM.PL.SidAnn()
-    # time.sleep(2)
-    # SID = hex(CM.PL.Nid).replace('0x', '').zfill(32) + CM.PL.Sha1Hash('F:\\ProjectCloud\\test\\testfile1.txt')
-    # CM.PL.Get(SID, 'F:\\ProjectCloud\\test.txt')
-
     sys.exit(app.exec_())
