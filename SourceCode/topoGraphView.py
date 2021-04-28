@@ -60,6 +60,8 @@ class topoGraphView(QGraphicsView):
         for nextnode, nextedge in tmplist:
             self.scene().nextedges[nextnode.nid].remove((item, nextedge))
             self.scene().removeItem(nextedge)
+        if item in self.scene().waitlist:
+            self.scene().waitlist.remove(item)
         self.scene().removeItem(item)
 
     def mousePressEvent(self, event):
@@ -110,14 +112,22 @@ class topoGraphView(QGraphicsView):
                 nidlist = self.scene().findPath(item)
                 print(nidlist)
         else:
-            if event.button() == Qt.LeftButton and isinstance(item, Node):
-                asitem = self.scene().belongAS.get(item.nid, None)
-                if not asitem:
-                    asstr = '???<???>'
-                else:
-                    asstr = f"{asitem.name}<{asitem.nid}>"
-                self.parent().chooseItem = item
-                self.parent().signal_ret.chooseitem.emit(item.name, item.nid, asstr)
+            if event.button() == Qt.LeftButton:
+                if isinstance(item, Node):
+                    asitem = self.scene().belongAS.get(item.nid, None)
+                    if not asitem:
+                        asstr = '???<???>'
+                    else:
+                        asstr = f"{asitem.name}<{asitem.nid}>"
+                    self.parent().chooseItem = item
+                    self.parent().signal_ret.chooseitem.emit(item.name, item.nid, asstr)
+                elif isinstance(item, Edge):
+                    n1 = f"{item.node1.name}<{item.node1.nid}>"
+                    n2 = f"{item.node2.name}<{item.node2.nid}>"
+                    linename = f"Edge<{item.type}>({n1},{n2})"
+                    linePX = f"PX:{item.PX}"
+                    self.parent().chooseItem = item
+                    self.parent().signal_ret.chooseitem.emit(linename, linePX, "")
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -147,6 +157,8 @@ class topoGraphView(QGraphicsView):
             if self.scene().tmpedge:
                 if isinstance(item, Node) and item.type and item is not self.scene().tmpnode \
                         and item not in self.scene().waitlist:
+                    if self.scene().tmpedge.type == 1:
+                        self.scene().waitlist.append(self.scene().tmpedge)
                     self.scene().tmpedge.changeLine(self.scene().tmpnode.scenePos(), item.scenePos())
                     self.scene().addEdge(self.scene().tmpnode, item, self.scene().tmpedge)
                 else:

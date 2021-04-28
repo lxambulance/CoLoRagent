@@ -108,6 +108,8 @@ class topoGraphScene(QGraphicsScene):
                 item = Node(nodetype = ntp, nodename = nnm, nodenid = node['nid'])
             elif ntp == 4:
                 item = Node(nodetype = ntp, nodename = nnm)
+            else:
+                continue
             self.addItem(item)
             tmpnodes.append(item)
         # 添加AS信息
@@ -206,9 +208,8 @@ class topoGraphScene(QGraphicsScene):
                     node['nid'] = item.nid
                 elif item.type == 4:
                     pass
-                elif item.type == 5:
-                    # TODO: 代理节点特殊记录
-                    pass
+                else:
+                    continue
                 tmpnodes.append(node)
                 tmpnodemap[item.nid] = num
                 num += 1

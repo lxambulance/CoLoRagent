@@ -29,6 +29,14 @@ class logInWindow(QDialog, Ui_Dialog):
         self.choosepath_config.clicked.connect(self.getConfigPath)
         self.choosepath_filetmp.clicked.connect(self.getFiletmpPath)
         self.buttonBox.accepted.connect(self.checkInput)
+        self.agentNID.textChanged.connect(self.setNID)
+        self.agentIPv4.textChanged.connect(self.setIPv4)
+
+    def setNID(self, text):
+        self.myNID = text
+
+    def setIPv4(self, text):
+        self.myIPv4 = text
 
     def checkInput(self):
         ''' docstring: TODO 验证输入合法性 '''

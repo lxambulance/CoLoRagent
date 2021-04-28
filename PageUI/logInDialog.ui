@@ -44,7 +44,11 @@
      <item row="0" column="1">
       <layout class="QHBoxLayout" name="configpath_horizontalLayout">
        <item>
-        <widget class="QLineEdit" name="showpath_config"/>
+        <widget class="QLineEdit" name="showpath_config">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QPushButton" name="choosepath_config">
@@ -81,7 +85,11 @@
      <item row="3" column="1">
       <layout class="QHBoxLayout" name="filetmppath_horizontalLayout">
        <item>
-        <widget class="QLineEdit" name="showpath_filetmp"/>
+        <widget class="QLineEdit" name="showpath_filetmp">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QPushButton" name="choosepath_filetmp">

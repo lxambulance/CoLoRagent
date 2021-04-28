@@ -113,6 +113,11 @@ class Edge(QGraphicsLineItem):
         # 设置高度信息
         self.setZValue(0)
 
+    def updateLabel(self, linePX):
+        self.PX = linePX
+        self.label.setText(f"PX:{self.PX}")
+        self.label.update()
+
     def midpoint(self, n1, n2):
         if n1.x()>n2.x() or fabs(n1.x()-n2.x())<1e-8 and n1.y()>n2.y():
             n1, n2 = n2, n1
