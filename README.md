@@ -4,11 +4,7 @@
 
 ## 简介
 
-这是一个CoLoR网络架构下的代理系统，有一个简单的界面和一个监听进程，主语言是python，前端使用了pyqt库，后端使用了scapy库绑定网卡直接发自定义格式包。
-
-### 文件夹说明
-
-Icon包含一些图标文件，PageUI包含QT的ui文件，SourceCode包含代码源文件（目前只有一个文件夹，前后端代码不多，都在这里了），test包含一些测试用文件，可以随意修改。
+这是一个CoLoR网络架构下的代理系统，有一个简单的界面和一个监听进程，主语言是python，前端使用了pyqt5以及相关的一些库，后端使用了scapy库绑定网卡直接发自定义格式包。
 
 ## 进度
 
@@ -22,11 +18,11 @@ Icon包含一些图标文件，PageUI包含QT的ui文件，SourceCode包含代�
 
 作为git练习，dev分支可能会出现许多无聊地、甚至错误地提交。
 
-warning: proxylib后端耦合度太高，可以适当拆分。但重构他人代码可能是大忌，修改的同时容易埋更多bug，不建议修改，能用就行。
+warning: proxylib后端耦合度太高，可以适当拆分。但重构他人代码可能是大忌，修改的同时容易埋更多bug，不建议修改，当做黑盒能用就行。
 
 ## 前端数据文件存储
 
-以json格式存储 1、基本数据条目，二维结构；2、拓扑图；3、其余一些客户端代理配置信息
+以Json格式存储 1、基本数据条目，二维结构；2、拓扑图；3、其余一些客户端代理配置信息
 
 ```json
 {
@@ -54,21 +50,57 @@ warning: proxylib后端耦合度太高，可以适当拆分。但重构他人代
 }
 ```
 
-每列含义（./SourceCode/serviceTable.py）如下：
+"base data"每列含义（./SourceCode/serviceTable.py）如下：
 
 ```python
 COLUMN = ['文件名', '路径', 'SID', '是否通告', '是否下载']
 ```
 
-拓扑中node type含义如下：
+"topo map"中"nodes"."type"含义如下：
 
 ```python
 NodeType = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
 ```
 
-## 代理用户层接口函数说明（ProxyLib.py）
+## 前端逻辑
 
-### 简介
+```mermaid
+graph LR
+    A[/main/]--->|main thread|B[mainwindow]
+    A-.->|new thread|C[CoLoRMonitor]
+    B---D[File list]
+    B---E[topological graph]
+    C-.->|show message|D
+    C-.->|show receive package|E
+    D--->|action|F{need time?}
+    E--->|action|F
+    F--->|Yes|G[new thread to do]
+    F--->|No|H[do it right now]
+    G-.->I{loop}
+    H-.->I
+    I-.->|Yes|B
+    I-.->|No|J[/End/]
+```
+
+## 后端逻辑
+
+```mermaid
+graph LR
+    A[/main/]--->|start thread|B[CoLoRMonitor]
+    B--->|listen|C{package.type?}
+    C--get--> D[check database then send]
+    C--data--> E[store database]
+    C--control--> F[change option]
+    D---> G{next?}
+    E---> G
+    F---> G
+    G-.->|Yes|C
+    G--->|No|H[/End/]
+```
+
+## 后端接口函数
+
+### proxylib.py功能函数简介
 
 1. def Sha1Hash(path) #计算文件hash，path为文件路径。
 2. def AddCacheSidUnit(path, AM, N, L, I, level) #将通告加入缓存，path为文件路径，AM表示通告单元动作类型（新增0x1、更新0x2、注销0x3），N、L、I分别表示n_sid，l_sid，nid能否省略，level表示信息级别（密级通告？），可暂时不理。
@@ -120,7 +152,7 @@ SegID：可选字段，含义同get包的Seg_ID字段。int类型，可选范围
 
 A：可选字段，含义同get包的A字段。int类型，可为0~1。
 
-## ProxyLib.py公共变量说明
+## 后端公共变量定义
 
 ### CacheSidUnits = {key:value}
 
@@ -146,7 +178,14 @@ Key：SID。格式同上。
 
 Value：目标存储路径(含文件名)，String类型。
 
-## 遇到问题
+## 文件夹说明
+
+- Icon包含一些图标文件
+- PageUI包含QT的ui文件
+- SourceCode包含代码源文件（目前只有一个文件夹，前后端代码不多，都在这里了）
+- test包含一些测试用文件，可以随意修改。
+
+## 踩坑记录
 
 ### 前端设计
 
@@ -156,9 +195,11 @@ Value：目标存储路径(含文件名)，String类型。
 
 解决方法：一个data多个model、一个model一个view的方式实现。
 
-#### 2. 前后端的服务类能否共用一个 [unsolved]
+#### 2. 前后端的服务类能否共用一个 [solved]
 
 > 问题描述：为了存储数据条目，前后端分别实现了一个服务类，能否共用一个？这用交互起来还方便一些。
+
+需求不一，暂时分开存数据。
 
 #### 3. graphicview中多个graphicitem坐标定位 [solved]
 
@@ -182,17 +223,31 @@ item的坐标原点与view一开始一致，通过setpos可以修改item坐标�
 
 windows文件拖拽权限问题，explorer为中权限，运行环境为管理员权限，是最高权限，windows中不允许低权限向高权限拖拽。
 
-#### 7. 图元操作异常 [unsolved]
+#### 7. 图元操作异常 [solved]
 
 > 问题描述：删除连边不成功。
 
+无法解决，猜测是图元类与信号的不合理混用，通过重构正常实现功能。
+
 ## Appendix
 
-### pyqt学习记录
+### A. pyqt学习记录
 
 #### Widget dialog layout
 
-占坑
+widget意为小组件，QWidget是一块空白块，一般qtdesignor里使用的都是xxxwidget，有特定功能，比较方便，比如Qmainwindow有菜单栏和状态栏。
+
+dialog是特化的用户交互窗口，一般有yes、no选项，以及一些用户需要填写的信息，调用该窗口一般希望阻塞其他用户操作，逼迫其填写完毕后执行后续操作。
+
+layout是小组件里嵌套组件的基本布局。萌新时期不懂这个作用，直接拖widget写了个窗口发现窗口禁不起拖动，因为组件坐标是绝对值，拉长之后不会重新布局。使用了layout就可以在窗口拖动后实现自动的重新布局，虽然可能效果不理想，需要进一步微调，但起码不至于离谱到找不到了。
+
+#### 坐标系
+
+在实现graphics一系列操作时不可避免地涉及到坐标系，pyqt总共有三个坐标系。
+
+- 视图坐标（view coordinates），显示器物理坐标。所有小组件（widget）都使用这个坐标，即坐标原点在窗口左上角，y轴正方向向下。这是一个比较符合计算机书写逻辑的坐标系（参照excel表格），这个时候窗口大小也比较好表示，就是右下角坐标值。
+- 场景坐标（scene coordinates），场景逻辑坐标。这是为了方便场景表示而采用的坐标系，即在qgraphicsscene中，坐标原点可以不是左上角（但是y轴还是朝下），程序员可以自定义取景框，取景框大小也不一定需要与视图大小一致，即支持放缩。场景中的顶层物体基于这个坐标系存储位置，与视图坐标之间存在转换矩阵。
+- 图元坐标（item coordinates），图元逻辑坐标。为了方便图元之间实现嵌套表示而采用的坐标系，与场景坐标之间存在一个变换。嵌套的图元采用这个坐标系存储位置。
 
 #### Model/view模型
 
@@ -200,52 +255,81 @@ windows文件拖拽权限问题，explorer为中权限，运行环境为管理�
 
 ##### 简介
 
-Model/View is a technology used to separate data from views in widgets that handle data sets.
+MVC模型分离了数据、视图和操作，在Qt里简化成了M/V模型。具体到项目中遇到了一份数据两种形式显示的问题，虽然使用成熟的widget组件也可以轻松完成，但是数据需要存两份，同步起来不方便，也不利于后续数据库扩展（maybe），另外也是为了练手，采用model/view模型。
 
-Model/view also makes it easier to use more than one view of the same data because one model can be passed on to many views. 
+这里model/view虽然本意是一个model对应多个view，但是项目中两个view差异过大，不太容易用一个model表示，故写了两个model（数据还是只有一份，model可以看做基本数据操作模型）
 
 ![modelview-overview](https://doc.qt.io/qt-5/images/modelview-overview.png)
 
-All item **models** are based on the [QAbstractItemModel](https://doc.qt.io/qt-5/qabstractitemmodel.html) class. This class defines an interface that is used by views and delegates to access data. The data itself does not have to be stored in the model; it can be held in a data structure or repository provided by a separate class, a file, a database, or some other application component.
+Qt中model都是根据QAbstractItemModel这个抽象类继承而来，该类定义了基本的视图或代理访问数据的接口，数据没有必要直接存在model里（就可以很方便的改写接数据库），而是由数据结构、分离的类、文件、数据库或其他应用组件完成。
 
-Complete implementations are provided for different kinds of **views**: [QListView](https://doc.qt.io/qt-5/qlistview.html) displays a list of items, [QTableView](https://doc.qt.io/qt-5/qtableview.html) displays data from a model in a table, and [QTreeView](https://doc.qt.io/qt-5/qtreeview.html) shows model items of data in a hierarchical list. Each of these classes is based on the [QAbstractItemView](https://doc.qt.io/qt-5/qabstractitemview.html) abstract base class. Although these classes are ready-to-use implementations, they can also be subclassed to provide customized views.
+Qt提供三种基本的视图，QListView、QTreeView和QTableView，使得用户可以定义少量的函数就直接使用。
 
-##### proxy model
+##### 代理模型
 
-Views manage selections within a separate selection model, which can be retrieved with the [selectionModel()](https://doc.qt.io/qt-5/qabstractitemview.html#selectionModel) method. 
+简单来说就是遇到类似选择、排序和过滤等操作时，通过一层叠加的模型可以比较方便实现。（没有具体了解，或许项目中两个视图显示一份数据可以通过代理模型过滤）
 
-The selection model (as shown above) can be retrieved, but it can also be set with [QAbstractItemView::setSelectionModel](https://doc.qt.io/qt-5/qabstractitemview.html). This is how it's possible to have 3 view classes with synchronized selections because only one instance of a selection model is used. To share a selection model between 3 views use [selectionModel()](https://doc.qt.io/qt-5/qabstractitemview.html#selectionModel) and assign the result to the second and third view class with [setSelectionModel()](https://doc.qt.io/qt-5/qabstractitemview.html#setSelectionModel).
+##### 代表
 
-In the model/view framework, items of data supplied by a single model can be shared by any number of views, and each of these can possibly represent the same information in completely different ways. Custom views and delegates are effective ways to provide radically different representations of the same data. However, applications often need to provide conventional views onto processed versions of the same data, such as differently-sorted views onto a list of items.
+代表delegate用于处理一些实时的渲染逻辑，比如重写paint()函数实现进度条加载。目前项目中只在进度条这用到了。简单阅读了文档，还可以做一些简单的功能例如编辑等操作。
 
-Although it seems appropriate to perform sorting and filtering operations as internal functions of views, this approach does not allow multiple views to share the results of such potentially costly operations. The alternative approach, involving sorting within the model itself, leads to the similar problem where each view has to display items of data that are organized according to the most recent processing operation.
+##### 图形视图结构
 
-##### Delegates
+类似于模型视图结构，不过这次的模型是图元，相对来说比model复杂一点，因为要考虑显示。使用图形视图结构的好处在于
 
-The view has a [setItemDelegate()](https://doc.qt.io/qt-5/qabstractitemview.html#setItemDelegate) method that replaces the default delegate and installs a custom delegate. A new delegate can be written by creating a class that inherits from [QStyledItemDelegate](https://doc.qt.io/qt-5/qstyleditemdelegate.html). In order to write a delegate that displays stars and has no input capabilities, we only need to override 2 methods. 
+- 提供了快速的接口管理大量的图元
+- 可以传递事件到每个具体选择的图元
+- 统一管理图元的状态信息，比如选择和关注（focus不知道怎么翻译，具体意思就是获取键盘控制权）
+- 提供渲染转换函数，方便输出
 
-[paint()](https://doc.qt.io/qt-5/qstyleditemdelegate.html#paint) draws stars depending on the content of the underlying data. The data can be looked up by calling [index.data()](https://doc.qt.io/qt-5/qmodelindex.html#data). The delegate's [sizeHint()](https://doc.qt.io/qt-5/qabstractitemdelegate.html#sizeHint) method is used to obtain each star's dimensions, so the cell will provide enough height and width to accommodate the stars.
+题外话：Qt提供了四种类用于处理图像信息：QImage、QPixmap、QBitmap和QPicture。QImage是设计用于优化读写以及直接的像素级访问和操作，QPixmap是设计用于优化屏幕显示，QBitmap是一个继承于QPixmap且每个像素只有0/1的简单图像，QPixture是跟随画图类定义的一个用于执行画图操作的类。
 
-##### The Graphics View Architecture
+#### 扩展数据信号
 
-*QGraphicsScene* provides the Graphics View scene. The scene has the following responsibilities:
+基本的Qt信号使用如下，就这么玩。
 
-- Providing a fast interface for managing a large number of items
-- Propagating events to each item
-- Managing item state, such as selection and focus handling
-- Providing untransformed rendering functionality; mainly for printing
+```python
+from PyQt5.QtCore import QObject , pyqtSignal
 
-Qt provides four classes for handling image data: QImage , QPixmap , QBitmap and QPicture . QImage is designed and optimized for I/O, and for direct pixel access and manipulation, while QPixmap is designed and optimized for showing images on screen. QBitmap is only a convenience class that inherits QPixmap , ensuring a depth of 1. Finally, the QPicture class is a paint device that records and replays QPainter commands.
+class CustSignal(QObject):
+    #声明无参数的信号
+    signal1 = pyqtSignal()
+    #声明带一个int类型参数的信号
+    signal2 = pyqtSignal(int)
+    #声明带int和str类型参数的信号
+    signal3 = pyqtSignal(int,str)
+    #声明带一个列表类型参数的信号
+    signal4 = pyqtSignal(list)
+    #声明带一个字典类型参数的信号
+    signal5 = pyqtSignal(dict)
+    #声明一个多重载版本的信号，包括带int和str类型参数的信号和带str类型参数的信号
+    signal6 = pyqtSignal([int,str], [str])
+    
+    #将信号连接到指定槽函数
+    self.signal1.connect(self.signalCall1)
+    self.signal2.connect(self.signalCall2)
+    self.signal3.connect(self.signalCall3)
+    self.signal4.connect(self.signalCall4)
+    self.signal5.connect(self.signalCall5)
+    #重载版本的使用需要指明类型
+    self.signal6[int,str].connect(self.signalCall6)
+    self.signal6[str].connect(self.signalCall6OverLoad)
+```
 
-#### Extra data signal
+通过lambda函数可以做一些简单的扩展，更复杂的操作建议写闭包，lambda功能有限。
 
-占坑
+```python
+    #将接受一个变量的槽改成了不接受变量的槽，通常这些操作用在循环里，i是循环变量
+    self.signal2.connect(lambda:self.signalCall2(i))
+```
 
-#### Threads&processes
+#### 多线程与进程
 
-占坑
+具体参考[PyQt5 tutorial](https://www.mfitzp.com/courses/pyqt/)
 
-#### Packaging
+本项目参考上述教程，直接将新建线程的操作抽象为新建一个worker类，然后通过信号绑定的操作实现线程之间的内容交互。
+
+### B. Packaging文件打包
 
 ##### pyinstaller
 
@@ -286,9 +370,7 @@ except ImportError:
 
 fbs是跨平台pyqt5打包工具，它是基于pyinstaller的扩展版本，实现了更为简单的自动化打包。
 
-
-
-### json
+### C. Json
 
 **J**ava**S**cript **O**bject **N**otation（javascript对象表示法），存储和交换文本信息的语法，类似XML。由于其字符串的存储形式，便于进程交互，另外python自带的库文件可以直接解析相应结构。
 
@@ -316,7 +398,7 @@ obj = json.load(fp)
 |    false     | False  |
 |     null     |  None  |
 
-### pylint代码书写规则
+### D. pylint代码书写规则
 
 1. 模块，类，函数都要用格式'''docstring:...'''写docstring且不能为空，描述相应对象用来做什么即可
 2. 模块命名采用snake_case naming style，即单词用小写，连接单词用下划线
@@ -327,7 +409,9 @@ obj = json.load(fp)
 7. 一个类最好至少两个public函数
 8. constant常量用全大写来命名
 
-### git
+虽然我也经常不遵守规则，但最好写代码清醒的时候起名注意点。
+
+### E. git使用
 
 #### 基本操作
 
@@ -427,3 +511,4 @@ subject是commit目的的简短描述，不超过50个字符。
 fix(DAO):用户查询缺少username属性
 feat(Controller):用户查询接口开发
 ```
+

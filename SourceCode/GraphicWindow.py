@@ -70,7 +70,7 @@ class GraphicWindow(QWidget):
             nodename = source_item.item(0, 0).text()
             # print(nodename)
             if nodename == 'cloud':
-                node = Node(nodetype=0)
+                node = Node(nodetype=0, nodename='AS')
                 self.scene.belongAS[node.nid] = node
                 self.scene.ASinfo[node.nid] = [node]
             elif nodename == 'RM':
@@ -88,6 +88,8 @@ class GraphicWindow(QWidget):
                 node = Node(nodetype=5)
                 self.scene.waitlist.append(node)
             self.scene.addItem(node)
+            pos = self.view.mapToScene(event.pos())
+            node.setPos(pos)
             if self.labelenable:
                 node.label.show()
             else:
