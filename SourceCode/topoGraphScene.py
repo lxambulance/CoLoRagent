@@ -26,9 +26,9 @@ class topoGraphScene(QGraphicsScene):
         self.nid_me = None
         self.waitlist = []
 
-        self.ASinfo = {} # ASnid:[node,...]
-        self.belongAS = {} # nid:ASitem
-        self.nextedges = {} # nid:[(nextnode, edge),...]
+        self.ASinfo = {} # id:[node,...]
+        self.belongAS = {} # id:ASitem
+        self.nextedges = {} # id:[(nextnode, edge),...]
         self.R = 0 # 布局中大圆半径
 
         self.topo = {}
@@ -36,20 +36,20 @@ class topoGraphScene(QGraphicsScene):
 
     def addEdge(self, n1, n2, edge):
         ''' docstring: 向nextedges字典中添加点-边映射（无向边） '''
-        tmplist = self.nextedges.get(n1.nid, [])
+        tmplist = self.nextedges.get(n1.id, [])
         tmplist.append((n2, edge))
-        self.nextedges[n1.nid] = tmplist
-        tmplist = self.nextedges.get(n2.nid, [])
+        self.nextedges[n1.id] = tmplist
+        tmplist = self.nextedges.get(n2.id, [])
         tmplist.append((n1, edge))
-        self.nextedges[n2.nid] = tmplist
+        self.nextedges[n2.id] = tmplist
         # 绑定对应点，便于删除
         edge.node1 = n1
         edge.node2 = n2
 
     def delEdge(self, n1, n2, edge):
         ''' docstring: 与上面操作相反 '''
-        self.nextedges[n1.nid].remove((n2, edge))
-        self.nextedges[n2.nid].remove((n1, edge))
+        self.nextedges[n1.id].remove((n2, edge))
+        self.nextedges[n2.id].remove((n1, edge))
 
     def findPath(self, dest):
         ''' docstring: 根据目标地址选择路径，返回经过节点nid路径 '''
@@ -67,7 +67,7 @@ class topoGraphScene(QGraphicsScene):
         self.node_me.isvisited = True
         while not tmpqueue.empty():
             topnode = tmpqueue.get()
-            for nextnode, nextedge in self.nextedges[topnode.nid]:
+            for nextnode, nextedge in self.nextedges[topnode.id]:
                 if not nextnode.isvisited:
                     tmpqueue.put(nextnode)
                     nextnode.isvisited = True
@@ -127,11 +127,11 @@ class topoGraphScene(QGraphicsScene):
                     nodelist[0], nodelist[j] = nodelist[j], nodelist[0]
                     break
             nodelist.append(asitem)
-            self.ASinfo[asitem.nid] = nodelist
+            self.ASinfo[asitem.id] = nodelist
             # print([nodelist[x].name for x in range(len(nodelist))])
-            self.belongAS[asitem.nid] = asitem
+            self.belongAS[asitem.id] = asitem
             for x in self.topo['ASinfo'][str(i)]:
-                self.belongAS[tmpnodes[x].nid] = asitem
+                self.belongAS[tmpnodes[x].id] = asitem
         # 设置图元位置
         self.R *= 64
         num1 = len(self.ASinfo)
@@ -154,7 +154,7 @@ class topoGraphScene(QGraphicsScene):
         # 添加边
         for (x, y, PX) in self.topo['edges']:
             lt = 0
-            if self.belongAS[tmpnodes[x].nid] is not self.belongAS[tmpnodes[y].nid]:
+            if self.belongAS[tmpnodes[x].id] is not self.belongAS[tmpnodes[y].id]:
                 lt = 1
             if not len(PX):
                 edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt)
@@ -189,6 +189,9 @@ class topoGraphScene(QGraphicsScene):
         ''' docstring: 存储拓扑图 '''
         with open(path, 'r') as f:
             self.data = load(f)
+        # 删除所有还在waitlist中的点，视为添加失败
+        for item in self.waitlist:
+            self.removeItem(item)
         self.topo = {}
         # 添加点
         tmpnodes = []
@@ -211,27 +214,27 @@ class topoGraphScene(QGraphicsScene):
                 else:
                     continue
                 tmpnodes.append(node)
-                tmpnodemap[item.nid] = num
+                tmpnodemap[item.id] = num
                 num += 1
         self.topo['nodes'] = tmpnodes
         # 添加边
         tmpedges = []
         for item in self.items():
             if isinstance(item, Edge):
-                x = tmpnodemap[item.node1.nid]
-                y = tmpnodemap[item.node2.nid]
+                x = tmpnodemap[item.node1.id]
+                y = tmpnodemap[item.node2.id]
                 px = ""
-                if hasattr(item, 'PX'):
+                if item.PX:
                     px = item.PX
                 tmpedges.append([x, y, px])
         self.topo['edges'] = tmpedges
         # 添加AS信息
         tmpasinfo = {}
-        for asnid, nodes in self.ASinfo.items():
-            x = tmpnodemap[asnid]
+        for asid, nodes in self.ASinfo.items():
+            x = tmpnodemap[asid]
             y = []
             for node in nodes:
-                z = tmpnodemap[node.nid]
+                z = tmpnodemap[node.id]
                 if x != z:
                     y.append(z)
             tmpasinfo[str(x)] = y

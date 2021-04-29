@@ -26,7 +26,7 @@ warning: proxylib后端耦合度太高，可以适当拆分。但重构他人代
 
 ```json
 {
-	"base data":[
+    "base data":[
         [
         "name", "path", "SID", is_reg, is_down
         ]
@@ -46,7 +46,7 @@ warning: proxylib后端耦合度太高，可以适当拆分。但重构他人代
         }
     },
     "filetmppath":"D:/CodeHub/CoLoRagent/.tmp/",
-	"myNID":"11111111111111111111111111111110"
+    "myNID":"11111111111111111111111111111110"
 }
 ```
 
