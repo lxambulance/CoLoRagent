@@ -372,7 +372,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         while len(newItem)<7:
             newItem.append(None)
         if level != None:
-            newItem[5] = int(level)
+            newItem[5] = level
             self.fd.setItem(nowSelectItem, newItem)
         if whitelist != None:
             newItem[6] = whitelist
@@ -387,9 +387,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         whitelist = self.fd.getData(nowSelectItem, 6)
         kwargs = {}
         if level != None:
-            kwargs['level'] = level
+            kwargs['level'] = int(level)
         if whitelist != None:
-            kwargs['WhiteList'] = whitelist
+            kwargs['WhiteList'] = list(map(int,whitelist.split(',')))
         regitemworker = worker(0, AddCacheSidUnit, filepath, 1,1,1,1, **kwargs)
         regitemworker.signals.finished.connect(lambda:self.updateProgress(nowSelectItem, 3)(100))
         regitemworker.signals.finished.connect(lambda:self.showStatus('条目已通告'))

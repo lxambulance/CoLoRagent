@@ -49,6 +49,7 @@ class CoLoRApp(QApplication):
         )
         thread_monitor.setDaemon(True)
         thread_monitor.start()
+        # CM.PL.RegFlag=1
         # time.sleep(2)
         # CM.PL.AddCacheSidUnit('F:\\ProjectCloud\\test\\testfile1.txt',1,1,1,1)
         # CM.PL.SidAnn()
