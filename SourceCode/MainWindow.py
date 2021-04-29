@@ -46,6 +46,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 添加右键菜单
         self.listView.addAction(self.action_reg)
         self.tableView.addAction(self.action_reg)
+        self.listView.addAction(self.action_advancedreg)
+        self.tableView.addAction(self.action_advancedreg)
         self.listView.addAction(self.action_undoReg)
         self.tableView.addAction(self.action_undoReg)
         self.listView.addAction(self.action_dow)
@@ -130,6 +132,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_del.triggered.connect(self.delItem)
         self.action_dow.triggered.connect(self.dowItem)
         self.action_reg.triggered.connect(self.regItem)
+        self.action_advancedreg.triggered.connect(self.showAdvancedReg)
         self.action_undoReg.triggered.connect(self.undoRegItem)
         self.action_openDir.triggered.connect(self.openFolder)
         self.action_hub.triggered.connect(self.openHub)
@@ -186,6 +189,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.graphics_global.addedgeenable = True
 
     def setSelectItem(self, items):
+        ''' docstring: 通过列表和表格多选信号返回选择条目对象 '''
         if len(items) == 0:
             self.selectItems = []
         else:
@@ -321,6 +325,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             regitemworker.signals.finished.connect(
                 lambda: self.showStatus('条目已通告'))
             self.threadpool.start(regitemworker)
+
+    def showAdvancedReg(self):
+        ''' docstring: 高级通告 '''
+        if len(self.selectItems) == 0:
+            self.showStatus('未选中条目')
+        elif len(self.selectItems) > 1:
+            self.showStatus('选中要素过多')
+        else:
+            nowSelectItem = self.selectItems[0]
+            print(nowSelectItem)
+            self.tabWidget.setCurrentIndex(3)
 
     def regItem_multi(self, items, progress_callback):
         total = len(items)

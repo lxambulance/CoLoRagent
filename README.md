@@ -64,8 +64,11 @@ NodeType = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
 
 ## 前端逻辑
 
-```mermaid
-graph LR
+[![](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggTFJcbiAgICBBWy9tYWluL10tLS0-fG1haW4gdGhyZWFkfEJbbWFpbndpbmRvd11cbiAgICBBLS4tPnxuZXcgdGhyZWFkfENbQ29Mb1JNb25pdG9yXVxuICAgIEItLS1EW0ZpbGUgbGlzdF1cbiAgICBCLS0tRVt0b3BvbG9naWNhbCBncmFwaF1cbiAgICBDLS4tPnxzaG93IG1lc3NhZ2V8RFxuICAgIEMtLi0-fHNob3cgcmVjZWl2ZSBwYWNrYWdlfEVcbiAgICBELS0tPnxhY3Rpb258RntuZWVkIHRpbWU_fVxuICAgIEUtLS0-fGFjdGlvbnxGXG4gICAgRi0tLT58WWVzfEdbbmV3IHRocmVhZCB0byBkb11cbiAgICBGLS0tPnxOb3xIW2RvIGl0IHJpZ2h0IG5vd11cbiAgICBHLS4tPkl7bG9vcH1cbiAgICBILS4tPklcbiAgICBJLS4tPnxZZXN8QlxuICAgIEktLi0-fE5vfEpbL0VuZC9dIiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifSwidXBkYXRlRWRpdG9yIjpmYWxzZX0)](https://mermaid-js.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFJcbiAgICBBWy9tYWluL10tLS0-fG1haW4gdGhyZWFkfEJbbWFpbndpbmRvd11cbiAgICBBLS4tPnxuZXcgdGhyZWFkfENbQ29Mb1JNb25pdG9yXVxuICAgIEItLS1EW0ZpbGUgbGlzdF1cbiAgICBCLS0tRVt0b3BvbG9naWNhbCBncmFwaF1cbiAgICBDLS4tPnxzaG93IG1lc3NhZ2V8RFxuICAgIEMtLi0-fHNob3cgcmVjZWl2ZSBwYWNrYWdlfEVcbiAgICBELS0tPnxhY3Rpb258RntuZWVkIHRpbWU_fVxuICAgIEUtLS0-fGFjdGlvbnxGXG4gICAgRi0tLT58WWVzfEdbbmV3IHRocmVhZCB0byBkb11cbiAgICBGLS0tPnxOb3xIW2RvIGl0IHJpZ2h0IG5vd11cbiAgICBHLS4tPkl7bG9vcH1cbiAgICBILS4tPklcbiAgICBJLS4tPnxZZXN8QlxuICAgIEktLi0-fE5vfEpbL0VuZC9dIiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifSwidXBkYXRlRWRpdG9yIjpmYWxzZX0)
+
+<details>
+    <summary>查看源码</summary>
+	<pre><code>graph LR
     A[/main/]--->|main thread|B[mainwindow]
     A-.->|new thread|C[CoLoRMonitor]
     B---D[File list]
@@ -79,13 +82,15 @@ graph LR
     G-.->I{loop}
     H-.->I
     I-.->|Yes|B
-    I-.->|No|J[/End/]
-```
-
+    I-.->|No|J[/End/]</code></pre>
+</details>
 ## 后端逻辑
 
-```mermaid
-graph LR
+[![](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggTFJcbiAgICBBWy9tYWluL10tLS0-fHN0YXJ0IHRocmVhZHxCW0NvTG9STW9uaXRvcl1cbiAgICBCLS0tPnxsaXN0ZW58Q3twYWNrYWdlLnR5cGU_fVxuICAgIEMtLWdldC0tPiBEW2NoZWNrIGRhdGFiYXNlIHRoZW4gc2VuZF1cbiAgICBDLS1kYXRhLS0-IEVbc3RvcmUgZGF0YWJhc2VdXG4gICAgQy0tY29udHJvbC0tPiBGW2NoYW5nZSBvcHRpb25dXG4gICAgRC0tLT4gR3tuZXh0P31cbiAgICBFLS0tPiBHXG4gICAgRi0tLT4gR1xuICAgIEctLi0-fFllc3xDXG4gICAgRy0tLT58Tm98SFsvRW5kL10iLCJtZXJtYWlkIjp7InRoZW1lIjoiZGVmYXVsdCJ9LCJ1cGRhdGVFZGl0b3IiOmZhbHNlfQ)](https://mermaid-js.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFJcbiAgICBBWy9tYWluL10tLS0-fHN0YXJ0IHRocmVhZHxCW0NvTG9STW9uaXRvcl1cbiAgICBCLS0tPnxsaXN0ZW58Q3twYWNrYWdlLnR5cGU_fVxuICAgIEMtLWdldC0tPiBEW2NoZWNrIGRhdGFiYXNlIHRoZW4gc2VuZF1cbiAgICBDLS1kYXRhLS0-IEVbc3RvcmUgZGF0YWJhc2VdXG4gICAgQy0tY29udHJvbC0tPiBGW2NoYW5nZSBvcHRpb25dXG4gICAgRC0tLT4gR3tuZXh0P31cbiAgICBFLS0tPiBHXG4gICAgRi0tLT4gR1xuICAgIEctLi0-fFllc3xDXG4gICAgRy0tLT58Tm98SFsvRW5kL10iLCJtZXJtYWlkIjp7InRoZW1lIjoiZGVmYXVsdCJ9LCJ1cGRhdGVFZGl0b3IiOmZhbHNlfQ)
+
+<details>
+    <summary>查看源码</summary>
+	<pre><code>graph LR
     A[/main/]--->|start thread|B[CoLoRMonitor]
     B--->|listen|C{package.type?}
     C--get--> D[check database then send]
@@ -95,8 +100,8 @@ graph LR
     E---> G
     F---> G
     G-.->|Yes|C
-    G--->|No|H[/End/]
-```
+    G--->|No|H[/End/]</code></pre>
+</details>
 
 ## 后端接口函数
 
