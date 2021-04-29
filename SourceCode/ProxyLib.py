@@ -310,7 +310,7 @@ class SidUnit():
             self.Unit_length += 16
         self.Strategy_value_length.clear()
         for key in self.Strategy_units:
-            value_length = len(self.Strategy_units[key])/2
+            value_length = int(len(self.Strategy_units[key])/2)
             self.Strategy_value_length[key] = value_length
             self.Unit_length += value_length + 2
 
