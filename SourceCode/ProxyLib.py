@@ -49,15 +49,20 @@ def Sha1Hash(path):
         return sha1.hexdigest()
 
 
-def AddCacheSidUnit(path, AM, N, L, I, level=-1):
+def AddCacheSidUnit(path, AM, N, L, I, level=-1, WhiteList=[]):
     ''' docstring: 生成单个SID通告单元 '''
     Strategy_units = {}
     # 增添策略字段
     if(level >= 1 and level <= 10):
         # 信息级别策略。标识为1，value范围为[1, 10]，value长度为1字节
-        value = hex(level).replace('0x', '')
-        value += '0'*(8-len(value))
+        value = hex(level).replace('0x', '').zfill(2)
         Strategy_units[1] = value
+    if(len(WhiteList)!=0):
+        # 白名单策略。标识为2，value为数字列表，数字范围为[0, 255]
+        value = ''
+        for AS in WhiteList:
+            value += hex(AS).replace('0x', '').zfill(2)
+        Strategy_units[2] = value
     Hash_sid = int(Sha1Hash(path), 16)
     # TODO: 需通过Hash_sid判断内容是否来自其他生产节点，此处默认了path对应的文件是本终端提供的内容，待完善 #
     N_sid_temp = Nid if N == 1 else -1
@@ -287,7 +292,7 @@ class SidUnit():
     nid = -0x1  # 注册该服务的节点的NID，128bits，用16进制数表示，可为-1（此时标志位I=1）
     # 策略单元，key为策略编号tag，格式int;value为策略具体内容，格式为16进制字符串(不含0x前缀)
     Strategy_units = {}
-    Strategy_units_length = {}  # 存储策略字段长度信息
+    Strategy_value_length = {}  # 存储策略内容字段长度信息
 
     def __init__(self, path, AM, N_sid, L_sid, nid, Strategy_units):
         self.path = path
@@ -303,11 +308,11 @@ class SidUnit():
             self.Unit_length += 20
         if(nid != -1):
             self.Unit_length += 16
-        self.Strategy_units_length.clear()
+        self.Strategy_value_length.clear()
         for key in self.Strategy_units:
-            value_length = len(self.Strategy_units[key])/2 + 2
-            self.Unit_length += value_length
-            self.Strategy_units_length[key] = value_length
+            value_length = len(self.Strategy_units[key])/2
+            self.Strategy_value_length[key] = value_length
+            self.Unit_length += value_length + 2
 
     def packing(self):
         # 按通告单元格式进行封装，返回bytes类型字符串
@@ -342,10 +347,10 @@ class SidUnit():
         for key in self.Strategy_units:
             tag = key
             tar += ConvertInt2Bytes(tag, 1)
-            length = self.Strategy_units_length[key]
+            length = self.Strategy_value_length[key]
             tar += ConvertInt2Bytes(length, 1)
             tar += ConvertInt2Bytes(
-                int(self.Strategy_units[key], 16), length-2)
+                int(self.Strategy_units[key], 16), length)
         return tar
 
 
