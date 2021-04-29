@@ -77,7 +77,7 @@ p, li { white-space: pre-wrap; }
           <item row="0" column="0">
            <widget class="QPushButton" name="chooseRouter">
             <property name="text">
-             <string>选择接入点</string>
+             <string>选择接入点(A)</string>
             </property>
            </widget>
           </item>
@@ -98,7 +98,7 @@ p, li { white-space: pre-wrap; }
           <item row="2" column="0">
            <widget class="QPushButton" name="addLine">
             <property name="text">
-             <string>添加连线</string>
+             <string>添加连线(E)</string>
             </property>
             <property name="checkable">
              <bool>false</bool>
@@ -142,7 +142,7 @@ p, li { white-space: pre-wrap; }
           <item row="5" column="0">
            <widget class="QLabel" name="itemname_label">
             <property name="text">
-             <string>节点名称</string>
+             <string>节点名称(S)</string>
             </property>
            </widget>
           </item>

@@ -71,21 +71,19 @@ class GraphicWindow(QWidget):
             # print(nodename)
             if nodename == 'cloud':
                 node = Node(nodetype=0, nodename='AS')
-                self.scene.belongAS[node.nid] = node
-                self.scene.ASinfo[node.nid] = [node]
+                self.scene.belongAS[node.id] = node
+                self.scene.ASinfo[node.id] = [node]
             elif nodename == 'RM':
                 node = Node(nodetype=1)
-                self.scene.waitlist.append(node)
             elif nodename == 'BR':
                 node = Node(nodetype=2)
-                self.scene.waitlist.append(node)
             elif nodename == 'router':
                 node = Node(nodetype=3)
-                self.scene.waitlist.append(node)
             elif nodename == 'switch':
                 node = Node(nodetype=4)
             elif nodename == 'PC':
                 node = Node(nodetype=5)
+            if node.type:
                 self.scene.waitlist.append(node)
             self.scene.addItem(node)
             pos = self.view.mapToScene(event.pos())
@@ -97,7 +95,7 @@ class GraphicWindow(QWidget):
 
     def loadTopo(self, path):
         self.scene.initTopo_config(path)
-        self.view.scaleView(0.35)
+        self.view.scaleView(0.5)
 
     def saveTopo(self, path):
         self.scene.saveTopo(path)
@@ -115,27 +113,32 @@ class GraphicWindow(QWidget):
             return
         if isinstance(self.chooseItem, Node):
             if itemname:
-                self.chooseItem.name = itemname
                 self.chooseItem.updateLabel(name=itemname)
-            if itemnid and self.chooseItem in self.scene.waitlist:
+            if itemnid:
                 self.chooseItem.updateLabel(nid=itemnid)
-                self.scene.waitlist.remove(self.chooseItem)
-            if itemas and not self.chooseItem in self.scene.waitlist \
-                    and not self.scene.belongAS.get(self.chooseItem.nid, None):
-                l = itemas.find('<')
-                r = itemas.find('>')
-                if l<0 or r<0 or l+1>=r or r-l-1 != 32:
+            if itemas and self.chooseItem in self.scene.waitlist:
+                l = itemas.find('(')
+                r = itemas.find(')')
+                if l<0 or r<0 or l+1>=r:
                     return
-                itemas = itemas[l+1:r]
+                itemas = int(itemas[l+1:r])
+                print(itemas)
+                if not self.scene.belongAS.get(itemas, None):
+                    return
                 chooseAS = self.scene.belongAS[itemas]
-                self.scene.belongAS[self.chooseItem.nid]=chooseAS
+                self.scene.belongAS[self.chooseItem.id]=chooseAS
                 self.scene.ASinfo[itemas].append(self.chooseItem)
+                self.scene.waitlist.remove(self.chooseItem)
         elif isinstance(self.chooseItem, Edge):
             if itemnid and self.chooseItem in self.scene.waitlist:
                 pos = itemnid.rfind(':')
                 itemnid = itemnid[pos+1:]
                 self.chooseItem.updateLabel(linePX=itemnid)
                 self.scene.waitlist.remove(self.chooseItem)
+                if self.labelenable:
+                    self.chooseItem.label.show()
+                else:
+                    self.chooseItem.label.hide()
 
 
 if __name__ == "__main__":

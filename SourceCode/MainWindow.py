@@ -109,8 +109,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
         self.tableView.hide()
-        self.splitter_horizon.setSizes([400, 400, 400])
-        self.splitter_vertical.setSizes([400, 800])
+        self.splitter_horizon.setSizes([300, 300, 500])
+        self.splitter_vertical.setSizes([700, 500])
 
         # 设置线程池 TODO: 线程池放到窗口外面
         self.threadpool = QThreadPool()
@@ -156,11 +156,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda: self.graphics_global.modifyItem(itemas=self.itemas.text()))
         self.itemname.returnPressed.connect(
             lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
+        self.lineType.currentIndexChanged.connect(self.setTopoLineType)
 
     def showItem(self, name, nid, AS):
         self.itemname.setText(name)
         self.itemnid.setText(nid)
         self.itemas.setText(AS)
+
+    def setTopoLineType(self, index):
+        self.graphics_global.addedgetype = index
 
     def topoAddLine(self):
         self.graphics_global.addedgeenable = True
@@ -387,8 +391,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 恢复初始视图格式 '''
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
-        self.splitter_horizon.setSizes([400, 400, 400])
-        self.splitter_vertical.setSizes([400, 800])
+        self.splitter_horizon.setSizes([300, 300, 500])
+        self.splitter_vertical.setSizes([700, 500])
         if self.scaling.isChecked():
             self.scaling.setText('放大')
             self.scaling.setChecked(False)
