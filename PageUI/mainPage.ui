@@ -19,7 +19,7 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_3">
-    <item row="0" column="1">
+    <item row="0" column="0">
      <widget class="QSplitter" name="splitter_horizon">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -301,19 +301,66 @@ p, li { white-space: pre-wrap; }
          <attribute name="title">
           <string>控制</string>
          </attribute>
-         <layout class="QGridLayout" name="gridLayout_4">
+         <layout class="QFormLayout" name="formLayout_2">
           <item row="0" column="0">
-           <widget class="QPushButton" name="pushButton">
+           <widget class="QLabel" name="choosefile_label">
             <property name="text">
-             <string>指定通告路径</string>
+             <string>选择文件</string>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QComboBox" name="comboBox"/>
+           <widget class="QComboBox" name="chooseFile"/>
           </item>
-          <item row="0" column="2">
-           <widget class="QTextEdit" name="ANNpaths"/>
+          <item row="1" column="0">
+           <widget class="QLabel" name="setlevel_label">
+            <property name="text">
+             <string>指定密级</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="setlevel"/>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="choosePath_label">
+            <property name="text">
+             <string>白名单</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QSplitter" name="whitelist_splitter">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <widget class="QLineEdit" name="whitelist"/>
+            <widget class="QPushButton" name="whitelist_button">
+             <property name="maximumSize">
+              <size>
+               <width>20</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="advancedReg_label">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QPushButton" name="advancedReg">
+            <property name="text">
+             <string>通告</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -371,6 +418,7 @@ p, li { white-space: pre-wrap; }
     </property>
     <addaction name="action_add"/>
     <addaction name="action_reg"/>
+    <addaction name="action_advancedreg"/>
     <addaction name="action_undoReg"/>
     <addaction name="action_dow"/>
     <addaction name="action_del"/>
@@ -475,6 +523,11 @@ p, li { white-space: pre-wrap; }
   <action name="actionwindowsvista">
    <property name="text">
     <string>WindowsVista</string>
+   </property>
+  </action>
+  <action name="action_advancedreg">
+   <property name="text">
+    <string>高级通告</string>
    </property>
   </action>
  </widget>

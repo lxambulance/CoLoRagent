@@ -42,10 +42,12 @@ class Node(QGraphicsPixmapItem):
         tmps = f"{self.name}<{self.nid}>"
         if self.type:
             tmps = '\n'.join([tmps[x:x+12] for x in range(0,len(tmps),12)])
-            # print(tmps)
         self.label = QGraphicsSimpleTextItem(tmps, self)
-        # self.label.setFont(QFont("Times", 8))
         self.label.setPos(-self.size/2, self.size/2)
+        if not self.type:
+            self.label.setText(f"{self.name}")
+            self.label.setFont(QFont("Times", 20))
+            self.label.setPos(0, 0)
         self.label.setBrush(QColor(Qt.red))
         self.label.hide()
 
@@ -63,6 +65,8 @@ class Node(QGraphicsPixmapItem):
         tmps = f"{self.name}<{self.nid}>"
         if self.type:
             tmps = '\n'.join([tmps[x:x+12] for x in range(0,len(tmps),12)])
+        else:
+            tmps = f"{self.name}"
         self.label.setText(tmps)
         self.update()
 

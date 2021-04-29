@@ -23,7 +23,7 @@ class FileData:
 
     def getData(self, row, column = 0):
         ''' docstring: 获取数据 '''
-        if row<0 or column<0 or row>=self.rowCount() or column>=self.columnCount():
+        if row<0 or row>=self.rowCount() or column<0 or column>=len(self.__data[row]):
             return None
         return self.__data[row][column]
 
@@ -44,7 +44,7 @@ class FileData:
         else:
             self.__data.append(item)
 
-    def setItem(self, *, filename, filepath, isReg = 0, have = 1, **kwargs):
+    def addItem(self, *, filename, filepath, isReg = 0, have = 1, **kwargs):
         ''' docstring: 添加文件时的处理 '''
         filehash = kwargs.get('filehash', None)
         # TODO: 处理file addtion text
@@ -59,7 +59,7 @@ class FileData:
         return len(self.__data)
 
     def columnCount(self):
-        return len(self.__data[0])
+        return 5
 
     def load(self, Path = None):
         ''' docstring: 从数据路径加载数据 '''
