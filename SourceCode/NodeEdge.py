@@ -15,7 +15,7 @@ NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR',
 NodeZValue = [-1, 10, 10, 10, 10, 10]
 NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
 NodeSize = [512, 64, 64, 64, 64, 64]
-
+NodeNum = 0
 
 class Node(QGraphicsPixmapItem):
     ''' docstring: 图形点类 '''
@@ -30,6 +30,9 @@ class Node(QGraphicsPixmapItem):
             for i in range(26):
                 nodenid += f"{qrand()%16:x}"
         self.nid = nodenid
+        global NodeNum
+        self.id = NodeNum
+        NodeNum += 1
 
         # 设置图像大小和偏移量
         self.setPixmap(QPixmap(NodeImageStr[nodetype]).scaled(self.size, self.size))
@@ -67,8 +70,8 @@ class Node(QGraphicsPixmapItem):
         super().mousePressEvent(event)
         # AS选中时选中其中所有点
         if self.isSelected() and not self.type:
-            # print(self.nid, self.name)
-            for node in self.scene().ASinfo[self.nid]:
+            # print(self.id, self.name)
+            for node in self.scene().ASinfo[self.id]:
                 node.setSelected(True)
 
     def mouseMoveEvent(self, event):
@@ -76,7 +79,7 @@ class Node(QGraphicsPixmapItem):
         # 选中移动时更新所连边类
         for item in self.scene().selectedItems():
             if isinstance(item, Node):
-                tmplist = self.scene().nextedges.get(item.nid, [])
+                tmplist = self.scene().nextedges.get(item.id, [])
                 for nextnode, nextedge in tmplist:
                     nextedge.changeLine(item.scenePos(), nextnode.scenePos())
 
