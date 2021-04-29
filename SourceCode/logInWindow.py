@@ -9,6 +9,7 @@ import json
 BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))).replace('\\', '/')
 DATAPATH = BASE_DIR + '/data.db'
+DATASTORE = BASE_DIR + './tmp'
 sys.path.append(BASE_DIR)
 
 
@@ -25,6 +26,8 @@ class logInWindow(QDialog, Ui_Dialog):
             self.myIPv4 = None
         else:
             self.autoFillForm(DATAPATH)
+            self.filetmppath = DATASTORE
+            self.showpath_filetmp.setText(DATASTORE)
         # 设置信号与槽连接
         self.choosepath_config.clicked.connect(self.getConfigPath)
         self.choosepath_filetmp.clicked.connect(self.getFiletmpPath)
@@ -70,8 +73,7 @@ class logInWindow(QDialog, Ui_Dialog):
             self.autoFillForm(configpath[0])
 
     def getFiletmpPath(self):
-        filetmppath = QFileDialog.getExistingDirectory(
-            self, '请选择存储目录', BASE_DIR)
+        filetmppath = QFileDialog.getExistingDirectory(self, '请选择存储目录', BASE_DIR)
         if filetmppath:
             self.filetmppath = filetmppath
             self.showpath_filetmp.setText(self.filetmppath)
