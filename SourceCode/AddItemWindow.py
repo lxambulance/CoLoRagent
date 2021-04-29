@@ -75,7 +75,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
             c = self.addtext if self.addtext != None else ''
             c.replace('(请输入附加说明文字)', '')
             
-            self.fd.setItem(filename = a, filepath = b, fileadd = c)
+            self.fd.addItem(filename = a, filepath = b, fileadd = c)
             self.newitemrow = self.fd.rowCount() - 1
             self.needReg = int(self.needRegister.checkState() > 0)
         else:
@@ -87,7 +87,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
             if len(d) != 72:
                 print('输入SID不合法')
                 return
-            self.fd.setItem(filename = a, filepath = b, filehash = d, isReg = 1, have = 0)
+            self.fd.addItem(filename = a, filepath = b, filehash = d, isReg = 1, have = 0)
             self.newitemrow = self.fd.rowCount() - 1
             self.needReg = 0
 

@@ -83,6 +83,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressbardelegate = progressBarDelegate(self)
         self.progressbarpool = {}
 
+        # 设置tab control页
+        self.whitelist_button.hide()
+        for i in range(self.fd.rowCount()):
+            self.chooseFile.addItem('条目' + str(i+1) + ': ' + self.fd.getData(i))
+        self.chooseFile.setCurrentIndex(-1)
+
         # 设置模型对应的view
         self.listView.setModel(self.listmodel)
         self.listView.setViewMode(self.listView.IconMode)
@@ -133,6 +139,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_dow.triggered.connect(self.dowItem)
         self.action_reg.triggered.connect(self.regItem)
         self.action_advancedreg.triggered.connect(self.showAdvancedReg)
+        self.chooseFile.currentIndexChanged[int].connect(self.showAdvancedRegArgs)
+        self.setlevel.textEdited.connect(lambda x:self.changeAdvancedReg(level=x))
+        self.whitelist.textEdited.connect(lambda x:self.changeAdvancedReg(whitelist=x))
+        self.advancedReg.clicked.connect(self.advancedRegItem)
         self.action_undoReg.triggered.connect(self.undoRegItem)
         self.action_openDir.triggered.connect(self.openFolder)
         self.action_hub.triggered.connect(self.openHub)
@@ -237,7 +247,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if os.path.isfile(item_str):
                     item = item_str.replace('\\', '/')
                     pos = item.rfind('/')
-                    self.fd.setItem(filename=item[pos+1:], filepath=item)
+                    self.fd.addItem(filename=item[pos+1:], filepath=item)
                 elif os.path.isdir(item_str):
                     # TODO: 支持文件夹
                     pass
@@ -334,8 +344,57 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.showStatus('选中要素过多')
         else:
             nowSelectItem = self.selectItems[0]
-            print(nowSelectItem)
+            # print("choose", nowSelectItem)
             self.tabWidget.setCurrentIndex(3)
+            self.chooseFile.setCurrentIndex(nowSelectItem)
+            self.showAdvancedRegArgs(nowSelectItem)
+    
+    def showAdvancedRegArgs(self, row):
+        ''' docstring: 高级通告切换显示 '''
+        level = self.fd.getData(row, 5)
+        if level:
+            self.setlevel.setText(level)
+        else:
+            self.setlevel.setText('')
+        whitelist = self.fd.getData(row, 6)
+        if whitelist:
+            self.whitelist.setText(whitelist)
+        else:
+            self.whitelist.setText('')
+        # print(row, level, whitelist)
+
+    def changeAdvancedReg(self, level=None, whitelist=None):
+        ''' docstring: 修改高级通告策略 '''
+        nowSelectItem = self.chooseFile.currentIndex()
+        if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
+            return
+        newItem = self.fd.getItem(nowSelectItem)
+        while len(newItem)<7:
+            newItem.append(None)
+        if level != None:
+            newItem[5] = int(level)
+            self.fd.setItem(nowSelectItem, newItem)
+        if whitelist != None:
+            newItem[6] = whitelist
+            self.fd.setItem(nowSelectItem, newItem)
+
+    def advancedRegItem(self):
+        nowSelectItem = self.chooseFile.currentIndex()
+        if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
+            return
+        filepath = self.fd.getData(nowSelectItem, 1)
+        level = self.fd.getData(nowSelectItem, 5)
+        whitelist = self.fd.getData(nowSelectItem, 6)
+        kwargs = {}
+        if level != None:
+            kwargs['level'] = level
+        if whitelist != None:
+            kwargs['WhiteList'] = whitelist
+        regitemworker = worker(0, AddCacheSidUnit, filepath, 1,1,1,1, **kwargs)
+        regitemworker.signals.finished.connect(lambda:self.updateProgress(nowSelectItem, 3)(100))
+        regitemworker.signals.finished.connect(lambda:self.showStatus('条目已通告'))
+        regitemworker.signals.finished.connect(SidAnn)
+        self.threadpool.start(regitemworker)
 
     def regItem_multi(self, items, progress_callback):
         total = len(items)
