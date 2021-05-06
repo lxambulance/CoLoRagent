@@ -334,6 +334,12 @@ class CustSignal(QObject):
 
 本项目参考上述教程，直接将新建线程的操作抽象为新建一个worker类，然后通过信号绑定的操作实现线程之间的内容交互。
 
+#### qt中exec_和show的区别
+
+遇到窗口调用的时候老是遇到，总是存在疑问，暂时混用也没遇到什么大问题。
+
+
+
 ### B. Packaging文件打包
 
 ##### pyinstaller

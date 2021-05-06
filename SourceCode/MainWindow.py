@@ -86,7 +86,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 设置tab control页
         self.whitelist_button.hide()
         for i in range(self.fd.rowCount()):
-            self.chooseFile.addItem('条目' + str(i+1) + ': ' + self.fd.getData(i))
+            self.chooseFile.addItem(self.fd.getData(i))
         self.chooseFile.setCurrentIndex(-1)
 
         # 设置模型对应的view
@@ -227,6 +227,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # ret 可用于后续判断返回结果
         if (ret) and (row != None):
             self.modelViewUpdate()
+            self.chooseFile.addItem(self.fd.getData(row, 0))
             # 计算hash值
             if not self.fd.getData(row, 2):
                 filepath = self.fd.getData(row, 1)
@@ -248,6 +249,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     item = item_str.replace('\\', '/')
                     pos = item.rfind('/')
                     self.fd.addItem(filename=item[pos+1:], filepath=item)
+                    self.chooseFile.addItem(item[pos+1:])
                 elif os.path.isdir(item_str):
                     # TODO: 支持文件夹
                     pass
@@ -289,6 +291,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if not self.fd.getData(item, 0):
                 continue
             self.fd.removeItem(item)
+            self.chooseFile.removeItem(item)
 
     def dowItem(self):
         ''' docstring: 从远端下载数据 '''
