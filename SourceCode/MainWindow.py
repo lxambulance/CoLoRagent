@@ -16,8 +16,9 @@ from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
 from mainPage import Ui_MainWindow
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize, QThreadPool
-from PyQt5.QtWidgets import QApplication, QMainWindow, QAction, QMessageBox, QStyleFactory
+from PyQt5.QtCore import QSize, QThreadPool, qrand
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, 
+    QMessageBox, QStyleFactory, QTreeWidgetItem)
 import os
 import sys
 import math
@@ -38,6 +39,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
+        # 用于收包显示的变量
+        self.mapfromSIDtoItem = {}
+        self.datapackets = []
 
         # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
@@ -176,6 +181,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             row = self.chooseFile.currentIndex()
             if row == -1:
                 self.showStatus('请选择高级通告条目')
+                self.whitelist_button.setChecked(False)
                 return
             self.whitelist_button.setText('选择完毕')
             self.graphics_global.startChooseAS(self.whitelist.text())
@@ -202,8 +208,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setPath(self, paths):
         print(paths)
 
-    def getPathFromPkt(self, Type, name, paths):
-        print(Type, name, paths)
+    def getPathFromPkt(self, Type, SID, paths, size = 0):
+        ''' docstring: 收包显示 '''
+        # print(Type, SID, paths)
+        path_str = '-'.join(map(lambda x:f"PX{x:05x}",paths))
+        if Type:
+            name = 'Unknown'
+            for i in range(self.fd.rowCount()):
+                if SID == self.fd.getData(i,2):
+                    name = self.fd.getData(i,0)
+                    break
+            item = self.mapfromSIDtoItem.get(SID, None)
+            if not item:
+                # 第一个包，新建topItem
+                self.datapackets.append(QTreeWidgetItem(None, [name, SID, "", ""]))
+                self.dataPktReceive.addTopLevelItem(self.datapackets[-1])
+                self.mapfromSIDtoItem[SID] = self.datapackets[-1]
+                item = self.datapackets[-1]
+            num = item.childCount()
+            item.addChild(QTreeWidgetItem([f"piece<{num+1}>", "", path_str, ""]))
+        else:
+            num = self.dataPktReceive.topLevelItemCount()
+            self.dataPktReceive.addTopLevelItem(QTreeWidgetItem(None, 
+                [f"unknown packet piece<{num+1}>", SID, path_str, ""]))
 
     def setTopoRouterEnable(self):
         self.graphics_global.accessrouterenable = True
@@ -586,21 +613,7 @@ if __name__ == '__main__':
     window = MainWindow()
     window.show()
 
-    # treeWidget = window.dataPktReceive
-    # treeWidget.setColumnCount(1)
-    # treeWidget.setHeaderLabels(['package', 'SID', 'PXs'])
-    # items = []
-    # for x in range(10):
-    #     if x:
-    #         name = f'packet piece<{x}/9>'
-    #         sid = ''
-    #         px = f'PX{qrand()%100:05x}-PX{qrand()%1048576:05x}'
-    #     else:
-    #         name = f'item{x}'
-    #         sid = f'{qrand()%100000:032x}'
-    #         px = ''
-    #     items.append(QTreeWidgetItem(items[0] if x else None, [name, sid, px]))
-    # treeWidget.insertTopLevelItems(0, items)
-    # window.update()
+    window.getPathFromPkt(0,'123',[1,2])
+    window.getPathFromPkt(0,'123',[1,2,5])
 
     sys.exit(app.exec_())
