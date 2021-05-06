@@ -29,7 +29,8 @@ class GraphicWindow(QWidget):
         self.addedgeenable = False
         self.accessrouterenable = False
         self.findpathenable = False
-        self.labelenable = False
+        self.labelenable = True
+        self.chooseASenable = False
         self.chooseItem = None
 
         # 设置最小大小
@@ -70,7 +71,11 @@ class GraphicWindow(QWidget):
             nodename = source_item.item(0, 0).text()
             # print(nodename)
             if nodename == 'cloud':
-                node = Node(nodetype=0, nodename='AS')
+                num = 0
+                for item in self.scene.items():
+                    if isinstance(item, Node) and not item.type:
+                        num += 1
+                node = Node(nodetype=0, nodename='AS'+str(num + 1))
                 self.scene.belongAS[node.id] = node
                 self.scene.ASinfo[node.id] = [node]
             elif nodename == 'RM':
@@ -140,6 +145,45 @@ class GraphicWindow(QWidget):
                 else:
                     self.chooseItem.label.hide()
 
+    def startChooseAS(self, tmplist):
+        try:
+            tmpASlist = list(map(int,tmplist.split(',')))
+        except ValueError:
+            pass
+        self.chooseASenable = True
+        for item in self.scene.items():
+            if isinstance(item, Node) and item.type:
+                item.hide()
+            if isinstance(item, Node) and not item.type:
+                item.clicktime = 0
+                num = item.name
+                pos = len(num)-1
+                while pos>=0 and num[pos].isdigit():
+                    pos -= 1
+                num = num[pos+1:]
+                if num in tmplist:
+                    item.addClickTimes()
+        if self.scene.node_me:
+            self.scene.node_me.show()
+
+    def endChooseAS(self):
+        self.chooseASenable = False
+        tmpASlist = None
+        for item in self.scene.items():
+            if isinstance(item, Node) and item.type:
+                item.show()
+            if isinstance(item, Node) and not item.type and (item.clicktime & 1):
+                num = item.name
+                pos = len(num)-1
+                while pos>=0 and num[pos].isdigit():
+                    pos -= 1
+                num = num[pos+1:]
+                item.addClickTimes()
+                if not tmpASlist:
+                    tmpASlist = num
+                else:
+                    tmpASlist += ',' + num
+        return tmpASlist
 
 if __name__ == "__main__":
     import sys

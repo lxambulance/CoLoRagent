@@ -162,6 +162,11 @@ class topoGraphScene(QGraphicsScene):
                 edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt, linePX = PX)
             self.addItem(edgeitem)
             self.addEdge(tmpnodes[x], tmpnodes[y], edgeitem)
+        # 显示标签
+        if self.parent().labelenable:
+            for item in self.items():
+                if isinstance(item, Node) or isinstance(item, Edge):
+                    item.label.show()
 
     def initTopo_startest(self):
         ''' docstring: 测试topo显示功能，画一个五角星 '''

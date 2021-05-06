@@ -84,7 +84,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressbarpool = {}
 
         # 设置tab control页
-        self.whitelist_button.hide()
         for i in range(self.fd.rowCount()):
             self.chooseFile.addItem(self.fd.getData(i))
         self.chooseFile.setCurrentIndex(-1)
@@ -142,6 +141,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.chooseFile.currentIndexChanged[int].connect(self.showAdvancedRegArgs)
         self.setlevel.textEdited.connect(lambda x:self.changeAdvancedReg(level=x))
         self.whitelist.textEdited.connect(lambda x:self.changeAdvancedReg(whitelist=x))
+        self.whitelist_button.clicked.connect(self.chooseASs)
         self.advancedReg.clicked.connect(self.advancedRegItem)
         self.action_undoReg.triggered.connect(self.undoRegItem)
         self.action_openDir.triggered.connect(self.openFolder)
@@ -170,6 +170,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.itemname.returnPressed.connect(
             lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
         self.lineType.currentIndexChanged.connect(self.setTopoLineType)
+
+    def chooseASs(self, flag):
+        if flag:
+            row = self.chooseFile.currentIndex()
+            if row == -1:
+                self.showStatus('请选择高级通告条目')
+                return
+            self.whitelist_button.setText('选择完毕')
+            self.graphics_global.startChooseAS(self.whitelist.text())
+        else:
+            self.whitelist_button.setText('图中选择')
+            ret = self.graphics_global.endChooseAS()
+            self.whitelist.setText(ret)
 
     def showItem(self, name, nid, AS):
         self.itemname.setText(name)
@@ -287,6 +300,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def delItem_multi(self, items):
         items.sort(reverse=True)
         # print(items)
+        if self.chooseFile.currentIndex() in items:
+            self.chooseFile.setCurrentIndex(-1)
         for item in items:
             if not self.fd.getData(item, 0):
                 continue

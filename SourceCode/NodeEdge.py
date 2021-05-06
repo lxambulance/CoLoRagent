@@ -35,7 +35,7 @@ class Node(QGraphicsPixmapItem):
         NodeNum += 1
 
         # 设置图像大小和偏移量
-        self.setPixmap(QPixmap(NodeImageStr[nodetype]).scaled(self.size, self.size))
+        self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
         self.setOffset(-self.size/2, -self.size/2)
 
         # 添加一个子文本类显示名字
@@ -57,6 +57,13 @@ class Node(QGraphicsPixmapItem):
         self.setZValue(NodeZValue[nodetype])
         self.label.setZValue(NodeZValue[nodetype])
     
+    def addClickTimes(self):
+        self.clicktime += 1
+        if self.clicktime & 1:
+            self.setPixmap(QPixmap(':icon/cloud-o').scaled(self.size, self.size))
+        else:
+            self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
+
     def updateLabel(self, *, name = None, nid = None):
         if name:
             self.name = name

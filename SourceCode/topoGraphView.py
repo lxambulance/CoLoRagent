@@ -129,6 +129,8 @@ class topoGraphView(QGraphicsView):
                         asstr = f"{asitem.name}<{asitem.nid}>({asitem.id})"
                     self.parent().chooseItem = item
                     self.parent().signal_ret.chooseitem.emit(item.name, item.nid, asstr)
+                    if item.type == 0 and self.parent().chooseASenable:
+                        item.addClickTimes()
                 elif isinstance(item, Edge):
                     n1 = f"{item.node1.name}<{item.node1.nid}>"
                     n2 = f"{item.node2.name}<{item.node2.nid}>"

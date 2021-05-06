@@ -9,6 +9,7 @@
     <file alias="router">router.png</file>
     <file alias="switching">switching.png</file>
     <file alias="cloud">weather-cloud.png</file>
+    <file alias="cloud-o">weather-cloud-select.png</file>
     <file alias="tick">tick.png</file>
     <file alias="cross">cross.png</file>
     <file alias="minus">minus.png</file>
