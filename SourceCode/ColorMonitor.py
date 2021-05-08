@@ -21,7 +21,7 @@ class pktSignals(QObject):
     # output用于输出信号
     output = pyqtSignal(int, object)
     # pathdata用于输出路径相关信息
-    pathdata = pyqtSignal(int, str, object)
+    pathdata = pyqtSignal(int, str, list, int, int)
 
 
 class PktHandler(threading.Thread):
@@ -79,6 +79,7 @@ class PktHandler(threading.Thread):
                     if NewGetPkt.L_sid != 0:
                         NewSid += hex(NewGetPkt.L_sid).replace('0x',
                                                                '').zfill(40)
+                    self.signals.pathdata.emit(0x72, NewSid, NewGetPkt.PIDs, NewGetPkt.PktLength, NewGetPkt.nid)
                     if NewSid not in PL.AnnSidUnits.keys():
                         return
                     # 返回数据
@@ -144,7 +145,7 @@ class PktHandler(threading.Thread):
                         NewSid += hex(RecvDataPkt.L_sid).replace('0x',
                                                                  '').zfill(40)
                     # 暂时将全部收到的校验和正确的data包显示出来
-                    self.signals.pathdata.emit(int(NewSid in PL.gets.keys()), NewSid, RecvDataPkt.PIDs)
+                    self.signals.pathdata.emit(0x73, NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, 0)
                     if(RecvDataPkt.B == 0):
                         # 收到数据包，存储到本地并返回ACK
                         # 判断是否为当前代理请求内容
@@ -259,6 +260,7 @@ class PktHandler(threading.Thread):
                         return
                     # 解析报文内容
                     NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
+                    self.signals.pathdata.emit(0x74, "", [], NewCtrlPkt.HeaderLength+ NewCtrlPkt.DataLength, 0)
                     if NewCtrlPkt.ProxyNid != PL.Nid:
                         # 过滤本代理信息
                         PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP

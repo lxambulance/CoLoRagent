@@ -260,43 +260,6 @@ p, li { white-space: pre-wrap; }
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="receiveTab">
-         <attribute name="title">
-          <string>收包</string>
-         </attribute>
-         <layout class="QGridLayout" name="gridLayout">
-          <item row="0" column="0">
-           <widget class="QTreeWidget" name="dataPktReceive">
-            <property name="minimumSize">
-             <size>
-              <width>300</width>
-              <height>300</height>
-             </size>
-            </property>
-            <column>
-             <property name="text">
-              <string notr="true">文件/包</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>SID</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>PXs</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>大小（字节）</string>
-             </property>
-            </column>
-           </widget>
-          </item>
-         </layout>
-        </widget>
         <widget class="QWidget" name="controlTab">
          <attribute name="title">
           <string>控制</string>
@@ -370,6 +333,44 @@ p, li { white-space: pre-wrap; }
             <property name="text">
              <string>通告</string>
             </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="receiveTab">
+         <attribute name="title">
+          <string>收包</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="0" column="0">
+           <widget class="QTreeWidget" name="dataPktReceive">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>300</width>
+              <height>300</height>
+             </size>
+            </property>
+            <column>
+             <property name="text">
+              <string notr="true">文件/包</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>大小</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>数据</string>
+             </property>
+            </column>
            </widget>
           </item>
          </layout>

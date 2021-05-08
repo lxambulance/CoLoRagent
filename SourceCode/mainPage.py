@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\CodeHub\CoLoRagent\PageUI\mainPage.ui'
+# Form implementation generated from reading ui file '.\PageUI\mainPage.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.2
 #
@@ -142,16 +142,6 @@ class Ui_MainWindow(object):
         self.itemnid.setObjectName("itemnid")
         self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.itemnid)
         self.tabWidget.addTab(self.TopoTab, "")
-        self.receiveTab = QtWidgets.QWidget()
-        self.receiveTab.setObjectName("receiveTab")
-        self.gridLayout = QtWidgets.QGridLayout(self.receiveTab)
-        self.gridLayout.setObjectName("gridLayout")
-        self.dataPktReceive = QtWidgets.QTreeWidget(self.receiveTab)
-        self.dataPktReceive.setMinimumSize(QtCore.QSize(300, 300))
-        self.dataPktReceive.setObjectName("dataPktReceive")
-        self.dataPktReceive.headerItem().setText(0, "文件/包")
-        self.gridLayout.addWidget(self.dataPktReceive, 0, 0, 1, 1)
-        self.tabWidget.addTab(self.receiveTab, "")
         self.controlTab = QtWidgets.QWidget()
         self.controlTab.setObjectName("controlTab")
         self.formLayout_2 = QtWidgets.QFormLayout(self.controlTab)
@@ -191,6 +181,16 @@ class Ui_MainWindow(object):
         self.advancedReg.setObjectName("advancedReg")
         self.formLayout_2.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.advancedReg)
         self.tabWidget.addTab(self.controlTab, "")
+        self.receiveTab = QtWidgets.QWidget()
+        self.receiveTab.setObjectName("receiveTab")
+        self.gridLayout = QtWidgets.QGridLayout(self.receiveTab)
+        self.gridLayout.setObjectName("gridLayout")
+        self.dataPktReceive = QtWidgets.QTreeWidget(self.receiveTab)
+        self.dataPktReceive.setMinimumSize(QtCore.QSize(300, 300))
+        self.dataPktReceive.setObjectName("dataPktReceive")
+        self.dataPktReceive.headerItem().setText(0, "文件/包")
+        self.gridLayout.addWidget(self.dataPktReceive, 0, 0, 1, 1)
+        self.tabWidget.addTab(self.receiveTab, "")
         self.metricsTab = QtWidgets.QWidget()
         self.metricsTab.setObjectName("metricsTab")
         self.gridLayout_5 = QtWidgets.QGridLayout(self.metricsTab)
@@ -276,7 +276,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menu_3.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -314,16 +314,15 @@ class Ui_MainWindow(object):
         self.addNodes.setSortingEnabled(__sortingEnabled)
         self.itemnid_label.setText(_translate("MainWindow", "节点NID"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.TopoTab), _translate("MainWindow", "拓扑"))
-        self.dataPktReceive.headerItem().setText(1, _translate("MainWindow", "SID"))
-        self.dataPktReceive.headerItem().setText(2, _translate("MainWindow", "PXs"))
-        self.dataPktReceive.headerItem().setText(3, _translate("MainWindow", "大小（字节）"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.receiveTab), _translate("MainWindow", "收包"))
         self.choosefile_label.setText(_translate("MainWindow", "选择文件"))
         self.setlevel_label.setText(_translate("MainWindow", "指定密级"))
         self.choosePath_label.setText(_translate("MainWindow", "白名单"))
         self.whitelist_button.setText(_translate("MainWindow", "图中选择"))
         self.advancedReg.setText(_translate("MainWindow", "通告"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.controlTab), _translate("MainWindow", "控制"))
+        self.dataPktReceive.headerItem().setText(1, _translate("MainWindow", "大小"))
+        self.dataPktReceive.headerItem().setText(2, _translate("MainWindow", "数据"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.receiveTab), _translate("MainWindow", "收包"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.metricsTab), _translate("MainWindow", "统计"))
         self.todo.setText(_translate("MainWindow", "待开发"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.otherTab), _translate("MainWindow", "其他"))

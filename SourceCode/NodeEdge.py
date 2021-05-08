@@ -3,7 +3,7 @@
 
 from math import fabs
 from PyQt5.QtWidgets import (
-    QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem)
+    QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem, QStyle)
 from PyQt5.QtGui import QPen, QColor, QPixmap, QColor, QFont
 from PyQt5.QtCore import QObject, pyqtSignal, QRectF, QPointF, QLineF, Qt, qsrand, qrand, QTime
 
@@ -94,6 +94,15 @@ class Node(QGraphicsPixmapItem):
                 for nextnode, nextedge in tmplist:
                     nextedge.changeLine(item.scenePos(), nextnode.scenePos())
 
+    def paint(self, painter, option, widget):
+        if not self.type:
+            if self.isSelected():
+                self.setPixmap(QPixmap(':icon/cloud-o').scaled(self.size, self.size))
+            else:
+                self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
+            option.state = QStyle.State_None
+        super().paint(painter, option, widget)
+
 class Edge(QGraphicsLineItem):
     ''' docstring: 边类'''
 
@@ -157,7 +166,8 @@ class Edge(QGraphicsLineItem):
     def paint(self, painter, option, widget):
         if self.node1 and self.node2 and \
             (self.node1.isSelected() and self.node2.isSelected() or self.isSelected()):
-            painter.setPen(QPen(QColor('#66ff66'), 12))
+            painter.setPen(QPen(QColor('#ffb3b3'), 12))
             painter.drawLine(self.n1, self.n2)
+        option.state = QStyle.State_None
         super().paint(painter, option, widget)
         

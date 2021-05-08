@@ -185,6 +185,17 @@ class GraphicWindow(QWidget):
                     tmpASlist += ',' + num
         return tmpASlist
 
+    def setMatchedPIDs(self, PIDs):
+        tmpnode = []
+        for item in self.scene.items():
+            item.setSelected(False)
+            if isinstance(item, Edge) and item.type and ('<' + item.PX ) in PIDs:
+                item.setSelected(True)
+                tmpnode.append(item.node1)
+                tmpnode.append(item.node2)
+        for node in tmpnode:
+            self.scene.belongAS[node.id].setSelected(True)
+
 if __name__ == "__main__":
     import sys
     from PyQt5.QtWidgets import QApplication

@@ -175,6 +175,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.itemname.returnPressed.connect(
             lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
         self.lineType.currentIndexChanged.connect(self.setTopoLineType)
+        self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
 
     def chooseASs(self, flag):
         if flag:
@@ -208,29 +209,45 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setPath(self, paths):
         print(paths)
 
-    def getPathFromPkt(self, Type, SID, paths, size = 0):
+    def getPathFromPkt(self, type, SID, paths, size, nid):
         ''' docstring: 收包显示 '''
-        # print(Type, SID, paths)
-        path_str = '-'.join(map(lambda x:f"PX{x:05x}",paths))
-        if Type:
-            name = 'Unknown'
-            for i in range(self.fd.rowCount()):
-                if SID == self.fd.getData(i,2):
-                    name = self.fd.getData(i,0)
-                    break
-            item = self.mapfromSIDtoItem.get(SID, None)
-            if not item:
-                # 第一个包，新建topItem
-                self.datapackets.append(QTreeWidgetItem(None, [name, SID, "", ""]))
-                self.dataPktReceive.addTopLevelItem(self.datapackets[-1])
-                self.mapfromSIDtoItem[SID] = self.datapackets[-1]
-                item = self.datapackets[-1]
-            num = item.childCount()
-            item.addChild(QTreeWidgetItem([f"piece<{num+1}>", "", path_str, ""]))
+        name = 'Unknown packet'
+        for i in range(self.fd.rowCount()):
+            if SID == self.fd.getData(i,2):
+                name = self.fd.getData(i,0)
+                break
+        if type == 0x72:
+            name = '<Get>' + name
+        elif type == 0x73:
+            name = '<Data>' + name
         else:
-            num = self.dataPktReceive.topLevelItemCount()
-            self.dataPktReceive.addTopLevelItem(QTreeWidgetItem(None, 
-                [f"unknown packet piece<{num+1}>", SID, path_str, ""]))
+            name = '<Control> packet'
+        item = self.mapfromSIDtoItem.get(SID, None)
+        if not item:
+            # 该SID下第一个包，建立顶层节点topItem
+            self.datapackets.append(QTreeWidgetItem(None, [name, "0", SID]))
+            self.dataPktReceive.addTopLevelItem(self.datapackets[-1])
+            self.mapfromSIDtoItem[SID] = self.datapackets[-1]
+            item = self.datapackets[-1]
+        path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
+        if type == 0x72:
+            item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
+        elif type == 0x73:
+            num = item.childCount()
+            item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), "PIDs="+path_str]))
+            totsize = int(item.text(1))
+            item.setText(1, str(totsize+size))
+        else:
+            num = item.childCount()
+            item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), ""]))
+
+    def showMatchedPIDs(self, item, column):
+        ''' docstring: 选中物体，显示匹配 '''
+        #print(item.text(column))
+        pitem = item.parent()
+        if not pitem or 'Control' in pitem.text(0):
+            return
+        self.graphics_global.setMatchedPIDs(item.text(2))
 
     def setTopoRouterEnable(self):
         self.graphics_global.accessrouterenable = True
@@ -613,7 +630,10 @@ if __name__ == '__main__':
     window = MainWindow()
     window.show()
 
-    window.getPathFromPkt(0,'123',[1,2])
-    window.getPathFromPkt(0,'123',[1,2,5])
+    window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
+    window.getPathFromPkt(0x72, '123', [0x11222695,0x33446217], 1500, 0x23)
+    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x33446217,0x55666217], 1000, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x33446217,0x55666217], 100, 0)
+    window.getPathFromPkt(0x74, '', [], 20, 0)
 
     sys.exit(app.exec_())
