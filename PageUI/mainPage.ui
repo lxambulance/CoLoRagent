@@ -233,16 +233,6 @@ p, li { white-space: pre-wrap; }
               </iconset>
              </property>
             </item>
-            <item>
-             <property name="text">
-              <string>PC</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normalon>:/icon/PC</normalon>
-              </iconset>
-             </property>
-            </item>
            </widget>
           </item>
           <item row="7" column="1">

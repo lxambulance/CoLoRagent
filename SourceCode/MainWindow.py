@@ -16,7 +16,7 @@ from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
 from mainPage import Ui_MainWindow
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize, QThreadPool, qrand
+from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, 
     QMessageBox, QStyleFactory, QTreeWidgetItem)
 import os
@@ -39,6 +39,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
+        # 用于统计频率
+        self.time = QTimer()
+        self.time.setInterval(5000)
+        self.asmetrics = {} # id:[(get num, get total size),(data num, data total size)]
 
         # 用于收包显示的变量
         self.mapfromSIDtoItem = {}
@@ -108,8 +113,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.setColumnWidth(3, 100)
         self.tableView.setColumnWidth(4, 100)
 
-        # 载入拓扑图
-        self.graphics_global.loadTopo(DATA_DIR)
         # 设置禁止自添加
         self.addNodes.setAcceptDrops(False)
         # TODO: 暂时隐藏搜索功能
@@ -176,6 +179,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
         self.lineType.currentIndexChanged.connect(self.setTopoLineType)
         self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
+        self.time.timeout.connect(self.reCalc)
+
+        # 载入拓扑图，需要相关信号绑定完成后再载入
+        self.graphics_global.loadTopo(DATA_DIR)
 
     def chooseASs(self, flag):
         if flag:
@@ -240,6 +247,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), ""]))
+
+    def reCalc(self):
+        ''' docstring: 重新计算统计量 '''
+        self.metrics.clear()
+
+        self.metrics.update()
 
     def showMatchedPIDs(self, item, column):
         ''' docstring: 选中物体，显示匹配 '''

@@ -109,7 +109,8 @@ class topoGraphScene(QGraphicsScene):
             elif ntp == 4:
                 item = Node(nodetype = ntp, nodename = nnm)
             else:
-                continue
+                item = Node(nodetype = ntp, nodename = nnm, nodenid = node['nid'])
+                self.node_me = item
             self.addItem(item)
             tmpnodes.append(item)
         # 添加AS信息
@@ -156,6 +157,10 @@ class topoGraphScene(QGraphicsScene):
             lt = 0
             if self.belongAS[tmpnodes[x].id] is not self.belongAS[tmpnodes[y].id]:
                 lt = 1
+            if tmpnodes[x] == self.node_me:
+                self.parent().signal_ret.choosenid.emit(f"{tmpnodes[y].name}<{tmpnodes[y].nid}>")
+            elif tmpnodes[y] == self.node_me:
+                self.parent().signal_ret.choosenid.emit(f"{tmpnodes[x].name}<{tmpnodes[x].nid}>")
             if not len(PX):
                 edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt)
             else:
@@ -217,7 +222,8 @@ class topoGraphScene(QGraphicsScene):
                 elif item.type == 4:
                     pass
                 else:
-                    continue
+                    node['name'] = item.name
+                    node['nid'] = item.nid
                 tmpnodes.append(node)
                 tmpnodemap[item.id] = num
                 num += 1

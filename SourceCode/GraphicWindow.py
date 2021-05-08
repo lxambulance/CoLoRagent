@@ -195,6 +195,11 @@ class GraphicWindow(QWidget):
                 tmpnode.append(item.node2)
         for node in tmpnode:
             self.scene.belongAS[node.id].setSelected(True)
+        # TODO：匹配错误返回False
+        return True
+
+    def getASid(self, PIDs):
+        print('to do')
 
 if __name__ == "__main__":
     import sys
