@@ -48,6 +48,7 @@ class Node(QGraphicsPixmapItem):
             self.label.setText(f"{self.name}")
             self.label.setFont(QFont("Times", 20))
             self.label.setPos(0, 0)
+            self.clicktime = 0
         self.label.setBrush(QColor(Qt.red))
         self.label.hide()
 
@@ -96,10 +97,11 @@ class Node(QGraphicsPixmapItem):
 
     def paint(self, painter, option, widget):
         if not self.type:
-            if self.isSelected():
-                self.setPixmap(QPixmap(':icon/cloud-o').scaled(self.size, self.size))
-            else:
-                self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
+            if not self.clicktime:
+                if self.isSelected():
+                    self.setPixmap(QPixmap(':icon/cloud-o').scaled(self.size, self.size))
+                else:
+                    self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
             option.state = QStyle.State_None
         super().paint(painter, option, widget)
 

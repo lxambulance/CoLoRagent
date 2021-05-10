@@ -155,7 +155,6 @@ class GraphicWindow(QWidget):
             if isinstance(item, Node) and item.type:
                 item.hide()
             if isinstance(item, Node) and not item.type:
-                item.clicktime = 0
                 num = item.name
                 pos = len(num)-1
                 while pos>=0 and num[pos].isdigit():
@@ -178,11 +177,13 @@ class GraphicWindow(QWidget):
                 while pos>=0 and num[pos].isdigit():
                     pos -= 1
                 num = num[pos+1:]
-                item.addClickTimes()
                 if not tmpASlist:
                     tmpASlist = num
                 else:
                     tmpASlist += ',' + num
+            if isinstance(item, Node) and not item.type:
+                item.clicktime = 0
+                item.setSelected(False)
         return tmpASlist
 
     def setMatchedPIDs(self, PIDs):

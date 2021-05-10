@@ -147,8 +147,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_reg.triggered.connect(self.regItem)
         self.action_advancedreg.triggered.connect(self.showAdvancedReg)
         self.chooseFile.currentIndexChanged[int].connect(self.showAdvancedRegArgs)
+        # textEdited不处理setText函数，textChanged处理所有改动
         self.setlevel.textEdited.connect(lambda x:self.changeAdvancedReg(level=x))
-        self.whitelist.textEdited.connect(lambda x:self.changeAdvancedReg(whitelist=x))
+        self.whitelist.textChanged.connect(lambda x:self.changeAdvancedReg(whitelist=x))
         self.whitelist_button.clicked.connect(self.chooseASs)
         self.advancedReg.clicked.connect(self.advancedRegItem)
         self.action_undoReg.triggered.connect(self.undoRegItem)
@@ -229,12 +230,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             name = '<Data>' + name
         else:
             name = '<Control> packet'
-        item = self.mapfromSIDtoItem.get(SID, None)
+        item = self.mapfromSIDtoItem.get(name+SID, None)
         if not item:
             # 该SID下第一个包，建立顶层节点topItem
             self.datapackets.append(QTreeWidgetItem(None, [name, "0", SID]))
             self.dataPktReceive.addTopLevelItem(self.datapackets[-1])
-            self.mapfromSIDtoItem[SID] = self.datapackets[-1]
+            self.mapfromSIDtoItem[name+SID] = self.datapackets[-1]
             item = self.datapackets[-1]
         path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
         if type == 0x72:
@@ -420,7 +421,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             nowSelectItem = self.selectItems[0]
             # print("choose", nowSelectItem)
-            self.tabWidget.setCurrentIndex(3)
+            self.tabWidget.setCurrentIndex(2)
             self.chooseFile.setCurrentIndex(nowSelectItem)
             self.showAdvancedRegArgs(nowSelectItem)
     
@@ -461,9 +462,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         level = self.fd.getData(nowSelectItem, 5)
         whitelist = self.fd.getData(nowSelectItem, 6)
         kwargs = {}
-        if level != None:
+        if not level:
             kwargs['level'] = int(level)
-        if whitelist != None:
+        if not whitelist:
             kwargs['WhiteList'] = list(map(int,whitelist.split(',')))
         regitemworker = worker(0, AddCacheSidUnit, filepath, 1,1,1,1, **kwargs)
         regitemworker.signals.finished.connect(lambda:self.updateProgress(nowSelectItem, 3)(100))
