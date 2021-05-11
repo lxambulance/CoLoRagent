@@ -15,6 +15,7 @@
 - 2021.3.29 做了一定美化，暂时没有时间更新readme。
 - 2021.3.30 删除了无用的页面，增加和细化了一些功能。
 - 2021.4.25 完成了一次完整联调，还有待改进的点，以及一些小功能。
+- 2021.5.11 完成了联调，主要功能完成，操作体验上还有优化空间。
 
 作为git练习，dev分支可能会出现许多无聊地、甚至错误地提交。
 
@@ -84,6 +85,38 @@ NodeType = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
     I-.->|Yes|B
     I-.->|No|J[/End/]</code></pre>
 </details>
+
+### 前端相关文件结构
+
+[![](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggVERcblx0QVttYWluLnB5XSAtLS0-IGJbbG9nSW5XaW5kb3cucHldXG5cdGIgLS0tPiBCW01haW5XaW5kb3cucHldXG5cdEIgLS0tPiBDW0FkZEl0ZW1XaW5kb3cucHldXG5cdEIgLS0tPiBEW0dyYXBoaWNXaW5kb3cucHldXG5cdEIgLS0tPiBFW0ZpbGVEYXRhLnB5XVxuXHRCIC0tLT4gRltzZXJ2aWNlTGlzdC5weV1cblx0QiAtLS0-IEdbc2VydmljZVRhYmxlLnB5XVxuXHRGIC0tLT4gRVxuXHRHIC0tLT4gRVxuXHRCIC0tLT4gSFt3b3JrZXIucHldXG5cdEQgLS0tPiBJW3RvcG9HcmFwaFZpZXcucHldXG5cdEQgLS0tPiBKW3RvcG9HcmFwaFNjZW5lLnB5XVxuXHRKIC0tLT4gS1tOb2RlRWRnZS5weV1cblx0SSAtLS0-IEpcblx0SSAtLS0-IEtcblx0QiAtLS0-IHJjWy9yZXNvdXJjZV9yYy5weS9dXG5cdEsgLS0tPiByY1xuXHRiIC0tLT4gbG9nSW5bL2xvZ0luRGlhbG9nLnB5L11cblx0QiAtLS0-IG1haW5bL01haW5QYWdlLnB5L11cblx0QyAtLS0-IGFkZFsvYWRkSXRlbURpYWxvZy5weS9dXG5cdG1lW-S4u-imgeS5puWGmeS7o-eggV1cblx0bm90bWVbL-W3peWFt-eUn-aIkOS7o-eggS9dIiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifSwidXBkYXRlRWRpdG9yIjpmYWxzZX0)](https://mermaid-js.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggVERcblx0QVttYWluLnB5XSAtLS0-IGJbbG9nSW5XaW5kb3cucHldXG5cdGIgLS0tPiBCW01haW5XaW5kb3cucHldXG5cdEIgLS0tPiBDW0FkZEl0ZW1XaW5kb3cucHldXG5cdEIgLS0tPiBEW0dyYXBoaWNXaW5kb3cucHldXG5cdEIgLS0tPiBFW0ZpbGVEYXRhLnB5XVxuXHRCIC0tLT4gRltzZXJ2aWNlTGlzdC5weV1cblx0QiAtLS0-IEdbc2VydmljZVRhYmxlLnB5XVxuXHRGIC0tLT4gRVxuXHRHIC0tLT4gRVxuXHRCIC0tLT4gSFt3b3JrZXIucHldXG5cdEQgLS0tPiBJW3RvcG9HcmFwaFZpZXcucHldXG5cdEQgLS0tPiBKW3RvcG9HcmFwaFNjZW5lLnB5XVxuXHRKIC0tLT4gS1tOb2RlRWRnZS5weV1cblx0SSAtLS0-IEpcblx0SSAtLS0-IEtcblx0QiAtLS0-IHJjWy9yZXNvdXJjZV9yYy5weS9dXG5cdEsgLS0tPiByY1xuXHRiIC0tLT4gbG9nSW5bL2xvZ0luRGlhbG9nLnB5L11cblx0QiAtLS0-IG1haW5bL01haW5QYWdlLnB5L11cblx0QyAtLS0-IGFkZFsvYWRkSXRlbURpYWxvZy5weS9dXG5cdG1lW-S4u-imgeS5puWGmeS7o-eggV1cblx0bm90bWVbL-W3peWFt-eUn-aIkOS7o-eggS9dIiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifSwidXBkYXRlRWRpdG9yIjpmYWxzZX0)
+
+<details>
+    <summary>查看源码</summary>
+	<pre><code>graph TD
+	A[main.py] ---> b[logInWindow.py]
+	b ---> B[MainWindow.py]
+	B ---> C[AddItemWindow.py]
+	B ---> D[GraphicWindow.py]
+	B ---> E[FileData.py]
+	B ---> F[serviceList.py]
+	B ---> G[serviceTable.py]
+	F ---> E
+	G ---> E
+	B ---> H[worker.py]
+	D ---> I[topoGraphView.py]
+	D ---> J[topoGraphScene.py]
+	J ---> K[NodeEdge.py]
+	I ---> J
+	I ---> K
+	B ---> rc[/resource_rc.py/]
+	K ---> rc
+	b ---> logIn[/logInDialog.py/]
+	B ---> main[/MainPage.py/]
+	C ---> add[/addItemDialog.py/]
+	me[主要书写代码]
+	notme[/工具生成代码/]</code></pre>
+</details>
+
 ## 后端逻辑
 
 [![](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggTFJcbiAgICBBWy9tYWluL10tLS0-fHN0YXJ0IHRocmVhZHxCW0NvTG9STW9uaXRvcl1cbiAgICBCLS0tPnxsaXN0ZW58Q3twYWNrYWdlLnR5cGU_fVxuICAgIEMtLWdldC0tPiBEW2NoZWNrIGRhdGFiYXNlIHRoZW4gc2VuZF1cbiAgICBDLS1kYXRhLS0-IEVbc3RvcmUgZGF0YWJhc2VdXG4gICAgQy0tY29udHJvbC0tPiBGW2NoYW5nZSBvcHRpb25dXG4gICAgRC0tLT4gR3tuZXh0P31cbiAgICBFLS0tPiBHXG4gICAgRi0tLT4gR1xuICAgIEctLi0-fFllc3xDXG4gICAgRy0tLT58Tm98SFsvRW5kL10iLCJtZXJtYWlkIjp7InRoZW1lIjoiZGVmYXVsdCJ9LCJ1cGRhdGVFZGl0b3IiOmZhbHNlfQ)](https://mermaid-js.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFJcbiAgICBBWy9tYWluL10tLS0-fHN0YXJ0IHRocmVhZHxCW0NvTG9STW9uaXRvcl1cbiAgICBCLS0tPnxsaXN0ZW58Q3twYWNrYWdlLnR5cGU_fVxuICAgIEMtLWdldC0tPiBEW2NoZWNrIGRhdGFiYXNlIHRoZW4gc2VuZF1cbiAgICBDLS1kYXRhLS0-IEVbc3RvcmUgZGF0YWJhc2VdXG4gICAgQy0tY29udHJvbC0tPiBGW2NoYW5nZSBvcHRpb25dXG4gICAgRC0tLT4gR3tuZXh0P31cbiAgICBFLS0tPiBHXG4gICAgRi0tLT4gR1xuICAgIEctLi0-fFllc3xDXG4gICAgRy0tLT58Tm98SFsvRW5kL10iLCJtZXJtYWlkIjp7InRoZW1lIjoiZGVmYXVsdCJ9LCJ1cGRhdGVFZGl0b3IiOmZhbHNlfQ)
