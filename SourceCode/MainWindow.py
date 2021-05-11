@@ -98,7 +98,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # 设置tab control页
         for i in range(self.fd.rowCount()):
-            self.chooseFile.addItem(self.fd.getData(i))
+            filename = self.fd.getData(i)
+            self.chooseFile.addItem(filename)
+            # 添加log记录
+            self.textEdit.append(f'<add> file {filename}\n')
         self.chooseFile.setCurrentIndex(-1)
 
         # 设置模型对应的view
@@ -621,11 +624,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 导入其他数据文件 '''
         fpath = QFileDialog.getOpenFileName(self, '打开文件', HOME_DIR)
         if fpath[0]:
+            lastlen = self.fd.rowCount()
             ret = self.fd.load(fpath[0])
             if ret:
                 self.setStatus(ret)
             else:
                 self.modelViewUpdate()
+                for i in range(lastlen, self.fd.rowCount()):
+                    filename = self.fd.getData(i)
+                    self.chooseFile.addItem(filename)
+                    # 添加log记录
+                    self.textEdit.append(f'<add> file {filename}\n')
 
     def closeEvent(self, event):
         ''' docstring: 关闭窗口时弹出警告 '''
