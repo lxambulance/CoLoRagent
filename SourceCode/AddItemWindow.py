@@ -52,7 +52,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
     def addItem(self):
         ''' docstring: 添加文件项到数据库结构 '''
         nowIndex = self.tabWidget.currentIndex()
-        if nowIndex == 0:
+        if nowIndex == 1:
             # 检测文件名
             a = self.fileName.text()
             if a == '':
@@ -74,7 +74,6 @@ class AddItemWindow(QDialog, Ui_Dialog):
                     b = HOME_DIR + '/' + a
             c = self.addtext if self.addtext != None else ''
             c.replace('(请输入附加说明文字)', '')
-            
             self.fd.addItem(filename = a, filepath = b, fileadd = c)
             self.newitemrow = self.fd.rowCount() - 1
             self.needReg = int(self.needRegister.checkState() > 0)

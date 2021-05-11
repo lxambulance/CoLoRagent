@@ -57,7 +57,7 @@ class Node(QGraphicsPixmapItem):
         # 设置高度信息
         self.setZValue(NodeZValue[nodetype])
         self.label.setZValue(NodeZValue[nodetype])
-    
+
     def addClickTimes(self):
         self.clicktime += 1
         if self.clicktime & 1:
@@ -168,8 +168,7 @@ class Edge(QGraphicsLineItem):
     def paint(self, painter, option, widget):
         if self.node1 and self.node2 and \
             (self.node1.isSelected() and self.node2.isSelected() or self.isSelected()):
-            painter.setPen(QPen(QColor('#ffb3b3'), 12))
+            painter.setPen(QPen(QColor('#ff99e5'), 12))
             painter.drawLine(self.n1, self.n2)
         option.state = QStyle.State_None
         super().paint(painter, option, widget)
-        

@@ -101,6 +101,8 @@ class GraphicWindow(QWidget):
     def loadTopo(self, path):
         self.scene.initTopo_config(path)
         self.view.scaleView(0.5)
+        # if self.scene.node_me:
+        #     print(self.scene.node_me.nid)
 
     def saveTopo(self, path):
         self.scene.saveTopo(path)

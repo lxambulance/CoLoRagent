@@ -68,14 +68,12 @@ class FileData:
             Path = DATA_PATH
         pos = Path.find('db')
         if pos == -1:
-            print('这不是一个合法的data类型文件')
-            return
+            return('这不是一个合法的data类型文件')
         with open(Path, 'r') as f:
             try:
                 self.__raw_data = json.load(f)
             except:
-                print('json格式转换失败，数据加载失败')
-                return
+                return('json格式转换失败，数据加载失败')
             items = self.__raw_data['base data']
             for item in items:
                 item_nid = item[2][:32]
@@ -92,6 +90,7 @@ class FileData:
                     if not os.path.exists(item[1]):
                         continue
                 self.__data.append(item)
+        return ''
 
     def save(self, Path = None):
         ''' docstring: 将数据保存到数据路径中 '''
