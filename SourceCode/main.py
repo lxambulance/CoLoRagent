@@ -4,7 +4,7 @@
 import sys
 import qdarkstyle as qds
 import ColorMonitor as CM
-from MainWindow import MainWindow
+import MainWindow as mw
 from logInWindow import logInWindow
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 
@@ -37,7 +37,10 @@ class CoLoRApp(QApplication):
         # 初始化本终端信息
         CM.PL.IPv4 = self.loginwindow.myIPv4
         CM.PL.Nid = int('0x'+self.loginwindow.myNID, 16)
-        self.window = MainWindow()
+        mw.HOME_DIR = self.loginwindow.filetmppath
+        mw.DATA_PATH = self.loginwindow.configpath
+        # print(f'before HOME_DIR{mw.HOME_DIR} DATA_PATH{mw.DATA_PATH}')
+        self.window = mw.MainWindow()
         self.window.actionWindows.triggered.connect(self._setStyle)
         self.window.actionwindowsvista.triggered.connect(self._setStyle)
         self.window.actionFusion.triggered.connect(self._setStyle)

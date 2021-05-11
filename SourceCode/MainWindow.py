@@ -10,7 +10,7 @@ from ProxyLib import (
     SidAnn, Get, CacheSidUnits
 )
 from worker import worker
-import FileData
+import FileData as FD
 from serviceTable import serviceTableModel, progressBarDelegate
 from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
@@ -28,9 +28,9 @@ __BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
-DATA_DIR = __BASE_DIR + '/data.db'
+DATA_PATH = __BASE_DIR + '/data.db'
 starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
-LOG_DIR = __BASE_DIR + f'/{starttime}.log'
+LOG_PATH = __BASE_DIR + f'/{starttime}.log'
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -40,9 +40,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
-        # 用于统计频率
-        self.time = QTimer()
-        self.time.setInterval(5000)
+        # 修改数据存储路径
+        # print(f'HOME_DIR{HOME_DIR} DATA_PATH{DATA_PATH}')
+        FD.DATA_PATH = DATA_PATH
+        FD.HOME_DIR = HOME_DIR
+        # 用于统计频率和AS统计
+        self.timer = QTimer()
+        self.timer.setInterval(5000)
         self.asmetrics = {} # id:[(get num, get total size),(data num, data total size)]
 
         # 用于收包显示的变量
@@ -71,8 +75,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_swi = QAction(QIcon(":/icon/switchView"), "切换", self)
         self.button_swi.setStatusTip("视图切换")
         self.toolBar.addAction(self.button_swi)
-        self.button_openfolder = QAction(
-            QIcon(":/icon/openFolder"), "打开", self)
+        self.button_openfolder = QAction(QIcon(":/icon/openFolder"), "打开", self)
         self.button_openfolder.setStatusTip("打开文件夹")
         self.toolBar.addAction(self.button_openfolder)
         self.button_addfile = QAction(QIcon(":/icon/addFile"), "添加", self)
@@ -83,7 +86,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.selectItems = []
 
         # 使用自定义模型
-        self.fd = FileData.FileData(nid=self.nid)
+        self.fd = FD.FileData(nid=self.nid)
         try:
             self.fd.load()
         except:
@@ -180,10 +183,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
         self.lineType.currentIndexChanged.connect(self.setTopoLineType)
         self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
-        self.time.timeout.connect(self.reCalc)
+        self.timer.timeout.connect(self.showMetric)
 
         # 载入拓扑图，需要相关信号绑定完成后再载入
-        self.graphics_global.loadTopo(DATA_DIR)
+        self.graphics_global.loadTopo(DATA_PATH)
+        self.timer.start()
+
+    def changeMetric(self, ASid, Type, size):
+        ''' docstring: 修改AS统计量 '''
+        # self.asmetrics = {} id:[[get num, get total size],[data num, data total size]]
+        item = self.asmetrics.get(ASid, None)
+        if not item:
+            self.asmetrics[ASid]=[[0,0],[0,0]]
+            item = self.asmetrics[ASid]
+        item[Type][0] += 1
+        item[Type][1] += size
+
+    def showMetric(self):
+        ''' docstring: 刷新显示AS统计量 '''
+        strtmp = f'收到包的AS数量{len(self.asmetrics)}\n'
+        for (key,value) in self.asmetrics.items():
+            strtmp += '\t' + str(key) + ':\n'
+            getnum, getsize = value[0]
+            datanum, datasize = value[1]
+            strtmp += '\t\t收到的get包 num = ' + str(getnum)
+            strtmp += '\tsize = ' + str(getsize) + '\n'
+            strtmp += '\t\t收到的data包 num = ' + str(datanum)
+            strtmp += '\tsize = ' + str(datasize) + '\n'
+        self.metrics.clear()
+        self.metrics.setText(strtmp)
 
     def chooseASs(self, flag):
         if flag:
@@ -240,20 +268,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
         if type == 0x72:
             item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
+            ASid = self.graphics_global.getASid(path_str)
+            print(ASid)
+            if ASid:
+                self.changeMetric(ASid,0,size)
         elif type == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), "PIDs="+path_str]))
             totsize = int(item.text(1))
             item.setText(1, str(totsize+size))
+            ASid = self.graphics_global.getASid(path_str)
+            print(ASid)
+            if ASid:
+                self.changeMetric(ASid,1,size)
         else:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), ""]))
-
-    def reCalc(self):
-        ''' docstring: 重新计算统计量 '''
-        self.metrics.clear()
-
-        self.metrics.update()
 
     def showMatchedPIDs(self, item, column):
         ''' docstring: 选中物体，显示匹配 '''
@@ -462,9 +492,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         level = self.fd.getData(nowSelectItem, 5)
         whitelist = self.fd.getData(nowSelectItem, 6)
         kwargs = {}
-        if not level:
+        if level:
             kwargs['level'] = int(level)
-        if not whitelist:
+        if whitelist:
             kwargs['WhiteList'] = list(map(int,whitelist.split(',')))
         regitemworker = worker(0, AddCacheSidUnit, filepath, 1,1,1,1, **kwargs)
         regitemworker.signals.finished.connect(lambda:self.updateProgress(nowSelectItem, 3)(100))
@@ -585,7 +615,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if reply == QMessageBox.Yes:
             # 做出保存操作
             self.fd.save()
-            self.graphics_global.saveTopo(DATA_DIR)
+            self.graphics_global.saveTopo(DATA_PATH)
             self.saveLog()
             event.accept()
         elif reply == QMessageBox.No:
@@ -594,7 +624,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             event.ignore()
 
     def saveLog(self):
-        with open(LOG_DIR, 'w', encoding='utf-8') as f:
+        with open(LOG_PATH, 'w', encoding='utf-8') as f:
             s = self.textEdit.toPlainText()
             f.write(s)
 
@@ -640,14 +670,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-
     window = MainWindow()
     window.show()
 
     window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
     window.getPathFromPkt(0x72, '123', [0x11222695,0x33446217], 1500, 0x23)
-    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x33446217,0x55666217], 1000, 0)
-    window.getPathFromPkt(0x73, 'abc', [0x33446217,0x55666217], 100, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x33446217], 1000, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11225689,0x33446217], 100, 0)
     window.getPathFromPkt(0x74, '', [], 20, 0)
 
     sys.exit(app.exec_())

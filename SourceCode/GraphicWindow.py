@@ -180,7 +180,7 @@ class GraphicWindow(QWidget):
                 if not tmpASlist:
                     tmpASlist = num
                 else:
-                    tmpASlist += ',' + num
+                    tmpASlist = num + ',' + tmpASlist
             if isinstance(item, Node) and not item.type:
                 item.clicktime = 0
                 item.setSelected(False)
@@ -200,7 +200,39 @@ class GraphicWindow(QWidget):
         return True
 
     def getASid(self, PIDs):
-        print('to do')
+        posl = PIDs.rfind('<')
+        posr = PIDs.rfind('>')
+        lastPID = PIDs[posl:posr]
+        target = None
+        tmpAS = {}
+        for item in self.scene.items():
+            if isinstance(item, Edge) and item.type and ('<' + item.PX ) in lastPID:
+                target = item
+            if isinstance(item, Edge) and item.type and ('<' + item.PX ) in PIDs:
+                if not tmpAS.get(self.scene.belongAS[item.node1.id].name, None):
+                    tmpAS[self.scene.belongAS[item.node1.id].name] = 0
+                tmpAS[self.scene.belongAS[item.node1.id].name] += 1
+                if not tmpAS.get(self.scene.belongAS[item.node2.id].name, None):
+                    tmpAS[self.scene.belongAS[item.node2.id].name] = 0
+                tmpAS[self.scene.belongAS[item.node2.id].name] += 1
+        if not target:
+            return None
+        else:
+            n1 = self.scene.belongAS[target.node1.id].name
+            n2 = self.scene.belongAS[target.node2.id].name
+            if tmpAS[n1] < tmpAS[n2]:
+                return n1
+            elif tmpAS[n1] > tmpAS[n2]:
+                return n2
+            else:
+                if not self.scene.node_me:
+                    return None
+                n0 = self.scene.belongAS[self.scene.node_me.id].name
+                if n0 == n1:
+                    return n2
+                else:
+                    return n1
+
 
 if __name__ == "__main__":
     import sys

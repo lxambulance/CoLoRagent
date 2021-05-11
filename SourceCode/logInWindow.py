@@ -8,8 +8,8 @@ import sys
 import json
 BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))).replace('\\', '/')
-DATAPATH = BASE_DIR + '/data.db'
-DATASTORE = BASE_DIR + './tmp'
+DATA_PATH = BASE_DIR + '/data.db'
+HOME_DIR = BASE_DIR + '/.tmp'
 sys.path.append(BASE_DIR)
 
 
@@ -19,15 +19,15 @@ class logInWindow(QDialog, Ui_Dialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        if not os.path.exists(DATAPATH):
+        if not os.path.exists(DATA_PATH):
             self.configpath = None
             self.filetmppath = None
             self.myNID = None
             self.myIPv4 = None
         else:
-            self.autoFillForm(DATAPATH)
-            self.filetmppath = DATASTORE
-            self.showpath_filetmp.setText(DATASTORE)
+            self.autoFillForm(DATA_PATH)
+            self.filetmppath = HOME_DIR
+            self.showpath_filetmp.setText(HOME_DIR)
         # 设置信号与槽连接
         self.choosepath_config.clicked.connect(self.getConfigPath)
         self.choosepath_filetmp.clicked.connect(self.getFiletmpPath)
@@ -84,3 +84,9 @@ if __name__ == '__main__':
     window = logInWindow()
     window.show()
     sys.exit(app.exec_())
+
+'''
+f = open('./test/datatest_human.db','w')
+json.dump(a,f, indent=4, sort_keys=True, separators=(',', ':'))
+f.close()
+'''
