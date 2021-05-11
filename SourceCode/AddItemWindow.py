@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: CoLoR Pan 添加条目对话 '''
+''' docstring: CoLoR 添加条目对话 '''
 
 # 添加文件路径../
 import os
@@ -40,7 +40,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
         # print('text changed', self.addtext)
 
     def chooseFilePath(self):
-        fpath = QFileDialog.getOpenFileName(self, 'Open file', HOME_DIR)
+        fpath = QFileDialog.getOpenFileName(self, '请选择文件路径', HOME_DIR)
         if fpath[0]:
             # print(fpath[0], fpath[0].split('/'))
             nametmplist = fpath[0].split('/')
@@ -52,7 +52,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
     def addItem(self):
         ''' docstring: 添加文件项到数据库结构 '''
         nowIndex = self.tabWidget.currentIndex()
-        if nowIndex == 0:
+        if nowIndex == 1:
             # 检测文件名
             a = self.fileName.text()
             if a == '':
@@ -74,19 +74,19 @@ class AddItemWindow(QDialog, Ui_Dialog):
                     b = HOME_DIR + '/' + a
             c = self.addtext if self.addtext != None else ''
             c.replace('(请输入附加说明文字)', '')
-            
-            self.fd.setItem(filename = a, filepath = b, fileadd = c)
+            self.fd.addItem(filename = a, filepath = b, fileadd = c)
             self.newitemrow = self.fd.rowCount() - 1
             self.needReg = int(self.needRegister.checkState() > 0)
         else:
             a = self.inputFileName.text()
+            print(a)
             b = HOME_DIR + '/' + a
             d = self.inputSID.text()
             # TODO: 更详细的检查SID合法性
             if len(d) != 72:
                 print('输入SID不合法')
                 return
-            self.fd.setItem(filename = a, filepath = b, filehash = d)
+            self.fd.addItem(filename = a, filepath = b, filehash = d, isReg = 1, have = 0)
             self.newitemrow = self.fd.rowCount() - 1
             self.needReg = 0
 

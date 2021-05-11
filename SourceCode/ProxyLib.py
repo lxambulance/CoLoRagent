@@ -11,6 +11,7 @@ import time
 
 Nid = -0x1  # 当前终端NID，需要初始化
 IPv4 = ''  # 当前终端IPv4地址，需要初始化
+
 CacheSidUnits = {}  # 已生成但尚未通告的SID通告单元，key: path; value：class SidUnit
 Lock_CacheSidUnits = threading.Lock()  # CacheSidUnits变量锁
 # 已通告SID通告单元，key：SID(N_sid+L_sid)的16进制字符串，不存在时为空; value：class SidUnit
@@ -18,6 +19,7 @@ AnnSidUnits = {}
 Lock_AnnSidUnits = threading.Lock()  # AnnSidUnits变量锁
 gets = {}  # 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）
 Lock_gets = threading.Lock()  # gets变量锁
+
 RegFlag = 0 # 代理注册成功标志，收到RM返回的Control包后置1
 PeerProxys = {} # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
 PXs = {} # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
@@ -27,15 +29,14 @@ PXs = {} # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符�
 
 
 def AnnProxy():
-    # 向RM注册当前代理，获取域内信息
+    ''' docstring: 向RM注册当前代理，获取域内信息 '''
     NewPkt = ControlPkt(1)
     Tar = NewPkt.packing()
     SendIpv4(GetRMip(), Tar)
 
 
 def Sha1Hash(path):
-    # 计算特定文件160位hash值(Sha1)
-    # path：新文件路径
+    ''' docstring: 计算特定文件160位hash值(Sha1) path: 新文件路径 '''
     block_size = 64 * 1024  # 分块计算hash，减少内存占用
     with open(path, 'rb') as f:
         sha1 = hashlib.sha1()
@@ -48,15 +49,20 @@ def Sha1Hash(path):
         return sha1.hexdigest()
 
 
-def AddCacheSidUnit(path, AM, N, L, I, level=-1):
-    # 生成单个SID通告单元
+def AddCacheSidUnit(path, AM, N, L, I, level=-1, WhiteList=[]):
+    ''' docstring: 生成单个SID通告单元 '''
     Strategy_units = {}
     # 增添策略字段
     if(level >= 1 and level <= 10):
         # 信息级别策略。标识为1，value范围为[1, 10]，value长度为1字节
-        value = hex(level).replace('0x', '')
-        value += '0'*(8-len(value))
+        value = hex(level).replace('0x', '').zfill(2)
         Strategy_units[1] = value
+    if(len(WhiteList)!=0):
+        # 白名单策略。标识为2，value为数字列表，数字范围为[0, 255]
+        value = ''
+        for AS in WhiteList:
+            value += hex(AS).replace('0x', '').zfill(2)
+        Strategy_units[2] = value
     Hash_sid = int(Sha1Hash(path), 16)
     # TODO: 需通过Hash_sid判断内容是否来自其他生产节点，此处默认了path对应的文件是本终端提供的内容，待完善 #
     N_sid_temp = Nid if N == 1 else -1
@@ -70,14 +76,14 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1):
 
 
 def DeleteCacheSidUnit(path):
-    # 删除已生成但未通告的SID策略单元
+    ''' docstring: 删除已生成但未通告的SID策略单元 '''
     Lock_CacheSidUnits.acquire()
     CacheSidUnits.pop(path)
     Lock_CacheSidUnits.release()
 
 
 def SidAnn(ttl=64, PublicKey='', P=1):
-    # 整合已生成的SID策略单元，发送ANN报文
+    ''' docstring: 整合已生成的SID策略单元，发送ANN报文 '''
     # PublicKey格式为16进制字符串(不含0x前缀)
     if(RegFlag == 1):
         # 变量整理
@@ -140,9 +146,9 @@ def SidAnn(ttl=64, PublicKey='', P=1):
 
 
 def Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1):
-    # 生成完整的Get报文，获取对应内容
+    ''' docstring: 生成完整的Get报文，只发送，不管收 '''
     # SID：目标SID(N_sid+L_sid)的16进制字符串，path：本地存储路径（含文件名）
-    if(RegFlag == 1):
+    if (RegFlag == 1):
         NewPkt = GetPkt(1, SID, ttl, PublicKey, QoS, SegID, A)
         Tar = NewPkt.packing()
         Lock_gets.acquire()
@@ -154,21 +160,18 @@ def Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1):
 
 
 def ConvertFile(path, lpointer=0, rpointer=-1):
-    # 将任意文件编码为二进制
-    # path：文件路径，lpointer：左截取指针，rpointer
-    f = open(path, 'rb')
-    tar = f.read()
-    if(rpointer == -1):
+    ''' docstring: 将任意文件编码为二进制 '''
+    with open(path, 'rb') as f:
+        tar = f.read()
+    if (rpointer == -1):
         rpointer = len(tar)
     return tar[lpointer: rpointer]
 
 
 def ConvertByte(tar, path):
-    # 将二进制编码写入到文件
-    # src：二进制编码，path：新文件路径
-    f = open(path, 'ab')  # 追加写入，覆盖写入为'wb'
-    f.write(tar)
-    f.close()
+    ''' docstring: 将二进制编码写入到文件 '''
+    with open(path, 'ab') as f:  # 'ab'为追加写入，覆盖写入为'wb'
+        f.write(tar)
 
 
 # 各对象定义
@@ -217,7 +220,7 @@ class ControlPkt():
                         pointer += 1
                     tempIP = ''
                     for j in range(4):
-                        tempIP += str(Pkt[pointer]) + '.'
+                        tempIP = str(Pkt[pointer]) + '.' +tempIP
                         pointer += 1
                     tempIP = tempIP[:-1]
                     self.Proxys.append((tempNid, tempIP))
@@ -227,11 +230,11 @@ class ControlPkt():
                 for i in range(NumBRs):
                     tempPX = 0
                     for j in range(2):
-                        tempPX = (tempPX << 8) + Pkt[pointer]
+                        tempPX += (Pkt[pointer] << (8*j))
                         pointer += 1
                     tempIP = ''
                     for j in range(4):
-                        tempIP += str(Pkt[pointer]) + '.'
+                        tempIP = str(Pkt[pointer]) + '.' + tempIP
                         pointer += 1
                     tempIP = tempIP[:-1]
                     self.BRs.append((tempPX, tempIP))
@@ -239,7 +242,7 @@ class ControlPkt():
                 # RM分发新注册的proxy信息
                 self.ProxyIP = ''
                 for i in range(4):
-                    self.ProxyIP += str(Pkt[pointer]) + '.'
+                    self.ProxyIP = str(Pkt[pointer]) + '.' + self.ProxyIP
                     pointer += 1
                 self.ProxyIP = self.ProxyIP[:-1]
                 self.ProxyNid = 0
@@ -256,7 +259,7 @@ class ControlPkt():
             self.ProxyNid = Nid
             IPList = self.ProxyIP.split('.')
             self.data = b''
-            for i in IPList:
+            for i in reversed(IPList):
                 self.data += ConvertInt2Bytes(int(i), 1)
             self.data += ConvertInt2Bytes(self.ProxyNid, 16)
 
@@ -289,7 +292,7 @@ class SidUnit():
     nid = -0x1  # 注册该服务的节点的NID，128bits，用16进制数表示，可为-1（此时标志位I=1）
     # 策略单元，key为策略编号tag，格式int;value为策略具体内容，格式为16进制字符串(不含0x前缀)
     Strategy_units = {}
-    Strategy_units_length = {}  # 存储策略字段长度信息
+    Strategy_value_length = {}  # 存储策略内容字段长度信息
 
     def __init__(self, path, AM, N_sid, L_sid, nid, Strategy_units):
         self.path = path
@@ -305,11 +308,11 @@ class SidUnit():
             self.Unit_length += 20
         if(nid != -1):
             self.Unit_length += 16
-        self.Strategy_units_length.clear()
+        self.Strategy_value_length.clear()
         for key in self.Strategy_units:
-            value_length = len(self.Strategy_units[key])/2 + 2
-            self.Unit_length += value_length
-            self.Strategy_units_length[key] = value_length
+            value_length = int(len(self.Strategy_units[key])/2)
+            self.Strategy_value_length[key] = value_length
+            self.Unit_length += value_length + 2
 
     def packing(self):
         # 按通告单元格式进行封装，返回bytes类型字符串
@@ -344,10 +347,10 @@ class SidUnit():
         for key in self.Strategy_units:
             tag = key
             tar += ConvertInt2Bytes(tag, 1)
-            length = self.Strategy_units_length[key]
+            length = self.Strategy_value_length[key]
             tar += ConvertInt2Bytes(length, 1)
             tar += ConvertInt2Bytes(
-                int(self.Strategy_units[key], 16), length-2)
+                int(self.Strategy_units[key], 16), length)
         return tar
 
 
@@ -445,7 +448,7 @@ class DataPkt():
             for i in range(self.PID_num + self.R):
                 tempPID = 0
                 for j in range(4):
-                    tempPID += tempPID << 8 + Pkt[pointer]
+                    tempPID += (Pkt[pointer] << (8*j))
                     pointer += 1
                 self.PIDs.append(tempPID)
             while(pointer < len(Pkt)):
@@ -544,11 +547,11 @@ class DataPkt():
         if(self.S == 1):
             TarRest += ConvertInt2Bytes_LE(self.SegID, 4)
         for pid in self.PIDs:
-            TarRest += ConvertInt2Bytes(pid, 4)
-        TarRest += self.load
+            TarRest += ConvertInt2Bytes_LE(pid, 4)
+        # TarRest += self.load
         Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
         TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
-        Tar = TarPre + TarCS + TarRest  # 计算出校验和的字节串
+        Tar = TarPre + TarCS + TarRest + self.load  # 计算出校验和的字节串
         # 封装并返回
         self.Pkt = Tar
         return self.Pkt
@@ -634,7 +637,7 @@ class GetPkt():
             for i in range(self.PID_num):
                 tempPID = 0
                 for j in range(4):
-                    tempPID += tempPID << 8 + Pkt[pointer]
+                    tempPID += (Pkt[pointer] << (8*j))
                     pointer += 1
                 self.PIDs.append(tempPID)
         elif (flag == 1):
@@ -714,39 +717,24 @@ class GetPkt():
 
 
 def ConvertInt2Bytes(data, length):
-    # 将int类型转成bytes类型（大端存储）
-    # data：目标数字，length：目标字节数
-    data = hex(data).replace('0x', '')
-    data = '0'*(length*2 - len(data)) + data
-    data_bytes = bytes.fromhex(data)
-    return data_bytes
+    ''' docstring: 将int类型转成bytes类型（大端存储）
+    data: 目标数字，length: 目标字节数 '''
+    return data.to_bytes(length, byteorder='big')
 
 
 def ConvertInt2Bytes_LE(data, length):
-    # 将int类型转成bytes类型（小端存储）
-    # data：目标数字，length：目标字节数
-    data = hex(data).replace('0x', '')
-    data = '0'*(length*2 - len(data)) + data
-    data_LE = ''
-    temp = ''
-    pointer = 0
-    while(pointer < len(data)):
-        temp += data[pointer]
-        pointer += 1
-        if(pointer % 2 == 0):
-            data_LE = temp + data_LE
-            temp = ''
-    data_bytes = bytes.fromhex(data_LE)
-    return data_bytes
+    ''' docstring: 将int类型转成bytes类型（小端存储）
+    # data：目标数字，length：目标字节数 '''
+    return data.to_bytes(length, byteorder='little')
 
 
 def CalculateCS(tar):
-    ''' docstring: 校验和计算 '''
-    # tar：bytes字符串
+    ''' docstring: 校验和计算 tar: bytes字符串 '''
     length = len(tar)
     pointer = 0
     sum = 0
     while (length - pointer > 1):
+        # 两字节相加
         temp = tar[pointer] << 8
         temp += tar[pointer+1]
         pointer += 2
@@ -759,8 +747,8 @@ def CalculateCS(tar):
 
 
 def SendIpv4(ipdst, data):
-    # 封装IPv4网络包并发送
-    # ipdst: 目标IP地址，data：IP包正文内容
+    ''' docstring: 封装IPv4网络包并发送
+    ipdst: 目标IP地址，data: IP包正文内容，proto: 约定值150 '''
     pkt = IP(dst=ipdst, proto=150) / data
     # pkt.show()
     send(pkt, verbose=0)
@@ -772,6 +760,11 @@ def GetRMip():
     return '10.0.0.1'
 
 
-# def GetBRip():
-#     ''' docstring: 读配置文件获取BR所在IP地址(适用IPv4)'''
-#     return '192.168.50.129'
+def GetBRip():
+    ''' docstring: 读配置文件获取BR所在IP地址(适用IPv4)'''
+    return '192.168.50.129'
+
+
+if __name__ == '__main__':
+    print(ConvertInt2Bytes_LE(123,4))
+    print((123).to_bytes(4,byteorder='little'))

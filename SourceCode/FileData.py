@@ -23,10 +23,14 @@ class FileData:
 
     def getData(self, row, column = 0):
         ''' docstring: 获取数据 '''
+        if row<0 or row>=self.rowCount() or column<0 or column>=len(self.__data[row]):
+            return None
         return self.__data[row][column]
 
     def setData(self, row, column = 0, newData = None):
         ''' docstring: 写入数据 '''
+        if row<0 or column<0 or row>=self.rowCount() or column>=self.columnCount():
+            return
         self.__data[row][column] = newData
 
     def getItem(self, row):
@@ -40,11 +44,11 @@ class FileData:
         else:
             self.__data.append(item)
 
-    def setItem(self, *, filename, filepath, isReg = 0, have = 1, **kwargs):
+    def addItem(self, *, filename, filepath, isReg = 0, have = 1, **kwargs):
         ''' docstring: 添加文件时的处理 '''
         filehash = kwargs.get('filehash', None)
         # TODO: 处理file addtion text
-        item = [filename, filepath, filehash, isReg, have * 100]
+        item = [filename, filepath, filehash, isReg * 100, have * 100]
         self.__data.append(item)
 
     def removeItem(self, row):
@@ -55,7 +59,7 @@ class FileData:
         return len(self.__data)
 
     def columnCount(self):
-        return len(self.__data[0])
+        return 5
 
     def load(self, Path = None):
         ''' docstring: 从数据路径加载数据 '''
@@ -64,25 +68,29 @@ class FileData:
             Path = DATA_PATH
         pos = Path.find('db')
         if pos == -1:
-            print('这不是一个合法的data类型文件')
-            return
+            return('这不是一个合法的data类型文件')
         with open(Path, 'r') as f:
             try:
                 self.__raw_data = json.load(f)
             except:
-                print('json格式转换失败，数据加载失败')
-                return
+                return('json格式转换失败，数据加载失败')
             items = self.__raw_data['base data']
             for item in items:
                 item_nid = item[2][:32]
                 # print(item_nid)
                 if self.nid != item_nid:
+                    # 非本机通告文件
                     item[1] = HOME_DIR + '/' + item[0]
                     if item[3] != 100:
                         continue
                     elif not os.path.exists(item[1]) or not os.path.isfile(item[1]):
                         item[4] = 0
+                else:
+                    # 本机通告文件，存在性检测
+                    if not os.path.exists(item[1]):
+                        continue
                 self.__data.append(item)
+        return ''
 
     def save(self, Path = None):
         ''' docstring: 将数据保存到数据路径中 '''

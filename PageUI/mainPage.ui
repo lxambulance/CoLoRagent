@@ -11,11 +11,15 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>CoLoRagent</string>
+  </property>
+  <property name="windowIcon">
+   <iconset theme=":/icon/color">
+    <normaloff>.</normaloff>.</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_2">
-    <item>
+   <layout class="QGridLayout" name="gridLayout_3">
+    <item row="0" column="0">
      <widget class="QSplitter" name="splitter_horizon">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -34,45 +38,352 @@
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
-       <widget class="GraphWidget" name="graphics"/>
+       <widget class="GraphicWindow" name="graphics_global" native="true"/>
        <widget class="QTabWidget" name="tabWidget">
         <property name="currentIndex">
          <number>0</number>
         </property>
         <widget class="QWidget" name="baseTab">
          <attribute name="title">
-          <string>基本信息</string>
+          <string>消息</string>
          </attribute>
-         <layout class="QHBoxLayout" name="horizontalLayout">
-          <item>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="0" column="0">
            <widget class="QTextEdit" name="textEdit">
             <property name="font">
              <font>
               <pointsize>14</pointsize>
              </font>
             </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
             <property name="html">
              <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'SimSun'; font-size:14pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;日志记录&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;--------------------&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
            </widget>
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="MoreTab">
+        <widget class="QWidget" name="TopoTab">
          <attribute name="title">
-          <string>更多信息</string>
+          <string>拓扑</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <item>
-           <widget class="QLabel" name="label">
+         <layout class="QFormLayout" name="formLayout">
+          <item row="0" column="0">
+           <widget class="QPushButton" name="chooseRouter">
             <property name="text">
-             <string>TODO</string>
+             <string>选择接入点(A)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="accessRouter">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="addNode_label">
+            <property name="text">
+             <string>添加节点</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QPushButton" name="addLine">
+            <property name="text">
+             <string>添加连线(E)</string>
+            </property>
+            <property name="checkable">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QComboBox" name="lineType">
+            <item>
+             <property name="text">
+              <string>实线</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>虚线</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="search_label">
+            <property name="text">
+             <string>搜索</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLineEdit" name="searchItem"/>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="itemlist_label">
+            <property name="text">
+             <string>实体列表</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QListWidget" name="itemlist"/>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="itemname_label">
+            <property name="text">
+             <string>节点名称(S)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QLineEdit" name="itemname">
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0">
+           <widget class="QLabel" name="itemas_label">
+            <property name="text">
+             <string>节点所属AS</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QListWidget" name="addNodes">
+            <property name="minimumSize">
+             <size>
+              <width>260</width>
+              <height>60</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>65</height>
+             </size>
+            </property>
+            <property name="dragEnabled">
+             <bool>true</bool>
+            </property>
+            <property name="dragDropMode">
+             <enum>QAbstractItemView::DragDrop</enum>
+            </property>
+            <property name="viewMode">
+             <enum>QListView::IconMode</enum>
+            </property>
+            <item>
+             <property name="text">
+              <string>cloud</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <selectedon>:/icon/cloud</selectedon>
+              </iconset>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>RM</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/icon/RM</normalon>
+              </iconset>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>BR</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/icon/BR</normalon>
+              </iconset>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>router</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/icon/router</normalon>
+              </iconset>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>switch</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/icon/switching</normalon>
+              </iconset>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QLineEdit" name="itemas"/>
+          </item>
+          <item row="6" column="0">
+           <widget class="QLabel" name="itemnid_label">
+            <property name="text">
+             <string>节点NID</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QLineEdit" name="itemnid"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="controlTab">
+         <attribute name="title">
+          <string>控制</string>
+         </attribute>
+         <layout class="QFormLayout" name="formLayout_2">
+          <item row="0" column="0">
+           <widget class="QLabel" name="choosefile_label">
+            <property name="text">
+             <string>选择文件</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="chooseFile"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="setlevel_label">
+            <property name="text">
+             <string>指定密级</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="setlevel"/>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="choosePath_label">
+            <property name="text">
+             <string>白名单</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <layout class="QHBoxLayout" name="whitelist_horizontalLayout">
+            <item>
+             <widget class="QLineEdit" name="whitelist"/>
+            </item>
+            <item>
+             <widget class="QPushButton" name="whitelist_button">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>图中选择</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="advancedReg_label">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QPushButton" name="advancedReg">
+            <property name="text">
+             <string>通告</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="receiveTab">
+         <attribute name="title">
+          <string>收包</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="0" column="0">
+           <widget class="QTreeWidget" name="dataPktReceive">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>300</width>
+              <height>300</height>
+             </size>
+            </property>
+            <column>
+             <property name="text">
+              <string notr="true">文件/包</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>大小</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>数据</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="metricsTab">
+         <attribute name="title">
+          <string>统计</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_5">
+          <item row="0" column="0">
+           <widget class="QTextEdit" name="metrics"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="otherTab">
+         <attribute name="title">
+          <string>其他</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="0" column="0">
+           <widget class="QLabel" name="todo">
+            <property name="text">
+             <string>待开发</string>
             </property>
            </widget>
           </item>
@@ -108,13 +419,24 @@ p, li { white-space: pre-wrap; }
     </property>
     <addaction name="action_add"/>
     <addaction name="action_reg"/>
+    <addaction name="action_advancedreg"/>
     <addaction name="action_undoReg"/>
     <addaction name="action_dow"/>
     <addaction name="action_del"/>
     <addaction name="action_openDir"/>
    </widget>
+   <widget class="QMenu" name="menu_3">
+    <property name="title">
+     <string>主题</string>
+    </property>
+    <addaction name="actionWindows"/>
+    <addaction name="actionwindowsvista"/>
+    <addaction name="actionFusion"/>
+    <addaction name="actionQdarkstyle"/>
+   </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
+   <addaction name="menu_3"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -184,6 +506,31 @@ p, li { white-space: pre-wrap; }
     <string>还原视图</string>
    </property>
   </action>
+  <action name="actionWindows">
+   <property name="text">
+    <string>Windows</string>
+   </property>
+  </action>
+  <action name="actionFusion">
+   <property name="text">
+    <string>Fusion</string>
+   </property>
+  </action>
+  <action name="actionQdarkstyle">
+   <property name="text">
+    <string>Qdarkstyle</string>
+   </property>
+  </action>
+  <action name="actionwindowsvista">
+   <property name="text">
+    <string>WindowsVista</string>
+   </property>
+  </action>
+  <action name="action_advancedreg">
+   <property name="text">
+    <string>高级通告</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -197,9 +544,10 @@ p, li { white-space: pre-wrap; }
    <header>serviceList</header>
   </customwidget>
   <customwidget>
-   <class>GraphWidget</class>
-   <extends>QGraphicsView</extends>
-   <header>GraphWidget</header>
+   <class>GraphicWindow</class>
+   <extends>QWidget</extends>
+   <header location="global">GraphicWindow</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

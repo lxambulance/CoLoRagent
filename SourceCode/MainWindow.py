@@ -2,30 +2,36 @@
 ''' docstring: CoLoR Pan主页 '''
 
 # 添加文件路径../
-import os, sys, math
-__BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
-sys.path.append(__BASE_DIR)
-HOME_DIR = __BASE_DIR + '/.tmp'
-
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-
-from mainPage import Ui_MainWindow
-
-from AddItemWindow import AddItemWindow
-from serviceList import serviceListModel
-from serviceTable import serviceTableModel, progressBarDelegate
-
-import FileData
-from worker import worker
-
+import time
+import json
+import ProxyLib as PL
 from ProxyLib import (
     Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
     SidAnn, Get, CacheSidUnits
 )
-# TODO: 在Get中写入Nid
-import ProxyLib as PL
+from worker import worker
+import FileData as FD
+from serviceTable import serviceTableModel, progressBarDelegate
+from serviceList import serviceListModel
+from AddItemWindow import AddItemWindow
+from mainPage import Ui_MainWindow
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, 
+    QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog)
+import os
+import sys
+import math
+import time
+
+__BASE_DIR = os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))).replace('\\', '/')
+sys.path.append(__BASE_DIR)
+HOME_DIR = __BASE_DIR + '/.tmp'
+DATA_PATH = __BASE_DIR + '/data.db'
+starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
+LOG_PATH = __BASE_DIR + f'/{starttime}.log'
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     ''' docstring: class MainWindow '''
@@ -33,11 +39,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
+        # 修改数据存储路径
+        # print(f'HOME_DIR{HOME_DIR} DATA_PATH{DATA_PATH}')
+        FD.DATA_PATH = DATA_PATH
+        FD.HOME_DIR = HOME_DIR
+        # 用于统计频率和AS统计
+        self.timer = QTimer()
+        self.timer.setInterval(5000)
+        self.asmetrics = {} # id:[(get num, get total size),(data num, data total size)]
+
+        # 用于收包显示的变量
+        self.mapfromSIDtoItem = {}
+        self.datapackets = []
+
+        # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
+        self.graphics_global.setNid(self.nid)
 
         # 添加右键菜单
         self.listView.addAction(self.action_reg)
         self.tableView.addAction(self.action_reg)
+        self.listView.addAction(self.action_advancedreg)
+        self.tableView.addAction(self.action_advancedreg)
         self.listView.addAction(self.action_undoReg)
         self.tableView.addAction(self.action_undoReg)
         self.listView.addAction(self.action_dow)
@@ -46,7 +70,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.addAction(self.action_del)
         self.listView.addAction(self.action_openDir)
         self.tableView.addAction(self.action_openDir)
-        
+
         # 添加toolbar按钮
         self.button_swi = QAction(QIcon(":/icon/switchView"), "切换", self)
         self.button_swi.setStatusTip("视图切换")
@@ -62,7 +86,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.selectItems = []
 
         # 使用自定义模型
-        self.fd = FileData.FileData(nid = self.nid)
+        self.fd = FD.FileData(nid=self.nid)
         try:
             self.fd.load()
         except:
@@ -71,6 +95,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tablemodel = serviceTableModel(self.fd)
         self.progressbardelegate = progressBarDelegate(self)
         self.progressbarpool = {}
+
+        # 设置tab control页
+        for i in range(self.fd.rowCount()):
+            filename = self.fd.getData(i)
+            self.chooseFile.addItem(filename)
+            # 添加log记录
+            self.textEdit.append(f'<add> file {filename}\n')
+        self.chooseFile.setCurrentIndex(-1)
 
         # 设置模型对应的view
         self.listView.setModel(self.listmodel)
@@ -87,24 +119,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.setColumnWidth(3, 100)
         self.tableView.setColumnWidth(4, 100)
 
-        # 设置listview(0)与tableview(1)的视图转换
-        self.switchlistortable = 1
-        self.listView.hide()
-        self.splitter_horizon.setSizes([400,400,400])
-        self.splitter_vertical.setSizes([400,800])
+        # 设置禁止自添加
+        self.addNodes.setAcceptDrops(False)
+        # TODO: 暂时隐藏搜索功能
+        self.search_label.hide()
+        self.searchItem.hide()
+        self.itemlist_label.hide()
+        self.itemlist.hide()
 
-        # 设置线程池
+        # 设置listview(0)与tableview(1)的视图转换
+        self.switchlistortable = 0
+        self.tableView.hide()
+        self.splitter_horizon.setSizes([300, 300, 500])
+        self.splitter_vertical.setSizes([700, 500])
+
+        # 设置线程池 TODO: 线程池放到窗口外面
         self.threadpool = QThreadPool()
 
         # 尝试新建文件仓库
         if not os.path.exists(HOME_DIR):
             os.mkdir(HOME_DIR)
-
-        # 人工设置拓扑图
-        self.graphics.initTopo_old()
-
-        # 设置tab选项卡只读显示
-        self.textEdit.setReadOnly(True)
 
         # 设置信号与槽的连接
         self.tableView.signal_select.connect(self.setSelectItem)
@@ -117,6 +151,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_del.triggered.connect(self.delItem)
         self.action_dow.triggered.connect(self.dowItem)
         self.action_reg.triggered.connect(self.regItem)
+        self.action_advancedreg.triggered.connect(self.showAdvancedReg)
+        self.chooseFile.currentIndexChanged[int].connect(self.showAdvancedRegArgs)
+        # textEdited不处理setText函数，textChanged处理所有改动
+        self.setlevel.textEdited.connect(lambda x:self.changeAdvancedReg(level=x))
+        self.whitelist.textChanged.connect(lambda x:self.changeAdvancedReg(whitelist=x))
+        self.whitelist_button.clicked.connect(self.chooseASs)
+        self.advancedReg.clicked.connect(self.advancedRegItem)
         self.action_undoReg.triggered.connect(self.undoRegItem)
         self.action_openDir.triggered.connect(self.openFolder)
         self.action_hub.triggered.connect(self.openHub)
@@ -128,7 +169,141 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_openfolder.triggered.connect(self.openFolder)
         self.button_addfile.triggered.connect(self.addItem)
 
+        self.addLine.clicked.connect(self.setTopoEdgeEnable)
+
+        self.graphics_global.scene.chooseRouter.connect(self.setAccessRouter)
+        self.graphics_global.scene.choosePath.connect(self.setPath)
+        self.chooseRouter.clicked.connect(self.setTopoRouterEnable)
+        self.graphics_global.signal_ret.choosenid.connect(
+            lambda s: self.accessRouter.setText(s))
+        self.graphics_global.signal_ret.chooseitem.connect(self.showItem)
+        self.addLine.clicked.connect(self.topoAddLine)
+        self.itemnid.returnPressed.connect(
+            lambda: self.graphics_global.modifyItem(itemnid=self.itemnid.text()))
+        self.itemas.returnPressed.connect(
+            lambda: self.graphics_global.modifyItem(itemas=self.itemas.text()))
+        self.itemname.returnPressed.connect(
+            lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
+        self.lineType.currentIndexChanged.connect(self.setTopoLineType)
+        self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
+        self.timer.timeout.connect(self.showMetric)
+
+        # 载入拓扑图，需要相关信号绑定完成后再载入
+        self.graphics_global.loadTopo(DATA_PATH)
+        self.timer.start()
+
+    def changeMetric(self, ASid, Type, size):
+        ''' docstring: 修改AS统计量 '''
+        # self.asmetrics = {} id:[[get num, get total size],[data num, data total size]]
+        item = self.asmetrics.get(ASid, None)
+        if not item:
+            self.asmetrics[ASid]=[[0,0],[0,0]]
+            item = self.asmetrics[ASid]
+        item[Type][0] += 1
+        item[Type][1] += size
+
+    def showMetric(self):
+        ''' docstring: 刷新显示AS统计量 '''
+        strtmp = f'收到包的AS数量{len(self.asmetrics)}\n'
+        for (key,value) in self.asmetrics.items():
+            strtmp += '\t' + str(key) + ':\n'
+            getnum, getsize = value[0]
+            datanum, datasize = value[1]
+            strtmp += '\t\t收到的get包 num = ' + str(getnum)
+            strtmp += '\tsize = ' + str(getsize) + '\n'
+            strtmp += '\t\t收到的data包 num = ' + str(datanum)
+            strtmp += '\tsize = ' + str(datasize) + '\n'
+        self.metrics.clear()
+        self.metrics.setText(strtmp)
+
+    def chooseASs(self, flag):
+        if flag:
+            row = self.chooseFile.currentIndex()
+            if row == -1:
+                self.setStatus('请选择高级通告条目')
+                self.whitelist_button.setChecked(False)
+                return
+            self.whitelist_button.setText('选择完毕')
+            self.graphics_global.startChooseAS(self.whitelist.text())
+        else:
+            self.whitelist_button.setText('图中选择')
+            ret = self.graphics_global.endChooseAS()
+            self.whitelist.setText(ret)
+
+    def showItem(self, name, nid, AS):
+        self.itemname.setText(name)
+        self.itemnid.setText(nid)
+        self.itemas.setText(AS)
+
+    def setTopoLineType(self, index):
+        self.graphics_global.addedgetype = index
+
+    def topoAddLine(self):
+        self.graphics_global.addedgeenable = True
+        self.graphics_global.addedgetype = self.lineType.currentIndex()
+
+    def setAccessRouter(self, s):
+        self.accessRouter.setText(s)
+
+    def setPath(self, paths):
+        print(paths)
+
+    def getPathFromPkt(self, type, SID, paths, size, nid):
+        ''' docstring: 收包显示 '''
+        name = 'Unknown packet'
+        for i in range(self.fd.rowCount()):
+            if SID == self.fd.getData(i,2):
+                name = self.fd.getData(i,0)
+                break
+        if type == 0x72:
+            name = '<Get>' + name
+        elif type == 0x73:
+            name = '<Data>' + name
+        else:
+            name = '<Control> packet'
+        item = self.mapfromSIDtoItem.get(name+SID, None)
+        if not item:
+            # 该SID下第一个包，建立顶层节点topItem
+            self.datapackets.append(QTreeWidgetItem(None, [name, "0", SID]))
+            self.dataPktReceive.addTopLevelItem(self.datapackets[-1])
+            self.mapfromSIDtoItem[name+SID] = self.datapackets[-1]
+            item = self.datapackets[-1]
+        path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
+        if type == 0x72:
+            item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
+            ASid = self.graphics_global.getASid(path_str)
+            print(ASid)
+            if ASid:
+                self.changeMetric(ASid,0,size)
+        elif type == 0x73:
+            num = item.childCount()
+            item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), "PIDs="+path_str]))
+            totsize = int(item.text(1))
+            item.setText(1, str(totsize+size))
+            ASid = self.graphics_global.getASid(path_str)
+            print(ASid)
+            if ASid:
+                self.changeMetric(ASid,1,size)
+        else:
+            num = item.childCount()
+            item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), ""]))
+
+    def showMatchedPIDs(self, item, column):
+        ''' docstring: 选中物体，显示匹配 '''
+        #print(item.text(column))
+        pitem = item.parent()
+        if not pitem or 'Control' in pitem.text(0):
+            return
+        self.graphics_global.setMatchedPIDs(item.text(2))
+
+    def setTopoRouterEnable(self):
+        self.graphics_global.accessrouterenable = True
+
+    def setTopoEdgeEnable(self):
+        self.graphics_global.addedgeenable = True
+
     def setSelectItem(self, items):
+        ''' docstring: 通过列表和表格多选信号返回选择条目对象 '''
         if len(items) == 0:
             self.selectItems = []
         else:
@@ -137,14 +312,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             for item in items:
                 self.selectItems.append(item.row())
                 status += ' ' + str(item.row() + 1)
-            self.showStatus(status)
+            self.setStatus(status)
 
     def modelViewUpdate(self):
         ''' docstring: 刷新视图 '''
         self.listmodel.layoutChanged.emit()
         self.tablemodel.layoutChanged.emit()
 
-    def showStatus(self, s):
+    def setStatus(self, s):
         self.statusBar().showMessage(s)
 
     def addItem(self):
@@ -156,34 +331,46 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # ret 可用于后续判断返回结果
         if (ret) and (row != None):
             self.modelViewUpdate()
+            filename = self.fd.getData(row, 0)
+            self.chooseFile.addItem(filename)
+            # 添加log记录
+            self.textEdit.append(f'<add> file {filename}\n')
             # 计算hash值
-            filepath = self.fd.getData(row, 1)
-            hashworker = worker(0, Sha1Hash, filepath)
-            # print('start calc hash: ', filepath)
-            hashworker.signals.result.connect(self.calcHashRet(row))
-            self.threadpool.start(hashworker)
+            if not self.fd.getData(row, 2):
+                filepath = self.fd.getData(row, 1)
+                hashworker = worker(0, Sha1Hash, filepath)
+                # print('start calc hash: ', filepath)
+                hashworker.signals.result.connect(self.calcHashRet(row))
+                self.threadpool.start(hashworker)
             # 检查needReg，进行通告流程
             if needReg:
                 self.selectItems = [row]
                 self.regItem()
 
     def addItems(self, items):
+        ''' docstring: 批量拖入文件 '''
         nowitems = items.copy()
+        tmplog = ''
         if len(nowitems):
-            additemworker = worker(0, self.addItem_multi, nowitems)
-            additemworker.signals.finished.connect(lambda:self.modelViewUpdate())
-            self.threadpool.start(additemworker)
-    
-    def addItem_multi(self, items):
-        for item_str in items:
-            if os.path.isfile(item_str):
-                item = item_str.replace('\\', '/')
-                pos = item.rfind('/')
-                item_hash = self.nid + Sha1Hash(item_str)
-                self.fd.setItem(filename = item[pos+1:], filepath = item, filehash = item_hash)
-            elif os.path.isdir(item_str):
-                # TODO: 支持文件夹
-                pass
+            lastrow = self.fd.rowCount()
+            for item_str in nowitems:
+                if os.path.isfile(item_str):
+                    item = item_str.replace('\\', '/')
+                    pos = item.rfind('/')
+                    self.fd.addItem(filename=item[pos+1:], filepath=item)
+                    self.chooseFile.addItem(item[pos+1:])
+                    # 添加log记录
+                    self.textEdit.append(f'<add> file {item[pos+1:]}\n')
+                elif os.path.isdir(item_str):
+                    # TODO: 支持文件夹
+                    pass
+            self.modelViewUpdate()
+            nowrow = self.fd.rowCount()
+            for i in range(lastrow, nowrow):
+                filepath = self.fd.getData(i, 1)
+                hashworker = worker(0, Sha1Hash, filepath)
+                hashworker.signals.result.connect(self.calcHashRet(i))
+                self.threadpool.start(hashworker)
 
     def calcHashRet(self, row):
         ''' docstring: 这是一个返回函数的函数 '''
@@ -192,101 +379,192 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # print(s)
             self.fd.setData(row, 2, s)
             a = self.tablemodel.createIndex(row, 2)
-            self.tablemodel.dataChanged.emit(a,a)
+            self.tablemodel.dataChanged.emit(a, a)
         return result
 
     def delItem(self):
         ''' docstring: 删除选中条目 '''
         if len(self.selectItems) == 0:
-            self.showStatus('未选中任何条目')
+            self.setStatus('未选中任何条目')
         else:
             nowSelectItems = self.selectItems.copy()
-            delitemworker = worker(0, self.delItem_multi, nowSelectItems)
-            delitemworker.signals.finished.connect(lambda:self.modelViewUpdate())
-            delitemworker.signals.finished.connect(lambda:self.showStatus('条目已删除'))
+            delitemworker = worker(1, self.delItem_multi, nowSelectItems)
+            delitemworker.signals.finished.connect(lambda: self.modelViewUpdate())
+            delitemworker.signals.finished.connect(lambda: self.setStatus('条目已删除'))
+            delitemworker.signals.message.connect(self.textEdit.append)
             self.threadpool.start(delitemworker)
-    
-    def delItem_multi(self, items):
-        items.sort(reverse = True)
-        # print(items)
+
+    def delItem_multi(self, items, message_callback, **kwargs):
+        items.sort(reverse=True)
+        if self.chooseFile.currentIndex() in items:
+            self.chooseFile.setCurrentIndex(-1)
         for item in items:
+            if not self.fd.getData(item, 0):
+                continue
+            # 添加log记录
+            message_callback.emit(f'<delete> file {self.fd.getData(item, 0)}\n')
             self.fd.removeItem(item)
+            self.chooseFile.removeItem(item)
+            self.selectItems.remove(item)
 
     def dowItem(self):
         ''' docstring: 从远端下载数据 '''
         if len(self.selectItems) == 0:
-            self.showStatus('未选中任何条目')
+            self.setStatus('未选中任何条目')
         else:
             nowSelectItems = self.selectItems.copy()
             dowitemworker = worker(1, self.dowItem_multi, nowSelectItems)
             for item in nowSelectItems:
-                dowitemworker.signals.progress.connect(self.updateProgress(item, 4))
-            dowitemworker.signals.finished.connect(lambda:self.showStatus('条目已下载'))
+                dowitemworker.signals.progress.connect(
+                    self.updateProgress(item, 4))
+            dowitemworker.signals.finished.connect(
+                lambda: self.setStatus('条目已下载'))
+            dowitemworker.signals.message.connect(self.textEdit.append)
             self.threadpool.start(dowitemworker)
-    
-    def dowItem_multi(self, items, progress_callback):
+
+    def dowItem_multi(self, items, progress_callback, message_callback):
         total = len(items)
         now = 0
+        wait_list = []
         for item in items:
+            if not self.fd.getData(item, 0):
+                continue
             now += 1
             isDow = self.fd.getData(item, 4)
             if isDow:
                 continue
             SID = self.fd.getData(item, 2)
+            wait_list.append(SID)
             filepath = self.fd.getData(item, 1)
             Get(SID, filepath)
             progress_callback.emit(round(now*100/total))
+            # 添加log记录
+            message_callback.emit(f'<download> file {self.fd.getData(item, 0)}\n')
         # TODO：涉及进度条完成状态需要通过color monitor精确判断
 
     def regItem(self):
         ''' docstring: 通告 '''
         if len(self.selectItems) == 0:
-            self.showStatus('未选中条目')
+            self.setStatus('未选中条目')
         else:
             nowSelectItem = self.selectItems.copy()
             regitemworker = worker(1, self.regItem_multi, nowSelectItem)
             for item in nowSelectItem:
-                regitemworker.signals.progress.connect(self.updateProgress(item, 3))
-            regitemworker.signals.finished.connect(lambda:self.showStatus('条目已通告'))
+                regitemworker.signals.progress.connect(
+                    self.updateProgress(item, 3))
+            regitemworker.signals.finished.connect(
+                lambda: self.setStatus('条目已通告'))
+            regitemworker.signals.message.connect(self.textEdit.append)
             self.threadpool.start(regitemworker)
 
-    def regItem_multi(self, items, progress_callback):
+    def showAdvancedReg(self):
+        ''' docstring: 高级通告 '''
+        if len(self.selectItems) == 0:
+            self.setStatus('未选中条目')
+        elif len(self.selectItems) > 1:
+            self.setStatus('选中要素过多')
+        else:
+            nowSelectItem = self.selectItems[0]
+            # print("choose", nowSelectItem)
+            self.tabWidget.setCurrentIndex(2)
+            self.chooseFile.setCurrentIndex(nowSelectItem)
+            self.showAdvancedRegArgs(nowSelectItem)
+    
+    def showAdvancedRegArgs(self, row):
+        ''' docstring: 高级通告切换显示 '''
+        level = self.fd.getData(row, 5)
+        if level:
+            self.setlevel.setText(level)
+        else:
+            self.setlevel.setText('')
+        whitelist = self.fd.getData(row, 6)
+        if whitelist:
+            self.whitelist.setText(whitelist)
+        else:
+            self.whitelist.setText('')
+        # print(row, level, whitelist)
+
+    def changeAdvancedReg(self, level=None, whitelist=None):
+        ''' docstring: 修改高级通告策略 '''
+        nowSelectItem = self.chooseFile.currentIndex()
+        if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
+            return
+        newItem = self.fd.getItem(nowSelectItem)
+        while len(newItem)<7:
+            newItem.append(None)
+        if level != None:
+            newItem[5] = level
+            self.fd.setItem(nowSelectItem, newItem)
+        if whitelist != None:
+            newItem[6] = whitelist
+            self.fd.setItem(nowSelectItem, newItem)
+
+    def advancedRegItem(self):
+        nowSelectItem = self.chooseFile.currentIndex()
+        if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
+            return
+        filepath = self.fd.getData(nowSelectItem, 1)
+        level = self.fd.getData(nowSelectItem, 5)
+        whitelist = self.fd.getData(nowSelectItem, 6)
+        kwargs = {}
+        if level:
+            kwargs['level'] = int(level)
+        if whitelist:
+            kwargs['WhiteList'] = list(map(int,whitelist.split(',')))
+        regitemworker = worker(0, AddCacheSidUnit, filepath, 1,1,1,1, **kwargs)
+        regitemworker.signals.finished.connect(lambda:self.updateProgress(nowSelectItem, 3)(100))
+        regitemworker.signals.finished.connect(lambda:self.setStatus('条目已通告'))
+        regitemworker.signals.finished.connect(SidAnn)
+        self.threadpool.start(regitemworker)
+
+    def regItem_multi(self, items, progress_callback, message_callback):
         total = len(items)
         now = 0
         for item in items:
+            if not self.fd.getData(item, 0):
+                continue
             now += 1
             isReg = self.fd.getData(item, 3)
             if isReg:
                 continue
             filepath = self.fd.getData(item, 1)
-            AddCacheSidUnit(filepath, 1, 0, 0, 0)
+            AddCacheSidUnit(filepath, 1, 1, 1, 1)
             progress_callback.emit(round(now*20/total))
+            # 添加log记录
+            message_callback.emit(f'<register> file {self.fd.getData(item, 0)}\n')
         SidAnn()
         progress_callback.emit(100)
 
     def undoRegItem(self):
         ''' docstring: 取消通告 '''
         if len(self.selectItems) == 0:
-            self.showStatus('未选中条目')
+            self.setStatus('未选中条目')
         else:
             nowSelectItem = self.selectItems.copy()
             undoregworker = worker(1, self.undoRegItem_multi, nowSelectItem)
             for item in nowSelectItem:
-                undoregworker.signals.progress.connect(self.updateProgress(item, 3))
-            undoregworker.signals.finished.connect(lambda:self.showStatus('条目已取消通告'))
+                undoregworker.signals.progress.connect(
+                    self.updateProgress(item, 3))
+            undoregworker.signals.finished.connect(
+                lambda: self.setStatus('条目已取消通告'))
+            undoregworker.signals.message.connect(self.textEdit.append)
             self.threadpool.start(undoregworker)
-    
-    def undoRegItem_multi(self, items, progress_callback):
+
+    def undoRegItem_multi(self, items, progress_callback, message_callback):
         total = len(items)
         now = total
         for item in items:
+            if not self.fd.getData(item, 0):
+                continue
             now -= 1
             isReg = self.fd.getData(item, 3)
             if not isReg:
                 continue
             filepath = self.fd.getData(item, 1)
-            AddCacheSidUnit(filepath, 3, 0, 0, 0)
+            AddCacheSidUnit(filepath, 3, 1, 1, 1)
             progress_callback.emit(round(now*20/total + 80))
+            # 添加log记录
+            message_callback.emit(f'<undo register> file {self.fd.getData(item, 0)}\n')
         SidAnn()
         progress_callback.emit(0)
 
@@ -294,7 +572,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         def main(value):
             self.fd.setData(row, column, value)
             a = self.tablemodel.createIndex(row, column)
-            self.tablemodel.dataChanged.emit(a,a)
+            self.tablemodel.dataChanged.emit(a, a)
         return main
 
     def switchView(self):
@@ -303,18 +581,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.switchlistortable:
             self.listView.hide()
             self.tableView.show()
-            self.showStatus('切换到列表视图')
+            self.setStatus('切换到列表视图')
         else:
             self.listView.show()
             self.tableView.hide()
-            self.showStatus('切换到图标视图')
+            self.setStatus('切换到图标视图')
 
     def resetView(self):
         ''' docstring: 恢复初始视图格式 '''
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
-        self.splitter_horizon.setSizes([400,400,400])
-        self.splitter_vertical.setSizes([400,800])
+        self.splitter_horizon.setSizes([300, 300, 500])
+        self.splitter_vertical.setSizes([700, 500])
 
     def openHub(self):
         ''' docstring: 打开本地仓库 '''
@@ -325,23 +603,38 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 打开所选文件所在文件夹 '''
         nowSelectItem = self.selectItems.copy()
         if len(nowSelectItem) == 0:
-            self.showStatus('未选中文件')
+            self.setStatus('未选中文件')
             return
         elif len(nowSelectItem) != 1:
-            self.showStatus('选中文件过多')
+            self.setStatus('选中文件过多')
             return
+        print(nowSelectItem[0])
         tmp = self.fd.getData(nowSelectItem[0], 1)
+        print(tmp)
+        if not os.path.exists(tmp) or not tmp:
+            self.setStatus('文件不存在')
+            return
         filepath = tmp[:tmp.rfind('/')]
         openfolderworker = worker(0, os.startfile, filepath)
-        openfolderworker.signals.finished.connect(lambda:self.showStatus('文件已打开'))
+        openfolderworker.signals.finished.connect(
+            lambda: self.setStatus('文件已打开'))
         self.threadpool.start(openfolderworker)
 
     def importData(self):
         ''' docstring: 导入其他数据文件 '''
         fpath = QFileDialog.getOpenFileName(self, '打开文件', HOME_DIR)
         if fpath[0]:
-            self.fd.load(fpath[0])
-            self.modelViewUpdate()
+            lastlen = self.fd.rowCount()
+            ret = self.fd.load(fpath[0])
+            if ret:
+                self.setStatus(ret)
+            else:
+                self.modelViewUpdate()
+                for i in range(lastlen, self.fd.rowCount()):
+                    filename = self.fd.getData(i)
+                    self.chooseFile.addItem(filename)
+                    # 添加log记录
+                    self.textEdit.append(f'<add> file {filename}\n')
 
     def closeEvent(self, event):
         ''' docstring: 关闭窗口时弹出警告 '''
@@ -350,25 +643,69 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if reply == QMessageBox.Yes:
             # 做出保存操作
             self.fd.save()
+            self.graphics_global.saveTopo(DATA_PATH)
+            self.saveLog()
             event.accept()
         elif reply == QMessageBox.No:
             event.accept()
         else:
             event.ignore()
 
+    def saveLog(self):
+        with open(LOG_PATH, 'w', encoding='utf-8') as f:
+            s = self.textEdit.toPlainText()
+            f.write(s)
+
     def viewInfo(self, index):
         ''' docstring: 双击条目显示文件内容 '''
         filepath = self.fd.getData(index.row(), 1)
-        if not os.path.exists(filepath):
-            self.showStatus('文件不存在')
-            return
-        with open(filepath, 'r', encoding='utf-8') as f:
-            tmp = f.read(500)
         filename = self.fd.getData(index.row(), 0)
-        self.textEdit.append('click file:' + filename + ' content:\n' + tmp + '\n--------------------')
+        filepid = self.fd.getData(index.row(), 2)
+        viewjsonworker = worker(0, self.viewJson, filename, filepath, filepid)
+        viewjsonworker.signals.result.connect(self.textEdit.append)
+        self.threadpool.start(viewjsonworker)
+
+    def viewJson(self, filename, filepath, filepid):
+        ''' docstring: 双击显示Json格式文件 '''
+        ret = f'<double click> {filename} (PID:{filepid}) = '
+        if not os.path.exists(filepath):
+            return ret + '本地文件不存在\n'
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                fcontent = ""
+                while True:
+                    tmp = f.read(512)
+                    if not tmp:
+                        break
+                    fcontent += tmp
+                    if len(fcontent) > 512 * 3:
+                        return ret + '{...(内容过长)...}\n'
+            data = json.loads(fcontent)
+        except:
+            return ret + '非JSON格式文件\n'
+        ret += '\n' + json.dumps(data, sort_keys=True, indent=4, separators=(',', ':')) + '\n'
+        return ret
+
+    def handleMessageFromPkt(self, messageType, message):
+        ''' docstring: 显示后端发送的信息，添加log记录 '''
+        if messageType == 0:
+            self.textEdit.append('<hint> ' + message + '\n')
+        elif messageType == 1:
+            # 收到warning
+            self.textEdit.append('<warning> ' + message + '\n')
+        else:
+            self.setStatus('无效的后端信息')
+
 
 if __name__ == '__main__':
-    app = QApplication([])
+    app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
+
+    window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
+    window.getPathFromPkt(0x72, '123', [0x11222695,0x33446217], 1500, 0x23)
+    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x33446217], 1000, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11225689,0x33446217], 100, 0)
+    window.getPathFromPkt(0x74, '', [], 20, 0)
+
     sys.exit(app.exec_())

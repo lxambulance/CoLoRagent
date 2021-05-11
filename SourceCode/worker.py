@@ -5,7 +5,7 @@ from PyQt5.QtCore import *
 import traceback, sys
 
 class workerSignals(QObject):
-    ''' docstring: worker signal class '''
+    ''' docstring: worker signals class '''
 
     # finished用于任务结束信号
     finished = pyqtSignal()
@@ -15,6 +15,8 @@ class workerSignals(QObject):
     result = pyqtSignal(object)
     # progress用于回调函数显示任务进度
     progress = pyqtSignal(int)
+    # message用于中间消息显示
+    message = pyqtSignal(str)
 
 class worker(QRunnable):
     ''' docstring: worker class '''
@@ -30,6 +32,7 @@ class worker(QRunnable):
         if (option & 1) == 1:
             # 添加回调函数
             self.kwargs['progress_callback'] = self.signals.progress
+            self.kwargs['message_callback'] = self.signals.message
     
     @pyqtSlot()
     def run(self):

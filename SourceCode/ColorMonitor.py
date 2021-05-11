@@ -7,18 +7,33 @@ import ProxyLib as PL
 import math
 import time
 
+from PyQt5.QtCore import QObject, pyqtSignal
 
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
 RecvingSid = {}  # 记录内容接收情况，key:SID，value:下一片指针
 RTO = 1  # 超时重传时间
 
 
+class pktSignals(QObject):
+    ''' docstring: 包处理的信号 '''
+    # finished用于任务结束信号
+    finished = pyqtSignal()
+    # output用于输出信号
+    output = pyqtSignal(int, object)
+    # pathdata用于输出路径相关信息
+    pathdata = pyqtSignal(int, str, list, int, int)
+
+
 class PktHandler(threading.Thread):
+    ''' docstring: 收包处理程序 '''
     packet = ''
 
     def __init__(self, packet):
         threading.Thread.__init__(self)
         self.packet = packet
+        # 请将所有需要输出print()的内容改写为信号的发射(self.signals.output.emit())
+        # TODO：异常情况调用traceback模块输出信息
+        self.signals = pktSignals()
 
     def run(self):
         if 'Raw' in self.packet:
@@ -26,7 +41,7 @@ class PktHandler(threading.Thread):
             PktLength = len(data)
             if(PL.RegFlag == 0):
                 # 注册中状态
-                # 过滤掉其他格式的包。TODO：异常情况调用traceback模块输出信息
+                # 过滤掉其他格式的包。
                 if PktLength < 8 or data[0] != 0x74 or data[5] != 6 or PktLength != (data[4] + data[6] + ((data[7]) << 8)):
                     return
                 # 校验和检验
@@ -36,15 +51,17 @@ class PktHandler(threading.Thread):
                 # 解析报文内容
                 NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
                 for proxy in NewCtrlPkt.Proxys:
-                    PL.PeerProxys[proxy[0]] = proxy[1]
+                    if proxy[0] != PL.Nid:
+                        # 过滤本代理信息
+                        PL.PeerProxys[proxy[0]] = proxy[1]
                 for BR in NewCtrlPkt.BRs:
                     PL.PXs[BR[0]] = BR[1]
-                print("代理注册完成，开启网络功能")
+                self.signals.output.emit(0, "代理注册完成，开启网络功能")
                 PL.RegFlag = 1
             elif(PL.RegFlag == 1):
                 # 正常运行状态
-                # 过滤掉其他格式的包。TODO：异常情况调用traceback模块输出信息
-                if PktLength < 4 or PktLength != (data[2]+(data[3] << 8)):
+                # 过滤掉其他格式的包。
+                if PktLength < 4:
                     return
                 if (data[0] == 0x72):
                     # 收到网络中的get报文
@@ -62,6 +79,7 @@ class PktHandler(threading.Thread):
                     if NewGetPkt.L_sid != 0:
                         NewSid += hex(NewGetPkt.L_sid).replace('0x',
                                                                '').zfill(40)
+                    self.signals.pathdata.emit(0x72, NewSid, NewGetPkt.PIDs, NewGetPkt.PktLength, NewGetPkt.nid)
                     if NewSid not in PL.AnnSidUnits.keys():
                         return
                     # 返回数据
@@ -92,20 +110,20 @@ class PktHandler(threading.Thread):
                         if (NidCus in PL.PeerProxys.keys()):
                             ReturnIP = PL.PeerProxys[NidCus]
                         else:
-                            print("未知的NID：" +
+                            self.signals.output.emit(1, "未知的NID：" +
                                   hex(NidCus).replace('0x', '').zfill(32))
                     else:
-                        PX = PIDs[-1] >> 112
+                        PX = PIDs[-1] >> 16
                         if (PX in PL.PXs.keys()):
                             ReturnIP = PL.PXs[PX]
                         else:
-                            print("未知的PX："+hex(PX).replace('0x', '').zfill(4))
+                            self.signals.output.emit(1, "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                     PL.SendIpv4(ReturnIP, Tar)
                     # 重传判断，待完善锁机制 #
                     for i in range(3):
                         time.sleep(RTO)
                         if ((NewSid in SendingSid) and (SendingSid[NewSid][2] == 1)):
-                            print('第'+str(SendingSid[NewSid]
+                            self.signals.output.emit(0, '第'+str(SendingSid[NewSid]
                                           [2]-1)+'片，第'+str(i+1)+'次重传')
                             PL.SendIpv4(ReturnIP, Tar)
                         else:
@@ -113,7 +131,8 @@ class PktHandler(threading.Thread):
                 elif (data[0] == 0x73):
                     # 收到网络中的data报文(ACK)
                     # 校验和检验
-                    CS = PL.CalculateCS(data)
+                    HeaderLength = data[6]
+                    CS = PL.CalculateCS(data[0:HeaderLength])
                     if(CS != 0):
                         return
                     # 解析报文内容
@@ -125,6 +144,8 @@ class PktHandler(threading.Thread):
                     if RecvDataPkt.L_sid != 0:
                         NewSid += hex(RecvDataPkt.L_sid).replace('0x',
                                                                  '').zfill(40)
+                    # 暂时将全部收到的校验和正确的data包显示出来
+                    self.signals.pathdata.emit(0x73, NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, 0)
                     if(RecvDataPkt.B == 0):
                         # 收到数据包，存储到本地并返回ACK
                         # 判断是否为当前代理请求内容
@@ -161,12 +182,12 @@ class PktHandler(threading.Thread):
                                     RecvDataPkt.load[1:], SavePath)  # 存储数据
                             elif(RecvDataPkt.S != 0) and (RecvDataPkt.SegID < RecvingSid[NewSid]):
                                 # 此前已收到数据包（可能是ACK丢失）,仅返回ACK
-                                print('此前已收到数据包，重传ACK')
+                                self.signals.output.emit(0, '此前已收到数据包，重传ACK')
                             else:
                                 return
                         # 返回ACK
                         NewDataPkt = PL.DataPkt(
-                            1, 1, 0, 0, NewSid, nid_pro=RecvDataPkt.nid_pro, SegID=RecvDataPkt.SegID, PIDs=RecvDataPkt.PIDs[1:])
+                            1, 1, 0, 0, NewSid, nid_pro=RecvDataPkt.nid_pro, SegID=RecvDataPkt.SegID, PIDs=RecvDataPkt.PIDs[1:][::-1])
                         Tar = NewDataPkt.packing()
                         ReturnIP = ''
                         if (len(RecvDataPkt.PIDs) == 1):
@@ -174,14 +195,14 @@ class PktHandler(threading.Thread):
                             if (RecvDataPkt.nid_pro in PL.PeerProxys.keys()):
                                 ReturnIP = PL.PeerProxys[RecvDataPkt.nid_pro]
                             else:
-                                print(
+                                self.signals.output.emit(1, 
                                     "未知的NID：" + hex(RecvDataPkt.nid_pro).replace('0x', '').zfill(32))
                         else:
-                            PX = RecvDataPkt.PIDs[1] >> 112
+                            PX = RecvDataPkt.PIDs[1] >> 16
                             if (PX in PL.PXs.keys()):
                                 ReturnIP = PL.PXs[PX]
                             else:
-                                print("未知的PX："+hex(PX).replace('0x', '').zfill(4))
+                                self.signals.output.emit(1, "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                         PL.SendIpv4(ReturnIP, Tar)
                     else:
                         # ACK包
@@ -210,21 +231,21 @@ class PktHandler(threading.Thread):
                                 if (SendingSid[NewSid][3] in PL.PeerProxys.keys()):
                                     ReturnIP = PL.PeerProxys[SendingSid[NewSid][3]]
                                 else:
-                                    print(
+                                    self.signals.output(
                                         "未知的NID：" + hex(SendingSid[NewSid][3]).replace('0x', '').zfill(32))
                             else:
-                                PX = SendingSid[NewSid][4][-1] >> 112
+                                PX = SendingSid[NewSid][4][-1] >> 16
                                 if (PX in PL.PXs.keys()):
                                     ReturnIP = PL.PXs[PX]
                                 else:
-                                    print(
+                                    self.signals.output(
                                         "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                             PL.SendIpv4(ReturnIP, Tar)
                             # 重传判断，待完善锁机制 #
                             for i in range(3):
                                 time.sleep(RTO)
                                 if ((NewSid in SendingSid) and (SendingSid[NewSid][2] == SegID+1)):
-                                    print('第'+str(SegID)+'片，第'+str(i+1)+'次重传')
+                                    self.signals.output.emit(0, '第'+str(SegID)+'片，第'+str(i+1)+'次重传')
                                     PL.SendIpv4(ReturnIP, Tar)
                                 else:
                                     break
@@ -239,22 +260,26 @@ class PktHandler(threading.Thread):
                         return
                     # 解析报文内容
                     NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
-                    PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP
+                    self.signals.pathdata.emit(0x74, "", [], NewCtrlPkt.HeaderLength+ NewCtrlPkt.DataLength, 0)
+                    if NewCtrlPkt.ProxyNid != PL.Nid:
+                        # 过滤本代理信息
+                        PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP
 
 
 class ControlPktSender(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
+        self.signals = pktSignals()
 
     def run(self):
         # 向RM发送注册报文
-        print("向RM发送注册报文，注册IP：" + PL.IPv4 + "；注册NID：" + hex(PL.Nid))
+        self.signals.output.emit(0, "向RM发送注册报文，注册IP：" + PL.IPv4 + "；注册NID：" + hex(PL.Nid))
         PL.AnnProxy()
         # 重传判断
         for i in range(3):
             time.sleep(RTO)
             if (PL.RegFlag == 0):
-                print('注册报文，第' + str(i+1) + '次重传')
+                self.signals.output.emit(0, '注册报文，第' + str(i+1) + '次重传')
                 PL.AnnProxy()
             else:
                 break
@@ -263,16 +288,24 @@ class ControlPktSender(threading.Thread):
 class Monitor(threading.Thread):
     ''' docstring: 自行实现的监听线程类，继承自线程类 '''
 
-    def __init__(self):
+    def __init__(self, message = None, path = None):
         threading.Thread.__init__(self)
+        # 需要绑定的目标函数，初始化时保存，后面绑定
+        self.message = message
+        self.path = path
 
     def parser(self, packet):
         ''' docstring: 调用通用语法解析器线程 '''
         GeneralHandler = PktHandler(packet)
+        # 绑定输出到目标函数
+        GeneralHandler.signals.output.connect(self.message)
+        GeneralHandler.signals.pathdata.connect(self.path)
         GeneralHandler.start()
 
     def run(self):
         AnnSender = ControlPktSender()
+        AnnSender.signals.output.connect(self.message)
+        AnnSender.signals.output.emit(0, "开启报文监听")
         AnnSender.start()
-        print("开启报文监听")
-        sniff(filter="ip", iface = "Realtek PCIe GBE Family Controller", prn=self.parser, count=0)
+        # sniff(filter="ip", iface = "Realtek PCIe GBE Family Controller", prn=self.parser, count=0)
+        sniff(filter="ip", prn=self.parser, count=0)
