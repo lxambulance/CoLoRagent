@@ -20,7 +20,7 @@ NodeNum = 0
 class Node(QGraphicsPixmapItem):
     ''' docstring: 图形点类 '''
 
-    def __init__(self, *, nodetype=0, nodename=None, nodesize=0, nodenid=None):
+    def __init__(self, nodetype=0, nodename=None, nodesize=0, nodenid=None):
         super().__init__()
         self.type = nodetype
         self.name = nodename or NodeName[nodetype]
@@ -108,7 +108,7 @@ class Node(QGraphicsPixmapItem):
 class Edge(QGraphicsLineItem):
     ''' docstring: 边类'''
 
-    def __init__(self, n1, n2, *, linetype=0, linePX=None):
+    def __init__(self, n1, n2, linetype=0, linePX=None):
         super().__init__()
         # 虚线1或实线0
         self.type = None

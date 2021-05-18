@@ -53,37 +53,7 @@ class topoGraphScene(QGraphicsScene):
 
     def findPath(self, dest):
         ''' docstring: 根据目标地址选择路径，返回经过节点nid路径 '''
-        if self.node_me == None:
-            return None
-        # print('init')
-        for item in self.items():
-            if isinstance(item, Node):
-                item.setSelected(False)
-                item.isvisited = False
-                item.prenode = None
-        # print('start')
-        tmpqueue = Queue()
-        tmpqueue.put(self.node_me)
-        self.node_me.isvisited = True
-        while not tmpqueue.empty():
-            topnode = tmpqueue.get()
-            for nextnode, nextedge in self.nextedges[topnode.id]:
-                if not nextnode.isvisited:
-                    tmpqueue.put(nextnode)
-                    nextnode.isvisited = True
-                    nextnode.prenode = topnode
-        # print('get ans')
-        if not dest.isvisited:
-            return None
-        else:
-            ret = []
-            now = dest
-            while now:
-                ret.append(now.nid)
-                now.setSelected(True)
-                now = now.prenode
-            ret.reverse()
-            return ret
+        pass
 
     def initTopo_config(self, path):
         ''' docstring: 初始化拓扑为配置文件信息 '''
