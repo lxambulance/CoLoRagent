@@ -20,11 +20,12 @@ class topoGraphScene(QGraphicsScene):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.tmpnode = None
+        self.tmpnode_transparent = None
         self.tmpedge = None
 
         self.node_me = None
         self.nid_me = None
-        self.waitlist = []
+        self.waitlist = [] # 用于暂存添加到topo图中的新节点修改属性
 
         self.ASinfo = {} # id:[node,...]
         self.belongAS = {} # id:ASitem
@@ -70,7 +71,7 @@ class topoGraphScene(QGraphicsScene):
             ntp = node['type']
             nnm = node.get('name', None)
             if ntp == 0:
-                item = Node(nodetype = ntp, nodename = nnm, nodesize = node['size'])
+                item = Node(nodetype = ntp, nodename = nnm)
                 tmpass.append((i, item))
             elif ntp == 1:
                 item = Node(nodetype = ntp, nodename = nnm, nodenid = node['nid'])
@@ -124,17 +125,14 @@ class topoGraphScene(QGraphicsScene):
             nodelist.append(asitem)
         # 添加边
         for (x, y, PX) in self.topo['edges']:
-            lt = 0
+            lt = 1
             if self.belongAS[tmpnodes[x].id] is not self.belongAS[tmpnodes[y].id]:
-                lt = 1
+                lt = 0
             if tmpnodes[x] == self.node_me:
                 self.parent().signal_ret.choosenid.emit(f"{tmpnodes[y].name}<{tmpnodes[y].nid}>")
             elif tmpnodes[y] == self.node_me:
                 self.parent().signal_ret.choosenid.emit(f"{tmpnodes[x].name}<{tmpnodes[x].nid}>")
-            if not len(PX):
-                edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt)
-            else:
-                edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt, linePX = PX)
+            edgeitem = Edge(tmpnodes[x], tmpnodes[y], linetype = lt, linePX = PX)
             self.addItem(edgeitem)
             self.addEdge(tmpnodes[x], tmpnodes[y], edgeitem)
         # 显示标签
@@ -161,7 +159,7 @@ class topoGraphScene(QGraphicsScene):
         nodes = self.items()
         for i in range(5):
             j = (i + 2) % 5
-            tmpedge = Edge(nodes[i*2+1].scenePos(), nodes[j*2+1].scenePos(), linetype=qrand()%2)
+            tmpedge = Edge(nodes[i*2+1], nodes[j*2+1], linetype=qrand()%2)
             self.addItem(tmpedge)
             self.addEdge(nodes[i*2+1], nodes[j*2+1], tmpedge)
 

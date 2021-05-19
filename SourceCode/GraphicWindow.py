@@ -115,7 +115,7 @@ class GraphicWindow(QWidget):
     def setNid(self, nid):
         self.scene.nid_me = nid
 
-    def modifyItem(self, *, itemname=None, itemnid=None, itemas=None):
+    def modifyItem(self, itemname=None, itemnid=None, itemas=None):
         if not self.chooseItem:
             return
         if isinstance(self.chooseItem, Node):
@@ -129,7 +129,7 @@ class GraphicWindow(QWidget):
                 if l<0 or r<0 or l+1>=r:
                     return
                 itemas = int(itemas[l+1:r])
-                print(itemas)
+                # print(itemas)
                 if not self.scene.belongAS.get(itemas, None):
                     return
                 chooseAS = self.scene.belongAS[itemas]

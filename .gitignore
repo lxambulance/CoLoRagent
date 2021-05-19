@@ -1,0 +1,4 @@
+SourceCode/__pycache__
+.*
+*.db
+*.log
