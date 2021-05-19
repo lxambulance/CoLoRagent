@@ -23,6 +23,8 @@ class Node(QGraphicsPixmapItem):
     def __init__(self, nodetype=0, nodename=None, nodesize=0, nodenid=None):
         super().__init__()
         self.type = nodetype
+        if not self.type:
+            self.childCount = 0
         self.name = nodename or NodeName[nodetype]
         self.size = nodesize or NodeSize[nodetype]
         if not nodenid:
@@ -77,6 +79,17 @@ class Node(QGraphicsPixmapItem):
         else:
             tmps = f"{self.name}"
         self.label.setText(tmps)
+        self.update()
+
+    def modifyCount(self, value):
+        if self.type:
+            return
+        self.childCount += value
+        if value > 0:
+            self.size += 32
+        else:
+            self.size -= 32
+        self.setOffset(-self.size/2, -self.size/2)
         self.update()
 
     def mousePressEvent(self, event):
