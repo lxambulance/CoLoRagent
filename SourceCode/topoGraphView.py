@@ -39,6 +39,7 @@ class topoGraphView(QGraphicsView):
         # 设置背景色
         self._color_background = QColor('#eee5ff')
         self.setBackgroundBrush(self._color_background)
+
         # 测试动画效果
         self._handle_position_x = 0
         self.animation1 = QPropertyAnimation(self, b"handle_position_x", self)
@@ -115,14 +116,17 @@ class topoGraphView(QGraphicsView):
                 self.tmppos = self.mapToScene(event.pos())
                 self.allmove = True
         elif self.parent().addedgeenable:
-            if event.button() == Qt.LeftButton and isinstance(item, Node) and item.type \
-                    and item not in self.scene().waitlist:
-                if self.parent().addedgetype==1 and item.type!=2:
-                    return
+            if event.button() == Qt.LeftButton and isinstance(item, Node) \
+                    and item not in self.scene().waitlist \
+                    and (self.parent().addedgetype!=0 or item.type == 2 or item.type == 0):
                 self.scene().tmpnode = item
-                pos = self.mapToScene(event.pos())
-                self.scene().tmpedge = Edge(item.scenePos(), pos,
-                                            linetype=self.parent().addedgetype)
+                self.tmppos = item.scenePos()
+                # 增加一个虚拟点用于建边的时候移动
+                self.scene().tmpnode_transparent = Node()
+                self.scene().tmpnode_transparent.hide()
+                self.scene().tmpnode_transparent.setPos(item.scenePos())
+                self.scene().tmpedge = Edge(item, self.scene().tmpnode_transparent, linetype=self.parent().addedgetype)
+                self.scene().addItem(self.scene().tmpnode_transparent)
                 self.scene().addItem(self.scene().tmpedge)
         elif self.parent().accessrouterenable:
             if event.button() == Qt.LeftButton and isinstance(item, Node) and \
@@ -143,7 +147,7 @@ class topoGraphView(QGraphicsView):
                         self.scene().delEdge(mynode, nextnode, edge)
                         self.scene().removeItem(edge)
                 # 添加新连边
-                newedge = Edge(mynode.scenePos(), item.scenePos(), linetype=0)
+                newedge = Edge(mynode, item, linetype=1)
                 self.scene().addItem(newedge)
                 self.scene().addEdge(mynode, item, newedge)
                 tmpas = self.scene().belongAS[item.id]
@@ -179,7 +183,9 @@ class topoGraphView(QGraphicsView):
         ''' docstring: 鼠标移动事件 '''
         pos = self.mapToScene(event.pos())
         if self.parent().addedgeenable and self.scene().tmpedge:
-            self.scene().tmpedge.changeLine(self.scene().tmpnode.scenePos(), pos)
+            newpos = QPointF((pos.x()*99+self.tmppos.x())/100,(pos.y()*99+self.tmppos.y())/100)
+            self.scene().tmpnode_transparent.setPos(newpos)
+            self.scene().tmpedge.updateEdge()
         if self.allmove:
             for item in self.scene().items():
                 if isinstance(item, Node):
@@ -189,8 +195,7 @@ class topoGraphView(QGraphicsView):
                     item.setPos(QPointF(x, y))
             for item in self.scene().items():
                 if isinstance(item, Edge):
-                    item.changeLine(item.node1.scenePos(),
-                                    item.node2.scenePos())
+                    item.updateEdge()
             self.tmppos = pos
         super().mouseMoveEvent(event)
 
@@ -199,20 +204,45 @@ class topoGraphView(QGraphicsView):
         if self.parent().addedgeenable:
             self.parent().addedgeenable = False
             item = self.getItemAtClick(event)
+            # print('check', item.type, self.scene().tmpnode.type)
             if self.scene().tmpedge:
-                if isinstance(item, Node) and item.type and item is not self.scene().tmpnode \
-                        and item not in self.scene().waitlist and \
-                        (self.parent().addedgetype!=1 or item.type == 2)and \
-                        (self.parent().addedgetype!=0 or self.scene().belongAS[item.id]\
+                if isinstance(item, Node) and item is not self.scene().tmpnode \
+                        and item not in self.scene().waitlist \
+                        and (self.parent().addedgetype!=0 or item.type == 2 or \
+                            (item.type == 0 and self.scene().tmpnode.type == 0)) \
+                        and (self.parent().addedgetype!=1 or self.scene().belongAS[item.id] \
                         ==self.scene().belongAS[self.scene().tmpnode.id]):
-                    if self.scene().tmpedge.type == 1:
+                    if item.type == 0:
+                        # 连边对象是两个AS，需要新建两个BR
+                        node1 = Node(2)
+                        node2 = Node(2)
+                        self.scene().addItem(node1)
+                        self.scene().addItem(node2)
+                        pos1 = item.scenePos()
+                        pos2 = self.scene().tmpnode.scenePos()
+                        node1.setPos(QPointF((pos1.x()*78+pos2.x()*22)/100,
+                            (pos1.y()*78+pos2.y()*22)/100))
+                        node2.setPos(QPointF((pos1.x()*22+pos2.x()*78)/100,
+                            (pos1.y()*22+pos2.y()*78)/100))
+                        self.scene().ASinfo[item.id].append(node1)
+                        self.scene().belongAS[node1.id] = item
+                        self.scene().ASinfo[self.scene().tmpnode.id].append(node2)
+                        self.scene().belongAS[node2.id] = self.scene().tmpnode
                         self.scene().waitlist.append(self.scene().tmpedge)
-                    self.scene().tmpedge.changeLine(self.scene().tmpnode.scenePos(), item.scenePos())
-                    self.scene().addEdge(self.scene().tmpnode, item, self.scene().tmpedge)
+                        self.scene().addEdge(node1, node2, self.scene().tmpedge)
+                        self.scene().tmpedge.updateEdge()
+                    else:
+                        # 正常连边，虚实都有
+                        if self.scene().tmpedge.type == 0:
+                            self.scene().waitlist.append(self.scene().tmpedge)
+                        self.scene().addEdge(self.scene().tmpnode, item, self.scene().tmpedge)
+                        self.scene().tmpedge.updateEdge()
                 else:
                     self.scene().removeItem(self.scene().tmpedge)
+                self.scene().removeItem(self.scene().tmpnode_transparent)
             self.scene().tmpedge = None
             self.scene().tmpnode = None
+            self.scene().tmpnode_transparent = None
         if self.parent().accessrouterenable:
             self.parent().accessrouterenable = False
         if self.parent().findpathenable:
@@ -278,15 +308,4 @@ class topoGraphView(QGraphicsView):
 
 
 if __name__ == "__main__":
-    # 测试了如何在外部添加物体
-    import sys
-    import json
-    app = QApplication(sys.argv)
-    widget = topoGraphView()
-
-    widget.loadTopo('d:/CodeHub/CoLoRagent/test/datatest.db')
-    # widget.initTopo_old()
-    widget.show()
-    sys.exit(app.exec_())
-
-    widget.saveTopo('d:/CodeHub/CoLoRagent/test/datatest.db')
+    pass

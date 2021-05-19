@@ -1,7 +1,7 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架的两个基类 '''
 
-from math import fabs
+from math import fabs, atan2, pi
 from PyQt5.QtWidgets import (
     QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem, QStyle)
 from PyQt5.QtGui import QPen, QColor, QPixmap, QColor, QFont
@@ -12,9 +12,9 @@ import resource_rc
 NodeTypeLen = 6
 NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR',
                 ':/icon/router', ':/icon/switching', ':/icon/PC']
-NodeZValue = [-1, 10, 10, 10, 10, 10]
+NodeZValue = [0, 10, 10, 10, 10, 10]
 NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
-NodeSize = [512, 64, 64, 64, 64, 64]
+NodeSize = [256, 64, 64, 64, 64, 64]
 NodeNum = 0
 
 class Node(QGraphicsPixmapItem):
@@ -33,6 +33,7 @@ class Node(QGraphicsPixmapItem):
         global NodeNum
         self.id = NodeNum
         NodeNum += 1
+        # print(self.id) # test
 
         # 设置图像大小和偏移量
         self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
@@ -55,8 +56,8 @@ class Node(QGraphicsPixmapItem):
         # 设置点可选中可移动
         self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
         # 设置高度信息
-        self.setZValue(NodeZValue[nodetype])
-        self.label.setZValue(NodeZValue[nodetype])
+        self.setZValue(NodeZValue[self.type])
+        self.label.setZValue(NodeZValue[self.type])
 
     def addClickTimes(self):
         self.clicktime += 1
@@ -93,7 +94,7 @@ class Node(QGraphicsPixmapItem):
             if isinstance(item, Node):
                 tmplist = self.scene().nextedges.get(item.id, [])
                 for nextnode, nextedge in tmplist:
-                    nextedge.changeLine(item.scenePos(), nextnode.scenePos())
+                    nextedge.updateEdge()
 
     def paint(self, painter, option, widget):
         if not self.type:
@@ -108,18 +109,16 @@ class Node(QGraphicsPixmapItem):
 class Edge(QGraphicsLineItem):
     ''' docstring: 边类'''
 
-    def __init__(self, n1, n2, linetype=0, linePX=None):
+    def __init__(self, node1, node2, linetype=0, linePX=None):
         super().__init__()
         # 虚线1或实线0
-        self.type = None
-        self.changeType(linetype)
-        self.node1 = None
-        self.node2 = None
-        
-        # print(f"new edge<({n1.x()},{n1.y()}),({n2.x()},{n2.y()})>")
-        self.setLine(QLineF(n1, n2))
-        self.n1 = n1
-        self.n2 = n2
+        self.type = linetype
+        if linetype == 0:
+            self.setPen(QPen(QColor("#0099ff"), 4))
+        else:
+            self.setPen(QPen(QColor("#00cc00"), 4, Qt.DashDotDotLine))
+        self.node1 = node1
+        self.node2 = node2
         self.setFlags(self.ItemIsSelectable)
 
         # 添加一个子文本类显示名字
@@ -130,45 +129,46 @@ class Edge(QGraphicsLineItem):
             name = ""
         self.label = QGraphicsSimpleTextItem(name, self)
         self.label.setFont(QFont("Times", 20, QFont.Bold))
-        self.label.setPos(self.midpoint(n1,n2))
         self.label.setBrush(QColor(Qt.red))
-        self.label.setZValue(1)
         self.label.hide()
         
         # 设置高度信息
-        self.setZValue(0)
+        self.setZValue(5)
+        self.label.setZValue(10)
+        self.updateEdge()
+
+    def calcposalpha(self):
+        ''' docstring: 用于计算标签位置 '''
+        n1 = self.node1.scenePos()
+        n2 = self.node2.scenePos()
+        if n1.x()>n2.x() or fabs(n1.x()-n2.x())<1e-8 and n1.y()>n2.y():
+            n1, n2 = n2, n1
+        alpha = atan2(n2.y()-n1.y(), n2.x()-n1.x())
+        x = (n1.x()*3 + n2.x()*2) / 5
+        y = (n1.y()*3 + n2.y()*2) / 5
+        return QPointF(x, y), alpha
 
     def updateLabel(self, linePX):
         self.PX = linePX
         self.label.setText(f"PX:{self.PX}")
         self.label.update()
 
-    def midpoint(self, n1, n2):
-        if n1.x()>n2.x() or fabs(n1.x()-n2.x())<1e-8 and n1.y()>n2.y():
-            n1, n2 = n2, n1
-        x = (n1.x()*3 + n2.x()*2) / 5
-        y = (n1.y()*3 + n2.y()*2) / 5
-        return QPointF(x, y)
-
-    def changeLine(self, n1, n2):
+    def updateEdge(self):
+        ''' docstring: 由于外部相关点修改导致边坐标需要重新计算 '''
+        n1 = self.node1.scenePos()
+        n2 = self.node2.scenePos()
         self.setLine(QLineF(n1, n2))
-        self.label.setPos(self.midpoint(n1,n2))
-        self.n1 = n1
-        self.n2 = n2
-        self.update()
-
-    def changeType(self, linetype):
-        self.type = linetype
-        if linetype == 0:
-            self.setPen(QPen(QColor("#0099ff"), 4))
-        else:
-            self.setPen(QPen(QColor("#00cc00"), 4, Qt.DashDotDotLine))
+        pos, alpha = self.calcposalpha()
+        self.label.setPos(pos)
+        self.label.setRotation(alpha/pi*180)
         self.update()
 
     def paint(self, painter, option, widget):
+        ''' docstring: 用于显示被选中的变化，并且去掉外边框 '''
         if self.node1 and self.node2 and \
             (self.node1.isSelected() and self.node2.isSelected() or self.isSelected()):
             painter.setPen(QPen(QColor('#ff99e5'), 12))
-            painter.drawLine(self.n1, self.n2)
+            painter.drawLine(self.node1.scenePos(), self.node2.scenePos())
+        # 设置绘图属性，去掉外边框，妥协的做法
         option.state = QStyle.State_None
         super().paint(painter, option, widget)
