@@ -133,6 +133,7 @@ class GraphicWindow(QWidget):
                 if not self.scene.belongAS.get(itemas, None):
                     return
                 chooseAS = self.scene.belongAS[itemas]
+                chooseAS.modifyCount(1)
                 self.scene.belongAS[self.chooseItem.id]=chooseAS
                 self.scene.ASinfo[itemas].append(self.chooseItem)
                 self.scene.waitlist.remove(self.chooseItem)

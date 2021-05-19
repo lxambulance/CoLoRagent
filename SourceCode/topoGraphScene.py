@@ -14,8 +14,6 @@ from NodeEdge import Node, Edge
 
 class topoGraphScene(QGraphicsScene):
     ''' docstring: 场景模型类 '''
-    chooseRouter = pyqtSignal(str)
-    choosePath = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -54,7 +52,37 @@ class topoGraphScene(QGraphicsScene):
 
     def findPath(self, dest):
         ''' docstring: 根据目标地址选择路径，返回经过节点nid路径 '''
-        pass
+        if self.node_me == None:
+            return None
+        # print('init')
+        for item in self.items():
+            if isinstance(item, Node):
+                item.setSelected(False)
+                item.isvisited = False
+                item.prenode = None
+        # print('start')
+        tmpqueue = Queue()
+        tmpqueue.put(self.node_me)
+        self.node_me.isvisited = True
+        while not tmpqueue.empty():
+            topnode = tmpqueue.get()
+            for nextnode, nextedge in self.nextedges[topnode.id]:
+                if not nextnode.isvisited:
+                    tmpqueue.put(nextnode)
+                    nextnode.isvisited = True
+                    nextnode.prenode = topnode
+        # print('get ans')
+        if not dest.isvisited:
+            return None
+        else:
+            ret = []
+            now = dest
+            while now:
+                ret.append(now.nid)
+                now.setSelected(True)
+                now = now.prenode
+            ret.reverse()
+            return ret
 
     def initTopo_config(self, path):
         ''' docstring: 初始化拓扑为配置文件信息 '''
@@ -71,7 +99,7 @@ class topoGraphScene(QGraphicsScene):
             ntp = node['type']
             nnm = node.get('name', None)
             if ntp == 0:
-                item = Node(nodetype = ntp, nodename = nnm)
+                item = Node(nodetype = ntp, nodename = nnm, nodesize = node['size'])
                 tmpass.append((i, item))
             elif ntp == 1:
                 item = Node(nodetype = ntp, nodename = nnm, nodenid = node['nid'])
@@ -85,14 +113,12 @@ class topoGraphScene(QGraphicsScene):
             self.addItem(item)
             tmpnodes.append(item)
         # 添加AS信息
-        self.R = 0
         self.ASinfo = {}
         self.belongAS = {}
         for (i, asitem) in tmpass:
             nodelist = [tmpnodes[x] for x in self.topo['ASinfo'][str(i)]]
             # 随机打乱
             shuffle(nodelist)
-            self.R = max(self.R, len(nodelist))
             # 为了后续显示方便，将RM放首位置
             for (j, node) in enumerate(nodelist):
                 if node.type == 1:
@@ -104,9 +130,11 @@ class topoGraphScene(QGraphicsScene):
             self.belongAS[asitem.id] = asitem
             for x in self.topo['ASinfo'][str(i)]:
                 self.belongAS[tmpnodes[x].id] = asitem
+                # 直接载入云大小，不需要统计
+                # asitem.modifyCount(1)
         # 设置图元位置
-        self.R *= 64
         num1 = len(self.ASinfo)
+        self.R = 64 * num1 + 128
         now = 0
         for nodelist in self.ASinfo.values():
             alpha = pi * 2 / num1 * now
@@ -116,7 +144,7 @@ class topoGraphScene(QGraphicsScene):
             asitem = nodelist.pop()
             asitem.setPos(X, Y)
             num2 = len(nodelist)
-            r = num2*64*sin(pi/num1)
+            r = num2 * 32 + 64
             for i, node in enumerate(nodelist):
                 beta = pi * 2 / num2 * i + alpha
                 x = X-sin(beta)*r

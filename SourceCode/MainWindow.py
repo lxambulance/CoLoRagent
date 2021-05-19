@@ -171,8 +171,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.addLine.clicked.connect(self.setTopoEdgeEnable)
 
-        self.graphics_global.scene.chooseRouter.connect(self.setAccessRouter)
-        self.graphics_global.scene.choosePath.connect(self.setPath)
         self.chooseRouter.clicked.connect(self.setTopoRouterEnable)
         self.graphics_global.signal_ret.choosenid.connect(
             lambda s: self.accessRouter.setText(s))
@@ -242,12 +240,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.graphics_global.addedgeenable = True
         self.graphics_global.addedgetype = self.lineType.currentIndex()
 
-    def setAccessRouter(self, s):
-        self.accessRouter.setText(s)
-
-    def setPath(self, paths):
-        print(paths)
-
     def getPathFromPkt(self, type, SID, paths, size, nid):
         ''' docstring: 收包显示 '''
         name = 'Unknown packet'
@@ -272,7 +264,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if type == 0x72:
             item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
             ASid = self.graphics_global.getASid(path_str)
-            print(ASid)
+            # print(ASid)
             if ASid:
                 self.changeMetric(ASid,0,size)
         elif type == 0x73:
@@ -281,7 +273,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             totsize = int(item.text(1))
             item.setText(1, str(totsize+size))
             ASid = self.graphics_global.getASid(path_str)
-            print(ASid)
+            # print(ASid)
             if ASid:
                 self.changeMetric(ASid,1,size)
         else:
@@ -608,9 +600,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif len(nowSelectItem) != 1:
             self.setStatus('选中文件过多')
             return
-        print(nowSelectItem[0])
+        # print(nowSelectItem[0])
         tmp = self.fd.getData(nowSelectItem[0], 1)
-        print(tmp)
+        # print(tmp)
         if not os.path.exists(tmp) or not tmp:
             self.setStatus('文件不存在')
             return

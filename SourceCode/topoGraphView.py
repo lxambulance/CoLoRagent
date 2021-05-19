@@ -87,6 +87,7 @@ class topoGraphView(QGraphicsView):
             return
         tmpas = self.scene().belongAS.pop(item.id, None)
         if tmpas:
+            tmpas.modifyCount(-1)
             tmpnodelist = self.scene().ASinfo[tmpas.id]
             # print('before', [tmpnodelist[x].name for x in range(len(tmpnodelist))])
             tmpnodelist.remove(item)
@@ -130,27 +131,25 @@ class topoGraphView(QGraphicsView):
                 self.scene().addItem(self.scene().tmpedge)
         elif self.parent().accessrouterenable:
             if event.button() == Qt.LeftButton and isinstance(item, Node) and \
-                item.type in range(2, 5) and item not in self.scene().waitlist:
+                item.type in range(1, 5) and item not in self.scene().waitlist:
                 self.parent().signal_ret.choosenid.emit(f"{item.name}<{item.nid}>")
-                if not self.scene().node_me:
-                    self.scene().node_me = Node(nodetype=5, nodenid=self.scene().nid_me)
-                    if self.parent().labelenable:
-                        self.scene().node_me.label.show()
-                    self.scene().addItem(self.scene().node_me)
-                mynode = self.scene().node_me
-                # 删除原有连边
-                tmplist = self.scene().nextedges.get(mynode.id, [])
-                if len(tmplist):
-                    lastas = self.scene().belongAS[mynode.id]
-                    self.scene().ASinfo[lastas.id].remove(mynode)
-                    for nextnode, edge in tmplist:
-                        self.scene().delEdge(mynode, nextnode, edge)
-                        self.scene().removeItem(edge)
+                self.tmppos = QPointF(0,0)
+                if self.scene().node_me:
+                    # 消除原有点所造成的影响
+                    self.tmppos = self.scene().node_me.scenePos()
+                    self.removeNode(self.scene().node_me)
+                mynode = Node(nodetype=5, nodenid=self.scene().nid_me)
+                mynode.setPos(self.tmppos)
+                self.scene().node_me = mynode
+                if self.parent().labelenable:
+                    mynode.label.show()
+                self.scene().addItem(mynode)
                 # 添加新连边
                 newedge = Edge(mynode, item, linetype=1)
                 self.scene().addItem(newedge)
                 self.scene().addEdge(mynode, item, newedge)
                 tmpas = self.scene().belongAS[item.id]
+                tmpas.modifyCount(1)
                 self.scene().belongAS[mynode.id] = tmpas
                 self.scene().ASinfo[tmpas.id].append(mynode)
         elif self.parent().findpathenable:
@@ -218,6 +217,9 @@ class topoGraphView(QGraphicsView):
                         node2 = Node(2)
                         self.scene().addItem(node1)
                         self.scene().addItem(node2)
+                        if self.parent().labelenable:
+                            node1.label.show()
+                            node2.label.show()
                         pos1 = item.scenePos()
                         pos2 = self.scene().tmpnode.scenePos()
                         node1.setPos(QPointF((pos1.x()*78+pos2.x()*22)/100,
@@ -226,8 +228,10 @@ class topoGraphView(QGraphicsView):
                             (pos1.y()*22+pos2.y()*78)/100))
                         self.scene().ASinfo[item.id].append(node1)
                         self.scene().belongAS[node1.id] = item
+                        item.modifyCount(1)
                         self.scene().ASinfo[self.scene().tmpnode.id].append(node2)
                         self.scene().belongAS[node2.id] = self.scene().tmpnode
+                        self.scene().tmpnode.modifyCount(1)
                         self.scene().waitlist.append(self.scene().tmpedge)
                         self.scene().addEdge(node1, node2, self.scene().tmpedge)
                         self.scene().tmpedge.updateEdge()
