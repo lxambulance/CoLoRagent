@@ -130,8 +130,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
         self.tableView.hide()
-        self.splitter_horizon.setSizes([300, 300, 500])
-        self.splitter_vertical.setSizes([700, 500])
+        self.splitter_horizon.setSizes([120, 120, 680])
+        self.splitter_vertical.setSizes([850, 350])
 
         # 设置线程池 TODO: 线程池放到窗口外面
         self.threadpool = QThreadPool()
@@ -583,8 +583,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 恢复初始视图格式 '''
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
-        self.splitter_horizon.setSizes([300, 300, 500])
-        self.splitter_vertical.setSizes([700, 500])
+        self.splitter_horizon.setSizes([120, 120, 680])
+        self.splitter_vertical.setSizes([850, 350])
 
     def openHub(self):
         ''' docstring: 打开本地仓库 '''

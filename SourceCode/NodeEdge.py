@@ -4,7 +4,7 @@
 from math import fabs, atan2, pi
 from PyQt5.QtWidgets import (
     QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem, QStyle)
-from PyQt5.QtGui import QPen, QColor, QPixmap, QColor, QFont
+from PyQt5.QtGui import QPen, QColor, QPixmap, QFont, QPainter, QBrush
 from PyQt5.QtCore import QObject, pyqtSignal, QRectF, QPointF, QLineF, Qt, qsrand, qrand, QTime
 
 import resource_rc
@@ -116,7 +116,14 @@ class Node(QGraphicsPixmapItem):
                     self.setPixmap(QPixmap(':icon/cloud-o').scaled(self.size, self.size))
                 else:
                     self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
-            option.state = QStyle.State_None
+        else:
+            if self.isSelected():
+                p = painter
+                p.setRenderHint(QPainter.Antialiasing)
+                p.setPen(QPen(QColor("#ff8000"), 4))
+                bRect = QRectF(-self.size/2, -self.size/2, self.size, self.size)
+                p.drawRect(bRect)
+        option.state = QStyle.State_None
         super().paint(painter, option, widget)
 
 class Edge(QGraphicsLineItem):
