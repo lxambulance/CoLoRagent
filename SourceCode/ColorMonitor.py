@@ -36,7 +36,7 @@ class PktHandler(threading.Thread):
         self.signals = pktSignals()
 
     def run(self):
-        if 'Raw' in self.packet:
+        if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4):
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
             if(PL.RegFlag == 0):
@@ -206,7 +206,7 @@ class PktHandler(threading.Thread):
                         PL.SendIpv4(ReturnIP, Tar)
                     else:
                         # ACK包
-                        if NewSid not in SendingSid.keys():
+                        if (NewSid not in SendingSid.keys()) or (RecvDataPkt.SegID != SendingSid[NewSid][2]-1):
                             return
                         if(SendingSid[NewSid][0] > SendingSid[NewSid][2]):
                             # 发送下一片
