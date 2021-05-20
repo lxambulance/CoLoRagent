@@ -62,6 +62,7 @@ class MyListView(QListView):
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
         self.setDragDropMode(self.DragDrop)
+        self.setMovement(self.Snap)
     
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():

@@ -6,10 +6,12 @@ from math import pi
 from json import load, dump
 from math import pi, sin, cos
 from queue import Queue
-from PyQt5.QtWidgets import QGraphicsScene
-from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal
+from PyQt5.QtGui import QColor, QPen, QPixmap
+from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsPixmapItem, QGraphicsScene
+from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal, Qt
 
 from NodeEdge import Node, Edge
+import resource_rc
 
 
 class topoGraphScene(QGraphicsScene):
@@ -20,6 +22,17 @@ class topoGraphScene(QGraphicsScene):
         self.tmpnode = None
         self.tmpnode_transparent = None
         self.tmpedge = None
+        # 添加特殊节点用于收包动画显示
+        self.node_file = QGraphicsEllipseItem(-12,-12,24,24)
+        self.node_file_img = QGraphicsPixmapItem(
+            QPixmap(':/icon/document').scaled(50, 50),
+            self.node_file)
+        self.node_file_img.setOffset(-25, -62)
+        self.node_file.setPen(QPen(QColor('#ffff80'),2))
+        self.node_file.setBrush(Qt.red)
+        self.node_file.setZValue(20)
+        self.addItem(self.node_file)
+        self.node_file.hide()
 
         self.node_me = None
         self.nid_me = None
@@ -108,7 +121,7 @@ class topoGraphScene(QGraphicsScene):
             elif ntp == 4:
                 item = Node(nodetype = ntp, nodename = nnm)
             else:
-                item = Node(nodetype = ntp, nodename = nnm, nodenid = node['nid'])
+                item = Node(nodetype = ntp, nodename = 'Me', nodenid = node['nid'])
                 self.node_me = item
             self.addItem(item)
             tmpnodes.append(item)
@@ -134,7 +147,7 @@ class topoGraphScene(QGraphicsScene):
                 # asitem.modifyCount(1)
         # 设置图元位置
         num1 = len(self.ASinfo)
-        self.R = 64 * num1 + 128
+        self.R = 32 * num1 + 256
         now = 0
         for nodelist in self.ASinfo.values():
             alpha = pi * 2 / num1 * now
@@ -144,7 +157,7 @@ class topoGraphScene(QGraphicsScene):
             asitem = nodelist.pop()
             asitem.setPos(X, Y)
             num2 = len(nodelist)
-            r = num2 * 32 + 64
+            r = num2 * 16 + 100
             for i, node in enumerate(nodelist):
                 beta = pi * 2 / num2 * i + alpha
                 x = X-sin(beta)*r

@@ -40,41 +40,6 @@ class topoGraphView(QGraphicsView):
         self._color_background = QColor('#eee5ff')
         self.setBackgroundBrush(self._color_background)
 
-        # 测试动画效果
-        self._handle_position_x = 0
-        self.animation1 = QPropertyAnimation(self, b"handle_position_x", self)
-        self.animation1.setEasingCurve(QEasingCurve.OutInCubic)
-        self.animation1.setEndValue(0)
-        self.animation1.setDuration(2000)
-        self._handle_position_y = 0
-        self.animation2 = QPropertyAnimation(self, b"handle_position_y", self)
-        self.animation2.setEasingCurve(QEasingCurve.InOutCubic)
-        self.animation2.setEndValue(0)
-        self.animation2.setDuration(2000)
-        self.animations_group = QParallelAnimationGroup()
-        self.animations_group.addAnimation(self.animation1)
-        self.animations_group.addAnimation(self.animation2)
-
-    @pyqtProperty(float)
-    def handle_position_x(self):
-        return self._handle_position_x
-    
-    @handle_position_x.setter
-    def handle_position_x(self, pos):
-        self._handle_position_x = pos
-        nowpos = self.scene().node_me.scenePos()
-        self.scene().node_me.setPos(pos, nowpos.y())
-
-    @pyqtProperty(float)
-    def handle_position_y(self):
-        return self._handle_position_y
-    
-    @handle_position_y.setter
-    def handle_position_y(self, pos):
-        self._handle_position_y = pos
-        nowpos = self.scene().node_me.scenePos()
-        self.scene().node_me.setPos(nowpos.x(), pos)
-
     def getItemAtClick(self, event):
         ''' docstring: 返回点击的物体 '''
         pos = event.pos()
@@ -290,10 +255,6 @@ class topoGraphView(QGraphicsView):
                         item.label.show()
                     else:
                         item.label.hide()
-            pos = self.scene().node_me.scenePos()
-            self._handle_position_x = pos.x()
-            self._handle_position_y = pos.y()
-            self.animations_group.start()
         else:
             super().keyPressEvent(event)
 
