@@ -37,6 +37,7 @@ class CoLoRApp(QApplication):
         # 初始化本终端信息
         CM.PL.IPv4 = self.loginwindow.myIPv4
         CM.PL.Nid = int('0x'+self.loginwindow.myNID, 16)
+        CM.PL.rmIPv4 = self.loginwindow.rmIPv4
         mw.HOME_DIR = self.loginwindow.filetmppath
         mw.DATA_PATH = self.loginwindow.configpath
         # print(f'before HOME_DIR{mw.HOME_DIR} DATA_PATH{mw.DATA_PATH}')

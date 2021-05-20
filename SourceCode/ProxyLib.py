@@ -11,6 +11,7 @@ import time
 
 Nid = -0x1  # 当前终端NID，需要初始化
 IPv4 = ''  # 当前终端IPv4地址，需要初始化
+rmIPv4 = ''
 
 CacheSidUnits = {}  # 已生成但尚未通告的SID通告单元，key: path; value：class SidUnit
 Lock_CacheSidUnits = threading.Lock()  # CacheSidUnits变量锁
@@ -757,14 +758,10 @@ def SendIpv4(ipdst, data):
 def GetRMip():
     ''' docstring: 读配置文件获取RM所在IP地址(适用IPv4) '''
     # TODO: 修改为与RM交互获取数据
-    return '10.0.0.1'
-
-
-def GetBRip():
-    ''' docstring: 读配置文件获取BR所在IP地址(适用IPv4)'''
-    return '192.168.50.129'
+    return rmIPv4
 
 
 if __name__ == '__main__':
     print(ConvertInt2Bytes_LE(123,4))
     print((123).to_bytes(4,byteorder='little'))
+    print(GetRMip())
