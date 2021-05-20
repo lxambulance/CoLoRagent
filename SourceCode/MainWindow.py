@@ -247,10 +247,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if SID == self.fd.getData(i,2):
                 name = self.fd.getData(i,0)
                 break
-        if type == 0x72:
+        if (type&0xff) == 0x72:
             name = '<Get>' + name
-        elif type == 0x73:
-            name = '<Data>' + name
+        elif (type&0xff) == 0x73:
+            if not ((type >> 8) & 1):
+                name = '<Data>' + name
+                paths = paths[1:]
+            else:
+                name = '<Data Ack>' + name
+            paths.reverse()
         else:
             name = '<Control> packet'
         item = self.mapfromSIDtoItem.get(name+SID, None)
@@ -261,14 +266,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.mapfromSIDtoItem[name+SID] = self.datapackets[-1]
             item = self.datapackets[-1]
         path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
-        if type == 0x72:
+        if (type&0xff) == 0x72:
             item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
             self.graphics_global.setMatchedPIDs(path_str, flag=False)
             ASid = self.graphics_global.getASid(path_str)
             # print(ASid)
             if ASid:
                 self.changeMetric(ASid,0,size)
-        elif type == 0x73:
+        elif (type&0xff) == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), "PIDs="+path_str]))
             self.graphics_global.setMatchedPIDs(path_str, flag=False)
@@ -702,8 +707,10 @@ if __name__ == '__main__':
 
     window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
     window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
-    window.getPathFromPkt(0x73, 'abc', [0x55661234,0x33446217,0x11222695], 1000, 0)
-    window.getPathFromPkt(0x73, 'abc', [0x11227788], 100, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x55661234,0x77880000], 100, 0)
     window.getPathFromPkt(0x74, '', [], 20, 0)
 
     sys.exit(app.exec_())

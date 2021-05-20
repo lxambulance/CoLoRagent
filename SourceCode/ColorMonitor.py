@@ -148,7 +148,7 @@ class PktHandler(threading.Thread):
                         NewSid += hex(RecvDataPkt.L_sid).replace('0x',
                                                                  '').zfill(40)
                     # 暂时将全部收到的校验和正确的data包显示出来
-                    self.signals.pathdata.emit(0x73, NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, 0)
+                    self.signals.pathdata.emit(0x73|(RecvDataPkt.B<<8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, 0)
                     if(RecvDataPkt.B == 0):
                         # 收到数据包，存储到本地并返回ACK
                         # 判断是否为当前代理请求内容
