@@ -80,10 +80,13 @@ class PktHandler(threading.Thread):
                         NewSid += hex(NewGetPkt.L_sid).replace('0x',
                                                                '').zfill(40)
                     self.signals.pathdata.emit(0x72, NewSid, NewGetPkt.PIDs, NewGetPkt.PktLength, NewGetPkt.nid)
+                    PL.Lock_AnnSidUnits.acquire()
                     if NewSid not in PL.AnnSidUnits.keys():
+                        PL.Lock_AnnSidUnits.release()
                         return
                     # 返回数据
                     SidPath = PL.AnnSidUnits[NewSid].path
+                    PL.Lock_AnnSidUnits.release()
                     NidCus = NewGetPkt.nid
                     PIDs = NewGetPkt.PIDs.copy()
                     # 按最大长度减去IP报文和DATA报文头长度(QoS暂默认最长为1字节)，预留位占4字节，数据传输结束标志位位于负载内占1字节
@@ -149,9 +152,12 @@ class PktHandler(threading.Thread):
                     if(RecvDataPkt.B == 0):
                         # 收到数据包，存储到本地并返回ACK
                         # 判断是否为当前代理请求内容
+                        PL.Lock_gets.acquire()
                         if NewSid not in PL.gets.keys():
+                            PL.Lock_gets.release()
                             return
                         SavePath = PL.gets[NewSid]
+                        PL.Lock_gets.release()
                         if NewSid not in RecvingSid.keys():
                             # 新内容
                             if (RecvDataPkt.load[0] == 1):
@@ -210,7 +216,9 @@ class PktHandler(threading.Thread):
                             return
                         if(SendingSid[NewSid][0] > SendingSid[NewSid][2]):
                             # 发送下一片
+                            PL.Lock_AnnSidUnits.acquire()
                             SidPath = PL.AnnSidUnits[NewSid].path
+                            PL.Lock_AnnSidUnits.release()
                             lpointer = SendingSid[NewSid][1] * \
                                 SendingSid[NewSid][2]
                             if(SendingSid[NewSid][0] == SendingSid[NewSid][2]+1):
