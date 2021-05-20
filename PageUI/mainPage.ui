@@ -213,26 +213,6 @@ p, li { white-space: pre-wrap; }
               </iconset>
              </property>
             </item>
-            <item>
-             <property name="text">
-              <string>router</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normalon>:/icon/router</normalon>
-              </iconset>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>switch</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normalon>:/icon/switching</normalon>
-              </iconset>
-             </property>
-            </item>
            </widget>
           </item>
           <item row="7" column="1">

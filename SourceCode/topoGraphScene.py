@@ -14,17 +14,16 @@ from NodeEdge import Node, Edge
 
 class topoGraphScene(QGraphicsScene):
     ''' docstring: 场景模型类 '''
-    chooseRouter = pyqtSignal(str)
-    choosePath = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.tmpnode = None
+        self.tmpnode_transparent = None
         self.tmpedge = None
 
         self.node_me = None
         self.nid_me = None
-        self.waitlist = []
+        self.waitlist = [] # 用于暂存添加到topo图中的新节点修改属性
 
         self.ASinfo = {} # id:[node,...]
         self.belongAS = {} # id:ASitem
@@ -53,7 +52,37 @@ class topoGraphScene(QGraphicsScene):
 
     def findPath(self, dest):
         ''' docstring: 根据目标地址选择路径，返回经过节点nid路径 '''
-        pass
+        if self.node_me == None:
+            return None
+        # print('init')
+        for item in self.items():
+            if isinstance(item, Node):
+                item.setSelected(False)
+                item.isvisited = False
+                item.prenode = None
+        # print('start')
+        tmpqueue = Queue()
+        tmpqueue.put(self.node_me)
+        self.node_me.isvisited = True
+        while not tmpqueue.empty():
+            topnode = tmpqueue.get()
+            for nextnode, nextedge in self.nextedges[topnode.id]:
+                if not nextnode.isvisited:
+                    tmpqueue.put(nextnode)
+                    nextnode.isvisited = True
+                    nextnode.prenode = topnode
+        # print('get ans')
+        if not dest.isvisited:
+            return None
+        else:
+            ret = []
+            now = dest
+            while now:
+                ret.append(now.nid)
+                now.setSelected(True)
+                now = now.prenode
+            ret.reverse()
+            return ret
 
     def initTopo_config(self, path):
         ''' docstring: 初始化拓扑为配置文件信息 '''
@@ -84,14 +113,12 @@ class topoGraphScene(QGraphicsScene):
             self.addItem(item)
             tmpnodes.append(item)
         # 添加AS信息
-        self.R = 0
         self.ASinfo = {}
         self.belongAS = {}
         for (i, asitem) in tmpass:
             nodelist = [tmpnodes[x] for x in self.topo['ASinfo'][str(i)]]
             # 随机打乱
             shuffle(nodelist)
-            self.R = max(self.R, len(nodelist))
             # 为了后续显示方便，将RM放首位置
             for (j, node) in enumerate(nodelist):
                 if node.type == 1:
@@ -103,9 +130,11 @@ class topoGraphScene(QGraphicsScene):
             self.belongAS[asitem.id] = asitem
             for x in self.topo['ASinfo'][str(i)]:
                 self.belongAS[tmpnodes[x].id] = asitem
+                # 直接载入云大小，不需要统计
+                # asitem.modifyCount(1)
         # 设置图元位置
-        self.R *= 64
         num1 = len(self.ASinfo)
+        self.R = 64 * num1 + 128
         now = 0
         for nodelist in self.ASinfo.values():
             alpha = pi * 2 / num1 * now
@@ -115,7 +144,7 @@ class topoGraphScene(QGraphicsScene):
             asitem = nodelist.pop()
             asitem.setPos(X, Y)
             num2 = len(nodelist)
-            r = num2*64*sin(pi/num1)
+            r = num2 * 32 + 64
             for i, node in enumerate(nodelist):
                 beta = pi * 2 / num2 * i + alpha
                 x = X-sin(beta)*r
@@ -124,17 +153,14 @@ class topoGraphScene(QGraphicsScene):
             nodelist.append(asitem)
         # 添加边
         for (x, y, PX) in self.topo['edges']:
-            lt = 0
+            lt = 1
             if self.belongAS[tmpnodes[x].id] is not self.belongAS[tmpnodes[y].id]:
-                lt = 1
+                lt = 0
             if tmpnodes[x] == self.node_me:
                 self.parent().signal_ret.choosenid.emit(f"{tmpnodes[y].name}<{tmpnodes[y].nid}>")
             elif tmpnodes[y] == self.node_me:
                 self.parent().signal_ret.choosenid.emit(f"{tmpnodes[x].name}<{tmpnodes[x].nid}>")
-            if not len(PX):
-                edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt)
-            else:
-                edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt, linePX = PX)
+            edgeitem = Edge(tmpnodes[x], tmpnodes[y], linetype = lt, linePX = PX)
             self.addItem(edgeitem)
             self.addEdge(tmpnodes[x], tmpnodes[y], edgeitem)
         # 显示标签
@@ -161,7 +187,7 @@ class topoGraphScene(QGraphicsScene):
         nodes = self.items()
         for i in range(5):
             j = (i + 2) % 5
-            tmpedge = Edge(nodes[i*2+1].scenePos(), nodes[j*2+1].scenePos(), linetype=qrand()%2)
+            tmpedge = Edge(nodes[i*2+1], nodes[j*2+1], linetype=qrand()%2)
             self.addItem(tmpedge)
             self.addEdge(nodes[i*2+1], nodes[j*2+1], tmpedge)
 
