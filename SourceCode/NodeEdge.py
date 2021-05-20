@@ -13,7 +13,7 @@ NodeTypeLen = 6
 NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR',
                 ':/icon/router', ':/icon/switching', ':/icon/PC']
 NodeZValue = [0, 10, 10, 10, 10, 10]
-NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
+NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'agent']
 NodeSize = [256, 64, 64, 64, 64, 64]
 NodeNum = 0
 
@@ -42,16 +42,15 @@ class Node(QGraphicsPixmapItem):
         self.setOffset(-self.size/2, -self.size/2)
 
         # 添加一个子文本类显示名字
-        tmps = f"{self.name}<{self.nid}>"
-        if self.type:
-            tmps = '\n'.join([tmps[x:x+12] for x in range(0,len(tmps),12)])
+        tmps = f"{self.name}"
         self.label = QGraphicsSimpleTextItem(tmps, self)
-        self.label.setPos(-self.size/2, self.size/2)
+        self.label.setFont(QFont("Times", 20))
         if not self.type:
-            self.label.setText(f"{self.name}")
-            self.label.setFont(QFont("Times", 20))
             self.label.setPos(0, 0)
             self.clicktime = 0
+        else:
+            self.label.setPos(0, self.size/2)
+        self.label.setPen(QPen(QColor('#ff8000'),0.5))
         self.label.setBrush(QColor(Qt.red))
         self.label.hide()
 
@@ -68,16 +67,12 @@ class Node(QGraphicsPixmapItem):
         else:
             self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
 
-    def updateLabel(self, *, name = None, nid = None):
+    def updateLabel(self, name = None, nid = None):
         if name:
             self.name = name
         if nid:
             self.nid = nid
-        tmps = f"{self.name}<{self.nid}>"
-        if self.type:
-            tmps = '\n'.join([tmps[x:x+12] for x in range(0,len(tmps),12)])
-        else:
-            tmps = f"{self.name}"
+        tmps = f"{self.name}"
         self.label.setText(tmps)
         self.update()
 
@@ -149,6 +144,7 @@ class Edge(QGraphicsLineItem):
             name = ""
         self.label = QGraphicsSimpleTextItem(name, self)
         self.label.setFont(QFont("Times", 20, QFont.Bold))
+        self.label.setPen(QPen(QColor('#ffffb3'), 0.1))
         self.label.setBrush(QColor(Qt.red))
         self.label.hide()
         
@@ -187,7 +183,7 @@ class Edge(QGraphicsLineItem):
         ''' docstring: 用于显示被选中的变化，并且去掉外边框 '''
         if self.node1 and self.node2 and \
             (self.node1.isSelected() and self.node2.isSelected() or self.isSelected()):
-            painter.setPen(QPen(QColor('#ff99e5'), 12))
+            painter.setPen(QPen(QColor('#ff99e5'), 12)) #ff99e5 66ff33
             painter.drawLine(self.node1.scenePos(), self.node2.scenePos())
         # 设置绘图属性，去掉外边框，妥协的做法
         option.state = QStyle.State_None

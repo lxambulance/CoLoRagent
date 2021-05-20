@@ -263,6 +263,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
         if type == 0x72:
             item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
+            self.graphics_global.setMatchedPIDs(path_str, flag=False)
             ASid = self.graphics_global.getASid(path_str)
             # print(ASid)
             if ASid:
@@ -270,6 +271,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif type == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), "PIDs="+path_str]))
+            self.graphics_global.setMatchedPIDs(path_str, flag=False)
             totsize = int(item.text(1))
             item.setText(1, str(totsize+size))
             ASid = self.graphics_global.getASid(path_str)
@@ -285,8 +287,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #print(item.text(column))
         pitem = item.parent()
         if not pitem or 'Control' in pitem.text(0):
+            self.setStatus('选择正确的包可显示匹配')
             return
-        self.graphics_global.setMatchedPIDs(item.text(2))
+        else:
+            self.setStatus('')
+        if not self.graphics_global.setMatchedPIDs(item.text(2)):
+            self.setStatus('匹配失败')
 
     def setTopoRouterEnable(self):
         self.graphics_global.accessrouterenable = True
@@ -695,9 +701,9 @@ if __name__ == '__main__':
     window.show()
 
     window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
-    window.getPathFromPkt(0x72, '123', [0x11222695,0x33446217], 1500, 0x23)
-    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x33446217], 1000, 0)
-    window.getPathFromPkt(0x73, 'abc', [0x11225689,0x33446217], 100, 0)
+    window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
+    window.getPathFromPkt(0x73, 'abc', [0x55661234,0x33446217,0x11222695], 1000, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11227788], 100, 0)
     window.getPathFromPkt(0x74, '', [], 20, 0)
 
     sys.exit(app.exec_())

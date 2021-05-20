@@ -1,10 +1,12 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架 '''
 
+from math import floor
 from NodeEdge import Node, Edge
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from PyQt5.QtGui import QColor, QStandardItemModel
-from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal, QObject, Qt, QModelIndex
+from PyQt5.QtCore import (QEasingCurve, QPointF, QPropertyAnimation, QSequentialAnimationGroup, qsrand,
+    qrand, QTime, pyqtSignal, QObject, Qt, QModelIndex, pyqtProperty)
 
 from topoGraphView import topoGraphView
 from topoGraphScene import topoGraphScene
@@ -32,6 +34,7 @@ class GraphicWindow(QWidget):
         self.labelenable = True
         self.chooseASenable = False
         self.chooseItem = None
+        self.poslist = None
 
         # 设置最小大小
         # self.setMinimumSize(400, 400)
@@ -47,6 +50,37 @@ class GraphicWindow(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.view)
         self.setLayout(layout)
+        # 设置动画
+        self._handle_factor = 0
+        self.loop_num = 0
+        self.animation = QPropertyAnimation(self, b"handle_factor", self)
+        self.animation.setEndValue(0)
+        self.animation.setEasingCurve(QEasingCurve.InOutCubic)
+        self.animation.finished.connect(self.setnowpos)
+    
+    def setnowpos(self):
+        self.loop_num -= 1
+        if not self.loop_num:
+            self.poslist = None
+            self.scene.node_file.hide()
+        else:
+            self.animation.start()
+
+    @pyqtProperty(float)
+    def handle_factor(self):
+        return self._handle_factor
+    
+    @handle_factor.setter
+    def handle_factor(self, nowfactor):
+        self._handle_factor = nowfactor
+        if self.poslist:
+            num = len(self.poslist)
+            i = num-1-floor(nowfactor)
+            p1 = self.poslist[i-1]
+            p2 = self.poslist[i]
+            f = nowfactor - floor(nowfactor)
+            p0 = QPointF(p1.x()*f+p2.x()*(1-f),p1.y()*f+p2.y()*(1-f))
+            self.scene.node_file.setPos(p0)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat('application/x-qabstractitemmodeldatalist'):
@@ -189,18 +223,51 @@ class GraphicWindow(QWidget):
                 item.setSelected(False)
         return tmpASlist
 
-    def setMatchedPIDs(self, PIDs):
-        tmpnode = []
+    def setMatchedPIDs(self, PIDs, flag=True):
+        if self.poslist or not self.scene.node_me:
+            # 匹配过快或node_me没有设置
+            return False
+        num = PIDs.count('<')
+        # print(PIDs, num)
+        tmpnode = [None]*num*2
+        # poslist生成基于PID从后往前有序，否则可能出错
         for item in self.scene.items():
             item.setSelected(False)
-            if isinstance(item, Edge) and item.type and ('<' + item.PX ) in PIDs:
-                item.setSelected(True)
-                tmpnode.append(item.node1)
-                tmpnode.append(item.node2)
+            if isinstance(item, Edge) and item.PX and ('<' + item.PX ) in PIDs:
+                item.setSelected(flag)
+                fr = PIDs.find('<'+item.PX)
+                id = PIDs[:fr+1].count('<')
+                # print(id)
+                tmpnode[id*2-2] = item.node1
+                tmpnode[id*2-1] = item.node2
         for node in tmpnode:
-            self.scene.belongAS[node.id].setSelected(True)
-        # TODO：匹配错误返回False
+            self.scene.belongAS[node.id].setSelected(flag)
+        lastnode = self.scene.belongAS[self.scene.node_me.id].id
+        # print(lastnode)
+        for i in range(num):
+            j = (num-1-i)*2
+            # print(self.scene.belongAS[tmpnode[j].id].id,
+            #     self.scene.belongAS[tmpnode[j+1].id].id)
+            if self.scene.belongAS[tmpnode[j+1].id].id != lastnode:
+                tmpnode[j], tmpnode[j+1] = tmpnode[j+1], tmpnode[j]
+            lastnode = self.scene.belongAS[tmpnode[j].id].id
+        poslist = [x.scenePos() for x in tmpnode]
+        poslist.append(self.scene.node_me.scenePos())
+        self.showAnimation(poslist)
         return True
+    
+    def showAnimation(self, poslist):
+        ''' docstring: 显示收包动画 '''
+        if self.poslist:
+            return
+        self.poslist = poslist.copy()
+        self.scene.node_file.setPos(poslist[0])
+        self.scene.node_file.show()
+        num = len(poslist)
+        self.animation.setStartValue(num-1)
+        self.animation.setDuration(min(num*1000, 4000))
+        self.loop_num = 2
+        self.animation.start()
 
     def getASid(self, PIDs):
         posl = PIDs.rfind('<')
