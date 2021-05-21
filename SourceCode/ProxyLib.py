@@ -21,9 +21,9 @@ Lock_AnnSidUnits = threading.Lock()  # AnnSidUnits变量锁
 gets = {}  # 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）
 Lock_gets = threading.Lock()  # gets变量锁
 
-RegFlag = 0 # 代理注册成功标志，收到RM返回的Control包后置1
-PeerProxys = {} # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
-PXs = {} # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
+RegFlag = 0  # 代理注册成功标志，收到RM返回的Control包后置1
+PeerProxys = {}  # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
+PXs = {}  # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
 
 
 # 供线程调用的功能函数
@@ -58,7 +58,7 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1, WhiteList=[]):
         # 信息级别策略。标识为1，value范围为[1, 10]，value长度为1字节
         value = hex(level).replace('0x', '').zfill(2)
         Strategy_units[1] = value
-    if(len(WhiteList)!=0):
+    if(len(WhiteList) != 0):
         # 白名单策略。标识为2，value为数字列表，数字范围为[0, 255]
         value = ''
         for AS in WhiteList:
@@ -180,6 +180,7 @@ def ConvertByte(tar, path):
 
 class ControlPkt():
     # 控制包
+    # 包头信息
     V = 7
     Package = 4
     ttl = 64
@@ -187,10 +188,17 @@ class ControlPkt():
     HeaderLength = 0
     tag = 0
     DataLength = 0
+    # 负载信息
     ProxyIP = ''
     ProxyNid = -1
+    N_sid = -1  # tag = 17专用，非法DATA包的SID信息
+    L_sid = -1
+    CusNid = -1  # tag = 17专用，非法DATA包的目标NID
+    BRNid = -1  # tag = 18专用，告警BR的NID
+    Attacks = {}  # tag = 18专用，key：AS编号，value：攻击次数
     Proxys = []  # 元组（NID, IP）列表
     BRs = []  # 元组（PX, IP）列表
+    # 负载信息及完整报文的二进制字符串
     data = b''
     Pkt = b''
 
@@ -221,7 +229,7 @@ class ControlPkt():
                         pointer += 1
                     tempIP = ''
                     for j in range(4):
-                        tempIP = str(Pkt[pointer]) + '.' +tempIP
+                        tempIP = str(Pkt[pointer]) + '.' + tempIP
                         pointer += 1
                     tempIP = tempIP[:-1]
                     self.Proxys.append((tempNid, tempIP))
@@ -250,6 +258,44 @@ class ControlPkt():
                 for i in range(16):
                     self.ProxyNid = (self.ProxyNid << 8) + Pkt[pointer]
                     pointer += 1
+            elif(self.tag == 17):
+                # DATA包泄露警告
+                self.ProxyIP = ''
+                pointer += 12
+                for i in range(4):
+                    self.ProxyIP += str(Pkt[pointer]) + '.'
+                    pointer += 1
+                self.ProxyIP = self.ProxyIP[:-1]
+                pointer += 13
+                M = 1 if Pkt[pointer] & (1 << 4) > 0 else 0
+                if (M == 1):
+                    pointer += 2
+                self.N_sid = 0
+                for i in range(16):
+                    self.N_sid = (self.N_sid << 8) + Pkt[pointer]
+                    pointer += 1
+                self.L_sid = 0
+                for i in range(20):
+                    self.L_sid = (self.L_sid << 8) + Pkt[pointer]
+                    pointer += 1
+                self.CusNid = 0
+                for i in range(16):
+                    self.CusNid = (self.CusNid << 8) + Pkt[pointer]
+                    pointer += 1
+            elif(self.tag == 18):
+                self.BRNid = 0
+                for i in range(16):
+                    self.BRNid = (self.BRNid << 8) + Pkt[pointer]
+                    pointer += 1
+                self.Attacks = {}
+                for i in range((self.DataLength-16)/5):
+                    ASNum = Pkt[pointer]
+                    pointer += 1
+                    AttackCount = 0
+                    for j in range(4):
+                        AttackCount += Pkt[pointer] << (8*i)
+                        pointer += 1
+                    self.Attacks[ASNum] = AttackCount
         elif(flag == 1):
             # 新建控制包
             self.ttl = ttl
@@ -277,7 +323,7 @@ class ControlPkt():
         # TarRest += self.data
         Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
         TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
-        Tar = TarPre + TarCS + TarRest + self.data # 计算出校验和的字节串
+        Tar = TarPre + TarCS + TarRest + self.data  # 计算出校验和的字节串
         # 封装并返回
         self.Pkt = Tar
         return self.Pkt
@@ -762,6 +808,6 @@ def GetRMip():
 
 
 if __name__ == '__main__':
-    print(ConvertInt2Bytes_LE(123,4))
-    print((123).to_bytes(4,byteorder='little'))
+    print(ConvertInt2Bytes_LE(123, 4))
+    print((123).to_bytes(4, byteorder='little'))
     print(GetRMip())
