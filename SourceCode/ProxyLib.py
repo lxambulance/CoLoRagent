@@ -283,6 +283,7 @@ class ControlPkt():
                     self.CusNid = (self.CusNid << 8) + Pkt[pointer]
                     pointer += 1
             elif(self.tag == 18):
+                # 外部攻击警告
                 self.BRNid = 0
                 for i in range(16):
                     self.BRNid = (self.BRNid << 8) + Pkt[pointer]

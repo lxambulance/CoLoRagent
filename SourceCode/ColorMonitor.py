@@ -261,17 +261,37 @@ class PktHandler(threading.Thread):
                             # 发送完成，删除Sending信息
                             SendingSid.pop(NewSid)
                 elif (data[0] == 0x74) and (data[5] == 8):
-                    # 收到网络中的control报文，此处特指新proxy信息
+                    # 收到网络中的control报文
                     # 校验和检验
                     CS = PL.CalculateCS(data[0:8])
                     if(CS != 0):
                         return
                     # 解析报文内容
                     NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
-                    self.signals.pathdata.emit(0x74, "", [], NewCtrlPkt.HeaderLength+ NewCtrlPkt.DataLength, 0)
-                    if NewCtrlPkt.ProxyNid != PL.Nid:
-                        # 过滤本代理信息
-                        PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP
+                    if (NewCtrlPkt.tag == 8):
+                        # 新proxy信息
+                        # self.signals.pathdata.emit(0x74, "", [], NewCtrlPkt.HeaderLength+ NewCtrlPkt.DataLength, 0)
+                        if NewCtrlPkt.ProxyNid != PL.Nid:
+                            # 过滤本代理信息
+                            PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP
+                    elif (NewCtrlPkt.tag == 17):
+                        # DATA包泄露警告
+                        NewSid = ''
+                        if NewCtrlPkt.N_sid != 0:
+                            NewSid += hex(NewCtrlPkt.N_sid).replace('0x',
+                                                                '').zfill(32)
+                        if NewCtrlPkt.L_sid != 0:
+                            NewSid += hex(NewCtrlPkt.L_sid).replace('0x',
+                                                                '').zfill(40)
+                        print("泄露DATA包的节点源IP: " + NewCtrlPkt.ProxyIP)
+                        print("泄露DATA包内含的SID: " + NewSid)
+                        print("泄露DATA包的目的NID: " + hex(NewCtrlPkt.CusNid).replace('0x', '').zfill(32))
+                    elif (NewCtrlPkt.tag == 18):
+                        # 外部攻击警告
+                        print("告警BR所属NID: " + hex(NewCtrlPkt.BRNid).replace('0x', '').zfill(32))
+                        for key in NewCtrlPkt.Attacks.keys():
+                            print("攻击所属AS号: " + str(key)) # 若为0，则为未知AS来源的攻击
+                            print("对应AS号的攻击次数: " + str(NewCtrlPkt.Attacks[key]))
 
 
 class ControlPktSender(threading.Thread):
