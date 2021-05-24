@@ -268,6 +268,7 @@ class ControlPkt():
                 self.ProxyIP = self.ProxyIP[:-1]
                 pointer += 13
                 M = 1 if Pkt[pointer] & (1 << 4) > 0 else 0
+                pointer += 1
                 if (M == 1):
                     pointer += 2
                 self.N_sid = 0
