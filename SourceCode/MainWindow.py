@@ -18,7 +18,7 @@ from mainPage import Ui_MainWindow
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, 
-    QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog)
+    QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog, QMessageBox)
 import os
 import sys
 import math
@@ -46,6 +46,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         FD.HOME_DIR = HOME_DIR
         # 用于统计频率和AS统计
         self.timer = QTimer()
+        self.timer_message = QTimer()
+        self.messagebox = None
         self.timer.setInterval(5000)
         self.asmetrics = {} # id:[(get num, get total size),(data num, data total size)]
 
@@ -185,6 +187,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lineType.currentIndexChanged.connect(self.setTopoLineType)
         self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
         self.timer.timeout.connect(self.showMetric)
+        self.timer_message.timeout.connect(self.timerMessageClear)
 
         # 载入拓扑图，需要相关信号绑定完成后再载入
         self.graphics_global.loadTopo(DATA_PATH)
@@ -696,21 +699,40 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif messageType == 1:
             # 收到warning
             self.textEdit.append('<warning> ' + message + '\n')
+        elif messageType == 2:
+            # 收到攻击警告
+            self.textEdit.append('<attacking>' + message + '\n')
+            if not self.messagebox:
+                self.messagebox = QMessageBox(self)
+                self.messagebox.setWindowTitle('<Attacking>')
+                self.messagebox.setText(message)
+                self.messagebox.setModal(False)
+                self.messagebox.buttonClicked.connect(self.timerMessageClear)
+                self.messagebox.show()
+                self.timer_message.start(3000)
         else:
             self.setStatus('无效的后端信息')
 
+    def timerMessageClear(self):
+        self.timer_message.stop()
+        self.messagebox.done(1)
+        self.messagebox = None
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
 
-    window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
-    window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
-    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
-    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
-    window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
-    window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
-    window.getPathFromPkt(0x74, '', [], 20, 0)
+    # # 测试收包匹配功能
+    # window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
+    # window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
+    # window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
+    # window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
+    # window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
+    # window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
+    # window.getPathFromPkt(0x74, '', [], 20, 0)
+    # 测试告警信息显示功能
+    window.handleMessageFromPkt(2, 'test1\ncontent1\n')
+    window.handleMessageFromPkt(2, 'test2\ncontent2\n')
 
     sys.exit(app.exec_())

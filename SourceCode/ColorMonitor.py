@@ -268,9 +268,9 @@ class PktHandler(threading.Thread):
                         return
                     # 解析报文内容
                     NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
+                    self.signals.pathdata.emit(0x74, "", [], NewCtrlPkt.HeaderLength+ NewCtrlPkt.DataLength, 0)
                     if (NewCtrlPkt.tag == 8):
                         # 新proxy信息
-                        # self.signals.pathdata.emit(0x74, "", [], NewCtrlPkt.HeaderLength+ NewCtrlPkt.DataLength, 0)
                         if NewCtrlPkt.ProxyNid != PL.Nid:
                             # 过滤本代理信息
                             PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP
@@ -283,15 +283,17 @@ class PktHandler(threading.Thread):
                         if NewCtrlPkt.L_sid != 0:
                             NewSid += hex(NewCtrlPkt.L_sid).replace('0x',
                                                                 '').zfill(40)
-                        print("泄露DATA包的节点源IP: " + NewCtrlPkt.ProxyIP)
-                        print("泄露DATA包内含的SID: " + NewSid)
-                        print("泄露DATA包的目的NID: " + hex(NewCtrlPkt.CusNid).replace('0x', '').zfill(32))
+                        tmps = "泄露DATA包的节点源IP: " + NewCtrlPkt.ProxyIP + '\n'
+                        tmps += "泄露DATA包内含的SID: " + NewSid + '\n'
+                        tmps += "泄露DATA包的目的NID: " + f"{NewCtrlPkt.CusNid:032x}"
+                        self.signals.output.emit(2, tmps)
                     elif (NewCtrlPkt.tag == 18):
                         # 外部攻击警告
-                        print("告警BR所属NID: " + hex(NewCtrlPkt.BRNid).replace('0x', '').zfill(32))
+                        tmp = "告警BR所属NID: " + f"{NewCtrlPkt.BRNid:032x}" + '\n'
                         for key in NewCtrlPkt.Attacks.keys():
-                            print("攻击所属AS号: " + str(key)) # 若为0，则为未知AS来源的攻击
-                            print("对应AS号的攻击次数: " + str(NewCtrlPkt.Attacks[key]))
+                            tmp += "攻击所属AS号: " + str(key) + '\n' # 若为0，则为未知AS来源的攻击
+                            tmp += "对应AS号的攻击次数: " + str(NewCtrlPkt.Attacks[key]) + '\n'
+                        self.signals.output.emit(2, tmps)
 
 
 class ControlPktSender(threading.Thread):
