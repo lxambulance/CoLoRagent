@@ -122,10 +122,15 @@ class GraphicWindow(QWidget):
                 node = Node(nodetype=4)
             elif nodename == 'PC':
                 node = Node(nodetype=5)
-            if node.type:
+            pos = self.view.mapToScene(event.pos())
+            item = self.view.getItemAtClick(event)
+            if item and not item.type:
+                self.scene.belongAS[node.id] = item
+                self.scene.ASinfo[item.id].append(node)
+                item.modifyCount(1)
+            elif node.type:
                 self.scene.waitlist.append(node)
             self.scene.addItem(node)
-            pos = self.view.mapToScene(event.pos())
             node.setPos(pos)
             if self.labelenable:
                 node.label.show()
@@ -241,6 +246,8 @@ class GraphicWindow(QWidget):
                 tmpnode[id*2-2] = item.node1
                 tmpnode[id*2-1] = item.node2
         for node in tmpnode:
+            if not node:
+                return False
             self.scene.belongAS[node.id].setSelected(flag)
         lastnode = self.scene.belongAS[self.scene.node_me.id].id
         # print(lastnode)
@@ -269,16 +276,18 @@ class GraphicWindow(QWidget):
         self.loop_num = 2
         self.animation.start()
 
-    def getASid(self, PIDs):
-        posl = PIDs.rfind('<')
-        posr = PIDs.rfind('>')
+    def getASid(self, PIDs, Type, size):
+        ''' docstring: 获取所对应PIDs序列末端节点所属AS号，顺便存储收发包参数 '''
+        print(PIDs)
+        posl = PIDs.find('<')
+        posr = PIDs.find('>')
         lastPID = PIDs[posl:posr]
         target = None
         tmpAS = {}
         for item in self.scene.items():
-            if isinstance(item, Edge) and item.type and ('<' + item.PX ) in lastPID:
+            if isinstance(item, Edge) and ('<' + item.PX ) in lastPID:
                 target = item
-            if isinstance(item, Edge) and item.type and ('<' + item.PX ) in PIDs:
+            if isinstance(item, Edge) and ('<' + item.PX ) in PIDs:
                 if not tmpAS.get(self.scene.belongAS[item.node1.id].name, None):
                     tmpAS[self.scene.belongAS[item.node1.id].name] = 0
                 tmpAS[self.scene.belongAS[item.node1.id].name] += 1
@@ -288,20 +297,29 @@ class GraphicWindow(QWidget):
         if not target:
             return None
         else:
+            ans = None
             n1 = self.scene.belongAS[target.node1.id].name
             n2 = self.scene.belongAS[target.node2.id].name
             if tmpAS[n1] < tmpAS[n2]:
-                return n1
+                ans = self.scene.belongAS[target.node1.id]
             elif tmpAS[n1] > tmpAS[n2]:
-                return n2
+                ans = self.scene.belongAS[target.node2.id]
             else:
                 if not self.scene.node_me:
-                    return None
+                    ans = None
                 n0 = self.scene.belongAS[self.scene.node_me.id].name
                 if n0 == n1:
-                    return n2
+                    ans = self.scene.belongAS[target.node2.id]
                 else:
-                    return n1
+                    ans = self.scene.belongAS[target.node1.id]
+            if ans:
+                if Type:
+                    ans.updateLabel(datasize=size)
+                else:
+                    ans.updateLabel(getsize=size)
+                return ans.name
+            else:
+                return None
 
 
 if __name__ == "__main__":

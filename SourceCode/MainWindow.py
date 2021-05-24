@@ -269,7 +269,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if (type&0xff) == 0x72:
             item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
             self.graphics_global.setMatchedPIDs(path_str, flag=False)
-            ASid = self.graphics_global.getASid(path_str)
+            ASid = self.graphics_global.getASid(path_str, 0, size)
             # print(ASid)
             if ASid:
                 self.changeMetric(ASid,0,size)
@@ -279,7 +279,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.graphics_global.setMatchedPIDs(path_str, flag=False)
             totsize = int(item.text(1))
             item.setText(1, str(totsize+size))
-            ASid = self.graphics_global.getASid(path_str)
+            ASid = self.graphics_global.getASid(path_str, 1, size)
             # print(ASid)
             if ASid:
                 self.changeMetric(ASid,1,size)
@@ -710,7 +710,7 @@ if __name__ == '__main__':
     window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
     window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
     window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
-    window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x55661234,0x77880000], 100, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
     window.getPathFromPkt(0x74, '', [], 20, 0)
 
     sys.exit(app.exec_())
