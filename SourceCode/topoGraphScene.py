@@ -2,17 +2,26 @@
 ''' docstring: scene/view模型框架 '''
 
 from random import shuffle
-from math import pi
+from math import pi, fabs
 from json import load, dump
 from math import pi, sin, cos
 from queue import Queue
 from PyQt5.QtGui import QColor, QPen, QPixmap
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsPixmapItem, QGraphicsScene
 from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal, Qt
+from scapy.fields import X3BytesField
 
 from NodeEdge import Node, Edge
 import resource_rc
 
+
+def Cross(a, b, o):
+    return (a.x()-o.x())*(b.y()-o.y())-(a.y()-o.y())*(b.x()-o.x())
+
+def sgn(x):
+    if fabs(x) < 1e-8:
+        return 0
+    return 1 if x > 0 else 0
 
 class topoGraphScene(QGraphicsScene):
     ''' docstring: 场景模型类 '''
@@ -91,11 +100,33 @@ class topoGraphScene(QGraphicsScene):
             ret = []
             now = dest
             while now:
-                ret.append(now.nid)
+                ret.append(now.id)
                 now.setSelected(True)
                 now = now.prenode
             ret.reverse()
             return ret
+
+    def line_intersect(self, a, b, c, d):
+        ''' docstring: 判断线段是否相交
+            0为不相交
+            1为严格相交且交点不在线段端点上
+            2表示交点为某线段端点
+            3为线段平行且部分重合
+        '''
+        if (max(a.x(),b.x())<min(c.x(),d.x()))or(min(a.x(),b.x())>max(c.x(),d.x()))or \
+            (max(a.y(),b.y())<min(c.y(),d.y()))or(min(a.y(),b.y())>max(c.y(),d.y())):
+            return 0
+        x = Cross(a,c,b)
+        y = Cross(a,d,b)
+        z = Cross(c,a,d)
+        w = Cross(c,b,d)
+        if sgn(x) == 0 and sgn(y) == 0:
+            return 3
+        elif sgn(x)*sgn(y)<0 and sgn(z)*sgn(w)<0:
+            return 1
+        elif sgn(x)*sgn(y)<=0 and sgn(z)*sgn(w)<=0:
+            return 2
+        return 0
 
     def initTopo_config(self, path):
         ''' docstring: 初始化拓扑为配置文件信息 '''
@@ -176,6 +207,30 @@ class topoGraphScene(QGraphicsScene):
             edgeitem = Edge(tmpnodes[x], tmpnodes[y], linetype = lt, linePX = PX)
             self.addItem(edgeitem)
             self.addEdge(tmpnodes[x], tmpnodes[y], edgeitem)
+        # 检查边是否有相交
+        for item in self.items():
+            if isinstance(item, Node) and not item.type:
+                tmplist = self.ASinfo[item.id]
+                list_len = len(tmplist)
+                for i in range(list_len):
+                    for j in range(i+1,list_len):
+                        x = tmplist[i]
+                        y = tmplist[j]
+                        if x.type and y.type and self.nextedges.get(x.id, None) and \
+                            self.nextedges.get(y.id, None):
+                            for (nodex, edgex) in self.nextedges[x.id]:
+                                for (nodey, edgey) in self.nextedges[y.id]:
+                                    if self.line_intersect(x.scenePos(),nodex.scenePos(),
+                                        y.scenePos(),nodey.scenePos()):
+                                        # print('swap', x.nid, y.nid)
+                                        posx = x.scenePos()
+                                        posy = y.scenePos()
+                                        x.setPos(posy)
+                                        y.setPos(posx)
+                for node in tmplist:
+                    if node.type and self.nextedges.get(node.id, None):
+                        for (nextnode, edge) in self.nextedges[node.id]:
+                            edge.updateEdge()
         # 显示标签
         if self.parent().labelenable:
             for item in self.items():

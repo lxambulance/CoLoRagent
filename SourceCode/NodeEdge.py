@@ -35,6 +35,10 @@ class Node(QGraphicsPixmapItem):
         global NodeNum
         self.id = NodeNum
         NodeNum += 1
+        self.getnum = 0
+        self.getsize = 0
+        self.datanum = 0
+        self.datasize = 0
         # print(self.id) # test
 
         # 设置图像大小和偏移量
@@ -43,10 +47,12 @@ class Node(QGraphicsPixmapItem):
 
         # 添加一个子文本类显示名字
         tmps = f"{self.name}"
+        if not self.type:
+            tmps = '\t' + tmps + '\n'
         self.label = QGraphicsSimpleTextItem(tmps, self)
         self.label.setFont(QFont("Times", 20))
         if not self.type:
-            self.label.setPos(0, 0)
+            self.label.setPos(-80, -30)
             self.clicktime = 0
         else:
             self.label.setPos(0, self.size/2)
@@ -67,12 +73,24 @@ class Node(QGraphicsPixmapItem):
         else:
             self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
 
-    def updateLabel(self, name = None, nid = None):
+    def updateLabel(self, name = None, nid = None, getsize = 0, datasize = 0):
         if name:
             self.name = name
         if nid:
             self.nid = nid
         tmps = f"{self.name}"
+        if not self.type:
+            tmps = '\t' + tmps + '\n'
+        if getsize:
+            self.getnum += 1
+            self.getsize += getsize
+        if datasize:
+            self.datanum += 1
+            self.datasize += datasize
+        if self.getsize or self.datasize:
+            tmps = tmps + \
+                f"Send: get<{self.getnum}, {self.getsize}B>" + '\n' + \
+                f"data<{self.datanum}, {self.datasize}B>"
         self.label.setText(tmps)
         self.update()
 
