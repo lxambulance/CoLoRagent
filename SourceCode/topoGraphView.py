@@ -68,13 +68,12 @@ class topoGraphView(QGraphicsView):
 
     def mousePressEvent(self, event):
         ''' docstring: 鼠标按压事件 '''
-        # print('check accessrouterenable', self.parent().accessrouterenable)
         item = self.getItemAtClick(event)
         if event.button() == Qt.RightButton:
             if isinstance(item, Node):
-                self.removeNode(item)
                 if item is self.scene().node_me:
                     self.scene().node_me = None
+                self.removeNode(item)
             elif isinstance(item, Edge):
                 self.scene().delEdge(item.node1, item.node2, item)
                 self.scene().removeItem(item)
@@ -94,29 +93,6 @@ class topoGraphView(QGraphicsView):
                 self.scene().tmpedge = Edge(item, self.scene().tmpnode_transparent, linetype=self.parent().addedgetype)
                 self.scene().addItem(self.scene().tmpnode_transparent)
                 self.scene().addItem(self.scene().tmpedge)
-        elif self.parent().accessrouterenable:
-            if event.button() == Qt.LeftButton and isinstance(item, Node) and \
-                item.type in range(1, 5) and item not in self.scene().waitlist:
-                self.parent().signal_ret.choosenid.emit(f"{item.name}<{item.nid}>")
-                self.tmppos = QPointF(0,0)
-                if self.scene().node_me:
-                    # 消除原有点所造成的影响
-                    self.tmppos = self.scene().node_me.scenePos()
-                    self.removeNode(self.scene().node_me)
-                mynode = Node(nodetype=5, nodenid=self.scene().nid_me)
-                mynode.setPos(self.tmppos)
-                self.scene().node_me = mynode
-                if self.parent().labelenable:
-                    mynode.label.show()
-                self.scene().addItem(mynode)
-                # 添加新连边
-                newedge = Edge(mynode, item, linetype=1)
-                self.scene().addItem(newedge)
-                self.scene().addEdge(mynode, item, newedge)
-                tmpas = self.scene().belongAS[item.id]
-                tmpas.modifyCount(1)
-                self.scene().belongAS[mynode.id] = tmpas
-                self.scene().ASinfo[tmpas.id].append(mynode)
         elif self.parent().findpathenable:
             if event.button() == Qt.LeftButton and isinstance(item, Node) and item.type:
                 # TODO: 多线程处理
@@ -212,8 +188,6 @@ class topoGraphView(QGraphicsView):
             self.scene().tmpedge = None
             self.scene().tmpnode = None
             self.scene().tmpnode_transparent = None
-        if self.parent().accessrouterenable:
-            self.parent().accessrouterenable = False
         if self.parent().findpathenable:
             self.parent().findpathenable = False
         if self.allmove:
@@ -243,8 +217,6 @@ class topoGraphView(QGraphicsView):
         #     self.scene().addItem(newnode)
         elif key == Qt.Key_E:
             self.parent().addedgeenable = True
-        elif key == Qt.Key_A:
-            self.parent().accessrouterenable = True
         elif key == Qt.Key_F:
             self.parent().findpathenable = True
         elif key == Qt.Key_S:

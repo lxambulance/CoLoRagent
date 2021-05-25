@@ -260,7 +260,7 @@ class PktHandler(threading.Thread):
                         else:
                             # 发送完成，删除Sending信息
                             SendingSid.pop(NewSid)
-                elif (data[0] == 0x74) and (data[5] == 8):
+                elif data[0] == 0x74:
                     # 收到网络中的control报文
                     # 校验和检验
                     CS = PL.CalculateCS(data[0:8])
@@ -289,10 +289,10 @@ class PktHandler(threading.Thread):
                         self.signals.output.emit(2, tmps)
                     elif (NewCtrlPkt.tag == 18):
                         # 外部攻击警告
-                        tmp = "告警BR所属NID: " + f"{NewCtrlPkt.BRNid:032x}" + '\n'
+                        tmps = "告警BR所属NID: " + f"{NewCtrlPkt.BRNid:032x}" + '\n'
                         for key in NewCtrlPkt.Attacks.keys():
-                            tmp += "攻击所属AS号: " + str(key) + '\n' # 若为0，则为未知AS来源的攻击
-                            tmp += "对应AS号的攻击次数: " + str(NewCtrlPkt.Attacks[key]) + '\n'
+                            tmps += "攻击所属AS号: " + str(key) + '\n' # 若为0，则为未知AS来源的攻击
+                            tmps += "对应AS号的攻击次数: " + str(NewCtrlPkt.Attacks[key]) + '\n'
                         self.signals.output.emit(2, tmps)
 
 
