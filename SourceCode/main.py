@@ -66,6 +66,7 @@ class CoLoRApp(QApplication):
         # 取消qss格式
         self.setStyleSheet('')
         self.window.graphics_global.setBackground('#eee5ff')
+        self.window.speedGraph.setBackground('w')
         # 获取信号发起者名称，前6位为action，后面是相应主题名
         tmp = self.sender().objectName()[6:]
         # print(tmp)
@@ -74,6 +75,7 @@ class CoLoRApp(QApplication):
         elif tmp == 'Qdarkstyle':
             self.setStyleSheet(qds.load_stylesheet_pyqt5())
             self.window.graphics_global.setBackground('#4d4d4d')
+            self.window.speedGraph.setBackground('#000000')
         else:
             self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
 

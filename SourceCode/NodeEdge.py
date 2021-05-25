@@ -1,18 +1,21 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架的两个基类 '''
 
-from math import fabs, atan2, pi
+from math import fabs, atan2, pi, sin, cos, sqrt
 from PyQt5.QtWidgets import (
-    QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem, QStyle)
-from PyQt5.QtGui import QPen, QColor, QPixmap, QFont, QPainter, QBrush
-from PyQt5.QtCore import QObject, pyqtSignal, QRectF, QPointF, QLineF, Qt, qsrand, qrand, QTime
+    QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem,
+    QStyle, QGraphicsPolygonItem)
+from PyQt5.QtGui import (QPen, QColor, QPixmap,
+    QFont, QPainter, QBrush, QPolygonF)
+from PyQt5.QtCore import (QObject, pyqtSignal, QRectF,
+    QPointF, QLineF, Qt, qsrand, qrand, QTime)
 
 import resource_rc
 
 NodeTypeLen = 6
 NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR',
                 ':/icon/router', ':/icon/switching', ':/icon/PC']
-NodeZValue = [0, 10, 10, 10, 10, 10]
+NodeZValue = [1, 10, 10, 10, 10, 10]
 NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'agent']
 NodeSize = [256, 64, 64, 64, 64, 64]
 NodeNum = 0
@@ -44,6 +47,9 @@ class Node(QGraphicsPixmapItem):
         # 设置图像大小和偏移量
         self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
         self.setOffset(-self.size/2, -self.size/2)
+        # 设置点可选中可移动
+        self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
+        self.setZValue(NodeZValue[self.type])
 
         # 添加一个子文本类显示名字
         tmps = f"{self.name}"
@@ -55,15 +61,22 @@ class Node(QGraphicsPixmapItem):
             self.label.setPos(-80, -30)
             self.clicktime = 0
         else:
-            self.label.setPos(0, self.size/2)
+            self.label.setPos(-self.size/4, self.size/2)
         self.label.setPen(QPen(QColor('#ff8000'),0.5))
         self.label.setBrush(QColor(Qt.red))
         self.label.hide()
-
-        # 设置点可选中可移动
-        self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
+        if self.type == 5:
+            self.polygon = QPolygonF()
+            for i in range(12):
+                alpha = i*pi/6
+                r = self.size/2
+                x = r*cos(alpha)
+                y = r*sin(alpha)
+                if not (i&1):
+                    x *= sqrt(3)
+                    y *= sqrt(3)
+                self.polygon.append(QPointF(x,y))
         # 设置高度信息
-        self.setZValue(NodeZValue[self.type])
         self.label.setZValue(NodeZValue[self.type])
 
     def addClickTimes(self):
@@ -136,6 +149,11 @@ class Node(QGraphicsPixmapItem):
                 p.setPen(QPen(QColor("#ff8000"), 4))
                 bRect = QRectF(-self.size/2, -self.size/2, self.size, self.size)
                 p.drawRect(bRect)
+            elif self.type == 5:
+                p = painter
+                p.setPen(QPen(QColor("#ff8000"), 4))
+                p.setBrush(QColor(Qt.yellow))
+                p.drawPolygon(self.polygon)
         option.state = QStyle.State_None
         super().paint(painter, option, widget)
 

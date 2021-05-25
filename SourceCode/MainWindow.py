@@ -15,10 +15,12 @@ from serviceTable import serviceTableModel, progressBarDelegate
 from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
 from mainPage import Ui_MainWindow
+import pyqtgraph as pg
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, 
-    QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog, QMessageBox)
+    QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog,
+    QHeaderView, QTableWidgetItem)
 import os
 import sys
 import math
@@ -58,6 +60,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
         self.graphics_global.setNid(self.nid)
+
+        # 设置表格头伸展方式
+        self.metricTable.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.dataPktReceive.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.dataPktReceive.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+
+        # 设置速度图线格式
+        self.speed_x = [x*5 for x in range(20)]
+        self.speed_y = [0]*20
+        self.totalsize = 0
+        speedpen = pg.mkPen(color=(255,0,0))
+        self.speedGraph.setBackground('w')
+        self.speed_line = self.speedGraph.plot(self.speed_x, self.speed_y, pen=speedpen)
 
         # 添加右键菜单
         self.listView.addAction(self.action_reg)
@@ -173,7 +188,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.addLine.clicked.connect(self.setTopoEdgeEnable)
 
-        self.chooseRouter.clicked.connect(self.setTopoRouterEnable)
         self.graphics_global.signal_ret.choosenid.connect(
             lambda s: self.accessRouter.setText(s))
         self.graphics_global.signal_ret.chooseitem.connect(self.showItem)
@@ -187,11 +201,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lineType.currentIndexChanged.connect(self.setTopoLineType)
         self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
         self.timer.timeout.connect(self.showMetric)
+        self.timer.timeout.connect(self.updateSpeedLine)
         self.timer_message.timeout.connect(self.timerMessageClear)
 
         # 载入拓扑图，需要相关信号绑定完成后再载入
         self.graphics_global.loadTopo(DATA_PATH)
         self.timer.start()
+
+    def updateSpeedLine(self):
+        self.speed_x = self.speed_x[1:]
+        self.speed_x.append(self.speed_x[-1] + 5)
+        self.speed_y = self.speed_y[1:]
+        self.speed_y.append(self.totalsize)
+        self.totalsize = 0
+        self.speed_line.setData(self.speed_x, self.speed_y)
 
     def changeMetric(self, ASid, Type, size):
         ''' docstring: 修改AS统计量 '''
@@ -202,20 +225,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             item = self.asmetrics[ASid]
         item[Type][0] += 1
         item[Type][1] += size
+        self.totalsize += size
 
     def showMetric(self):
         ''' docstring: 刷新显示AS统计量 '''
-        strtmp = f'收到包的AS数量{len(self.asmetrics)}\n'
-        for (key,value) in self.asmetrics.items():
-            strtmp += '\t' + str(key) + ':\n'
+        # TODO: 显示统计量
+        row_num = len(self.asmetrics)
+        if row_num and self.metricTable.rowCount() != row_num*4:
+            self.metricTable.setRowCount(row_num*4)
+            for (i, (key, value)) in enumerate(self.asmetrics.items()):
+                self.metricTable.setItem(i*4+0,0,QTableWidgetItem(key))
+                self.metricTable.setItem(i*4+0,1,QTableWidgetItem('get num'))
+                self.metricTable.setItem(i*4+1,1,QTableWidgetItem('get size'))
+                self.metricTable.setItem(i*4+2,1,QTableWidgetItem('data num'))
+                self.metricTable.setItem(i*4+3,1,QTableWidgetItem('data size'))
+        for (i, (key, value)) in enumerate(self.asmetrics.items()):
             getnum, getsize = value[0]
             datanum, datasize = value[1]
-            strtmp += '\t\t收到的get包 num = ' + str(getnum)
-            strtmp += '\tsize = ' + str(getsize) + '\n'
-            strtmp += '\t\t收到的data包 num = ' + str(datanum)
-            strtmp += '\tsize = ' + str(datasize) + '\n'
-        self.metrics.clear()
-        self.metrics.setText(strtmp)
+            self.metricTable.setItem(i*4+0,2,QTableWidgetItem(str(getnum)))
+            self.metricTable.setItem(i*4+1,2,QTableWidgetItem(str(getsize)))
+            self.metricTable.setItem(i*4+2,2,QTableWidgetItem(str(datanum)))
+            self.metricTable.setItem(i*4+3,2,QTableWidgetItem(str(datasize)))
 
     def chooseASs(self, flag):
         if flag:
@@ -301,9 +331,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.setStatus('')
         if not self.graphics_global.setMatchedPIDs(item.text(2)):
             self.setStatus('匹配失败')
-
-    def setTopoRouterEnable(self):
-        self.graphics_global.accessrouterenable = True
 
     def setTopoEdgeEnable(self):
         self.graphics_global.addedgeenable = True
@@ -723,14 +750,14 @@ if __name__ == '__main__':
     window = MainWindow()
     window.show()
 
-    # # 测试收包匹配功能
-    # window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
-    # window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
-    # window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
-    # window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
-    # window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
-    # window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
-    # window.getPathFromPkt(0x74, '', [], 20, 0)
+    # 测试收包匹配功能
+    window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
+    window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
+    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
+    window.getPathFromPkt(0x74, '', [], 20, 0)
     # 测试告警信息显示功能
     window.handleMessageFromPkt(2, 'test1\ncontent1\n')
     window.handleMessageFromPkt(2, 'test2\ncontent2\n')

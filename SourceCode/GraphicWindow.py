@@ -29,7 +29,6 @@ class GraphicWindow(QWidget):
         self.view = topoGraphView(self.scene, self)
         self.addedgetype = 0
         self.addedgeenable = False
-        self.accessrouterenable = False
         self.findpathenable = False
         self.labelenable = True
         self.chooseASenable = False
@@ -104,11 +103,8 @@ class GraphicWindow(QWidget):
             source_item.dropMimeData(data, Qt.CopyAction, 0, 0, QModelIndex())
             nodename = source_item.item(0, 0).text()
             # print(nodename)
-            if nodename == 'cloud':
-                num = 0
-                for item in self.scene.items():
-                    if isinstance(item, Node) and not item.type:
-                        num += 1
+            if nodename == 'AS':
+                num = len(self.scene.ASinfo)
                 node = Node(nodetype=0, nodename='AS'+str(num + 1))
                 self.scene.belongAS[node.id] = node
                 self.scene.ASinfo[node.id] = [node]
@@ -121,10 +117,14 @@ class GraphicWindow(QWidget):
             elif nodename == 'switch':
                 node = Node(nodetype=4)
             elif nodename == 'PC':
-                node = Node(nodetype=5)
+                if self.scene.node_me:
+                    return
+                node = Node(nodetype=5, nodename='Me')
+                self.node_me = node
             pos = self.view.mapToScene(event.pos())
             item = self.view.getItemAtClick(event)
             if item and not item.type:
+                # print(item.type, item.name)
                 self.scene.belongAS[node.id] = item
                 self.scene.ASinfo[item.id].append(node)
                 item.modifyCount(1)
@@ -278,7 +278,7 @@ class GraphicWindow(QWidget):
 
     def getASid(self, PIDs, Type, size):
         ''' docstring: 获取所对应PIDs序列末端节点所属AS号，顺便存储收发包参数 '''
-        print(PIDs)
+        # print(PIDs)
         posl = PIDs.find('<')
         posr = PIDs.find('>')
         lastPID = PIDs[posl:posr]
