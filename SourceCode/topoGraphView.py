@@ -48,7 +48,9 @@ class topoGraphView(QGraphicsView):
 
     def removeNode(self, item):
         ''' docstring: 删除节点 '''
+        # print(item.name, item.id)
         if item.type == 0 and len(self.scene().ASinfo[item.id]) > 1:
+            # print([x.id for x in self.scene().ASinfo[item.id]])
             return
         tmpas = self.scene().belongAS.pop(item.id, None)
         if tmpas:
@@ -70,6 +72,7 @@ class topoGraphView(QGraphicsView):
         ''' docstring: 鼠标按压事件 '''
         item = self.getItemAtClick(event)
         if event.button() == Qt.RightButton:
+            # print(item.name, item.id)
             if isinstance(item, Node):
                 if item is self.scene().node_me:
                     self.scene().node_me = None

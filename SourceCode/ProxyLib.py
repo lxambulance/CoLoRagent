@@ -290,7 +290,7 @@ class ControlPkt():
                     self.BRNid = (self.BRNid << 8) + Pkt[pointer]
                     pointer += 1
                 self.Attacks = {}
-                for i in range((self.DataLength-16)/5):
+                for i in range((self.DataLength-16)//5):
                     ASNum = Pkt[pointer]
                     pointer += 1
                     AttackCount = 0
