@@ -473,10 +473,11 @@ class DataPkt():
                 for i in range(16):
                     self.nid_cus = (self.nid_cus << 8) + Pkt[pointer]
                     pointer += 1
-            self.nid_pro = 0
-            for i in range(16):
-                self.nid_pro = (self.nid_pro << 8) + Pkt[pointer]
-                pointer += 1
+            if(self.B == 1 or self.R == 1):
+                self.nid_pro = 0
+                for i in range(16):
+                    self.nid_pro = (self.nid_pro << 8) + Pkt[pointer]
+                    pointer += 1
             if(self.Q == 1):
                 QosLen = Pkt[pointer]
                 pointer += 1
@@ -536,7 +537,8 @@ class DataPkt():
                 self.L_sid = int(SID, 16)
             if(self.B == 0):
                 # 普通数据报文
-                self.nid_pro = Nid
+                if(self.R == 1):
+                    self.nid_pro = Nid
                 self.nid_cus = nid_cus
             elif(self.B == 1):
                 # ACK报文
@@ -550,8 +552,8 @@ class DataPkt():
             if(self.M == 1):
                 self.HeaderLength += 2
             self.HeaderLength += 52
-            if(self.B == 0):
-                self.HeaderLength += 16  # nid_customer的长度
+            if(self.B == 0 and self.R == 1):
+                self.HeaderLength += 16  # 存在两个nid字段
             if(self.Q == 1):
                 self.HeaderLength += 1 + len(self.QoS)/2
             if(self.C == 1):
@@ -586,7 +588,8 @@ class DataPkt():
             TarRest += ConvertInt2Bytes(0, 20)
         if(self.B == 0):
             TarRest += ConvertInt2Bytes(self.nid_cus, 16)
-        TarRest += ConvertInt2Bytes(self.nid_pro, 16)
+        if(self.B == 1 or self.R == 1):
+            TarRest += ConvertInt2Bytes(self.nid_pro, 16)
         if(self.Q == 1):
             QosLen = len(self.QoS)/2
             TarRest += ConvertInt2Bytes(QosLen, 1)
