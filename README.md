@@ -602,7 +602,7 @@ scapy报文存在三种格式，**i**(nternal)是scapy内部存储的格式，�
 
 定义报文只需要编写fields_desc列表各字段格式，[教程文档](https://scapy.readthedocs.io/en/latest/build_dissect.html)里详细介绍了报文定义之后后续代码如何转换，简单来说Packet使用Field类定义各字段，Field类不是一个个实体，反而有点像一个专用处理组件，负责处理自己这个字段的格式转换，然后Packet工厂按字段顺序交给组件处理，最后拼接形成网络报文，还比较有趣。
 
-遇到的第一个比较头疼的问题是Field字段大小，一下给了一些常用字段大小，看名字基本可以猜出字段大小，然后前面加**X**表示16进制，加**Signed**表示有符号数，加**LE**表示字段为小端表示。其他有些可以自定义大小，非常方便。
+遇到的第一个比较头疼的问题是Field字段大小，一下给了一些常用字段大小，看名字基本可以猜出字段大小，然后前面加**X**表示16进制，加**Signed**表示有符号数，加**LE**表示字段为小端表示。其他有些可以自定义大小，非常方便，具体如何可以使用参考源码。
 
 ```python
 ByteField
@@ -643,5 +643,40 @@ FlagsField
 FloatField
 ```
 
-第二个主要使用的功能是，scapy比较
+第二个主要使用的功能是变长类型字段，有一个字段描述列表字段个数或长度，然后列表字段存储相应个数或长度的内容，这个只需要使用在字段后加count_of和count_from即可（长度对应length_of和length_from），如下代码所示，值得注意的是adjust可以调整count出的结果，对于一些数量不实际对应列表数量的字段非常方便。这里有一点疑惑的是为什么需要两个函数，一个count_of，一个count_from而且二者看起来是反函数。原因是两者用于不同的流程，一是构造，一是解包，前者需要在生成时自动统计个数，后者需要在解析时确定列表大小。
 
+```python
+class TestPLF(Packet):
+    fields_desc=[ 
+        FieldLenField("len", None, count_of="plist", 
+        	adjust=lambda pkt,x:x),
+        PacketListField("plist", None, IP,
+        	count_from=lambda pkt:pkt.len)
+    ]
+```
+
+第三个主要使用的功能是后处理自动计算checksum字段。使用post_build函数可以在基本字段构造完后，再处理一些需要最后处理的字段，比如报文总长度和checksum，具体代码如下。这个时候需要直接操作最后的网络报文，需要知道对应字段所在字节位置，另外这个结果是个python的bytes类型。
+
+```python
+def post_build(self, pkt, pay):
+        if self.header_length is None:
+            self.header_length = len(pkt)
+            pkt = pkt[:6] + int2Bytes(self.header_length, 1) + pkt[7:]
+        if self.pkg_length is None:
+            self.pkg_length = len(pkt) + len(pay)
+            pkt = pkt[:2] + int2BytesLE(self.pkg_length, 2) + pkt[4:]
+        if self.checksum is None:
+            self.checksum = CalcChecksum(pkt)
+            pkt = pkt[:4] + int2Bytes(self.checksum, 2) + pkt[6:]
+        # print(self.pkg_length, self.header_length, self.checksum)
+        return pkt + pay
+```
+
+最后要说的是scapy一个比较灵活的胶水语言特性，bind_layers函数，用法如下，然后构造是可以直接在CoLoR_Control包后边接IP_nid包，解析时也会根据tag推敲后续包类型。比较坑爹的一点是无法处理冲突，即有多个条件满足的时候是会使用第一个定义类型，所以有时候不如不用。bind_layers更进一步的推导函数是guess_payload_class(self, payload)，它可以有更丰富的条件判断。
+
+```python
+# 用于解析时推导负载字段
+bind_layers(CoLoR_Control, IP_nid, tag="PROXY_REGISTER")
+# 用于构建时自动填写tag字段
+bind_layers(CoLoR_Control, IP_nid, {'tag':5})
+```
