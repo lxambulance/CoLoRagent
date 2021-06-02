@@ -29,6 +29,7 @@
 - 2021.3.30 删除了无用的页面，增加和细化了一些功能。
 - 2021.4.25 完成了一次完整联调，还有待改进的点，以及一些小功能。
 - 2021.5.11 完成了联调，主要功能完成，操作体验上还有优化空间。
+- 2021.6.1 研究了scapy发包库，添加了一些测试工具，接下去要从界面设计，后续功能添加等方面考虑。
 
 作为git练习，dev分支可能会出现许多无聊地、甚至错误地提交。
 
@@ -590,4 +591,57 @@ subject是commit目的的简短描述，不超过50个字符。
 fix(DAO):用户查询缺少username属性
 feat(Controller):用户查询接口开发
 ```
+
+### F. Scapy定义新协议
+
+scapy是一个有趣的可以交互的网络工具库，当前为了方便发包，详细阅读了相关教程文档[Adding a new protocols](https://scapy.readthedocs.io/en/latest/build_dissect.html)，完成了几个小工具，文件均存放在test/下，后续可能用来做交互界面。
+
+scapy的强大在于写完包格式框架后，对于一段网络报文，它可以自己推导构建，省去了诸多不方便的地方，另外还可以诸如自动计算checksum，pkg_length等报文字段，用 **/** 符号可以连接上下层协议。以下记录了一些使用心得。
+
+scapy报文存在三种格式，**i**(nternal)是scapy内部存储的格式，与python对象基本没有区别，各种字段的值就是int或str或list；**m**(achine)是网络报文格式，是实际发包的内容，一般在发包前做最后的转化；**h**(uman)是便于人类读取的格式，将python对象有层次的展示出来，便于命令行交互。
+
+定义报文只需要编写fields_desc列表各字段格式，[教程文档](https://scapy.readthedocs.io/en/latest/build_dissect.html)里详细介绍了报文定义之后后续代码如何转换，简单来说Packet使用Field类定义各字段，Field类不是一个个实体，反而有点像一个专用处理组件，负责处理自己这个字段的格式转换，然后Packet工厂按字段顺序交给组件处理，最后拼接形成网络报文，还比较有趣。
+
+遇到的第一个比较头疼的问题是Field字段大小，一下给了一些常用字段大小，看名字基本可以猜出字段大小，然后前面加**X**表示16进制，加**Signed**表示有符号数，加**LE**表示字段为小端表示。其他有些可以自定义大小，非常方便。
+
+```python
+ByteField
+XByteField
+
+ShortField
+SignedShortField
+LEShortField
+XShortField
+
+X3BytesField        # three bytes as hex
+LEX3BytesField      # little endian three bytes as hex
+ThreeBytesField     # three bytes as decimal
+LEThreeBytesField   # little endian three bytes as decimal
+
+IntField
+SignedIntField
+LEIntField
+LESignedIntField
+XIntField
+
+LongField
+SignedLongField
+LELongField
+LESignedLongField
+XLongField
+LELongField
+
+IEEEFloatField
+IEEEDoubleField
+BCDFloatField       # binary coded decimal
+
+BitField
+XBitField
+
+BitFieldLenField    # BitField specifying a length (used in RTP)
+FlagsField
+FloatField
+```
+
+第二个主要使用的功能是，scapy比较
 

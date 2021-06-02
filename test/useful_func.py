@@ -1,3 +1,6 @@
+# coding=utf-8
+
+
 def CalcChecksum(tar):
     ''' docstring: 校验和计算 tar: bytes字符串 '''
     length = len(tar)
@@ -26,3 +29,4 @@ def int2BytesLE(data, length):
     ''' docstring: 将int类型转成bytes类型（小端存储）
     # data：目标数字，length：目标字节数 '''
     return data.to_bytes(length, byteorder='little')
+

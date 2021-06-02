@@ -1,6 +1,11 @@
-from scapy.all import *
-from useful_func import (
-    CalcChecksum, int2BytesLE, int2Bytes)
+# coding=utf-8
+''' docstring: Get包格式 '''
+
+from scapy.all import (
+    Packet,BitField,ByteField,ShortField,XShortField,LEShortField,
+    FieldLenField,FlagsField,StrFixedLenField,FieldListField,
+    ConditionalField,StrLenField,IntField,bind_layers,IP)
+from useful_func import (CalcChecksum, int2BytesLE, int2Bytes)
 
 
 class CoLoR_Get(Packet):
@@ -9,7 +14,7 @@ class CoLoR_Get(Packet):
         BitField("Version", 7, 4, tot_size=1),
         BitField("Package", 2, 4, end_tot_size=1),
         ByteField("TTL", 64),
-        ShortField("pkg_length", None),
+        LEShortField("pkg_length", None),
         XShortField("checksum", None),
         ShortField("MTU", None),
         FieldLenField("PID_num", None, fmt="B", count_of="PIDs"),
@@ -43,3 +48,16 @@ class CoLoR_Get(Packet):
             self.checksum = CalcChecksum(pkt)
             pkt = pkt[:4] + int2Bytes(self.checksum, 2) + pkt[6:]
         return pkt + pay
+
+
+if __name__ == '__main__':
+    from scapy.all import *
+    bind_layers(IP, CoLoR_Get, proto=150)
+    bind_layers(IP, CoLoR_Get, {'proto':150})
+    a = CoLoR_Get()
+    a.N_sid = b'\xff'*16
+    a.L_sid = b'\x01'*20
+    a.nid = b'\xf0'*16
+    a.PIDs = [b'\x99\x01\x66\x55',b'\x90\x01\x22\x11']
+    pkt = IP(dst="192.168.50.192")/a
+    send(pkt, verbose=0)
