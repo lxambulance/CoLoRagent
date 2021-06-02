@@ -36,7 +36,7 @@ class PktHandler(threading.Thread):
         self.signals = pktSignals()
 
     def run(self):
-        if 'Raw' in self.packet:
+        if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4):
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
             if(PL.RegFlag == 0):
@@ -80,10 +80,13 @@ class PktHandler(threading.Thread):
                         NewSid += hex(NewGetPkt.L_sid).replace('0x',
                                                                '').zfill(40)
                     self.signals.pathdata.emit(0x72, NewSid, NewGetPkt.PIDs, NewGetPkt.PktLength, NewGetPkt.nid)
+                    PL.Lock_AnnSidUnits.acquire()
                     if NewSid not in PL.AnnSidUnits.keys():
+                        PL.Lock_AnnSidUnits.release()
                         return
                     # 返回数据
                     SidPath = PL.AnnSidUnits[NewSid].path
+                    PL.Lock_AnnSidUnits.release()
                     NidCus = NewGetPkt.nid
                     PIDs = NewGetPkt.PIDs.copy()
                     # 按最大长度减去IP报文和DATA报文头长度(QoS暂默认最长为1字节)，预留位占4字节，数据传输结束标志位位于负载内占1字节
@@ -145,13 +148,16 @@ class PktHandler(threading.Thread):
                         NewSid += hex(RecvDataPkt.L_sid).replace('0x',
                                                                  '').zfill(40)
                     # 暂时将全部收到的校验和正确的data包显示出来
-                    self.signals.pathdata.emit(0x73, NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, 0)
+                    self.signals.pathdata.emit(0x73|(RecvDataPkt.B<<8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, 0)
                     if(RecvDataPkt.B == 0):
                         # 收到数据包，存储到本地并返回ACK
                         # 判断是否为当前代理请求内容
+                        PL.Lock_gets.acquire()
                         if NewSid not in PL.gets.keys():
+                            PL.Lock_gets.release()
                             return
                         SavePath = PL.gets[NewSid]
+                        PL.Lock_gets.release()
                         if NewSid not in RecvingSid.keys():
                             # 新内容
                             if (RecvDataPkt.load[0] == 1):
@@ -206,11 +212,13 @@ class PktHandler(threading.Thread):
                         PL.SendIpv4(ReturnIP, Tar)
                     else:
                         # ACK包
-                        if NewSid not in SendingSid.keys():
+                        if (NewSid not in SendingSid.keys()) or (RecvDataPkt.SegID != SendingSid[NewSid][2]-1):
                             return
                         if(SendingSid[NewSid][0] > SendingSid[NewSid][2]):
                             # 发送下一片
+                            PL.Lock_AnnSidUnits.acquire()
                             SidPath = PL.AnnSidUnits[NewSid].path
+                            PL.Lock_AnnSidUnits.release()
                             lpointer = SendingSid[NewSid][1] * \
                                 SendingSid[NewSid][2]
                             if(SendingSid[NewSid][0] == SendingSid[NewSid][2]+1):
@@ -252,8 +260,8 @@ class PktHandler(threading.Thread):
                         else:
                             # 发送完成，删除Sending信息
                             SendingSid.pop(NewSid)
-                elif (data[0] == 0x74) and (data[5] == 8):
-                    # 收到网络中的control报文，此处特指新proxy信息
+                elif data[0] == 0x74:
+                    # 收到网络中的control报文
                     # 校验和检验
                     CS = PL.CalculateCS(data[0:8])
                     if(CS != 0):
@@ -261,9 +269,31 @@ class PktHandler(threading.Thread):
                     # 解析报文内容
                     NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
                     self.signals.pathdata.emit(0x74, "", [], NewCtrlPkt.HeaderLength+ NewCtrlPkt.DataLength, 0)
-                    if NewCtrlPkt.ProxyNid != PL.Nid:
-                        # 过滤本代理信息
-                        PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP
+                    if (NewCtrlPkt.tag == 8):
+                        # 新proxy信息
+                        if NewCtrlPkt.ProxyNid != PL.Nid:
+                            # 过滤本代理信息
+                            PL.PeerProxys[NewCtrlPkt.ProxyNid] = NewCtrlPkt.ProxyIP
+                    elif (NewCtrlPkt.tag == 17):
+                        # DATA包泄露警告
+                        NewSid = ''
+                        if NewCtrlPkt.N_sid != 0:
+                            NewSid += hex(NewCtrlPkt.N_sid).replace('0x',
+                                                                '').zfill(32)
+                        if NewCtrlPkt.L_sid != 0:
+                            NewSid += hex(NewCtrlPkt.L_sid).replace('0x',
+                                                                '').zfill(40)
+                        tmps = "泄露DATA包的节点源IP: " + NewCtrlPkt.ProxyIP + '\n'
+                        tmps += "泄露DATA包内含的SID: " + NewSid + '\n'
+                        tmps += "泄露DATA包的目的NID: " + f"{NewCtrlPkt.CusNid:032x}"
+                        self.signals.output.emit(2, tmps)
+                    elif (NewCtrlPkt.tag == 18):
+                        # 外部攻击警告
+                        tmps = "告警BR所属NID: " + f"{NewCtrlPkt.BRNid:032x}" + '\n'
+                        for key in NewCtrlPkt.Attacks.keys():
+                            tmps += "攻击所属AS号: " + str(key) + '\n' # 若为0，则为未知AS来源的攻击
+                            tmps += "对应AS号的攻击次数: " + str(NewCtrlPkt.Attacks[key]) + '\n'
+                        self.signals.output.emit(2, tmps)
 
 
 class ControlPktSender(threading.Thread):

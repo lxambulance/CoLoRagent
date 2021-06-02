@@ -19,11 +19,13 @@ class logInWindow(QDialog, Ui_Dialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+
         if not os.path.exists(DATA_PATH):
             self.configpath = None
             self.filetmppath = None
             self.myNID = None
             self.myIPv4 = None
+            self.rmIPv4 = None
         else:
             self.autoFillForm(DATA_PATH)
             self.filetmppath = HOME_DIR
@@ -34,6 +36,7 @@ class logInWindow(QDialog, Ui_Dialog):
         self.buttonBox.accepted.connect(self.checkInput)
         self.agentNID.textChanged.connect(self.setNID)
         self.agentIPv4.textChanged.connect(self.setIPv4)
+        self.RMIPv4.textChanged.connect(self.setRMIPv4)
 
     def setNID(self, text):
         self.myNID = text
@@ -41,8 +44,11 @@ class logInWindow(QDialog, Ui_Dialog):
     def setIPv4(self, text):
         self.myIPv4 = text
 
+    def setRMIPv4(self, text):
+        self.rmIPv4 = text
+
     def checkInput(self):
-        ''' docstring: TODO 验证输入合法性 '''
+        ''' docstring: 将输入写回文件。TODO 验证输入合法性 '''
         flag = True
         pass
         if flag:
@@ -51,6 +57,7 @@ class logInWindow(QDialog, Ui_Dialog):
             __raw_data['filetmppath'] = self.filetmppath
             __raw_data['myNID'] = self.myNID
             __raw_data['myIPv4'] = self.myIPv4
+            __raw_data['RMIPv4'] = self.rmIPv4
             with open(self.configpath, 'w') as f:
                 json.dump(__raw_data, f)
 
@@ -66,6 +73,8 @@ class logInWindow(QDialog, Ui_Dialog):
             self.agentNID.setText(self.myNID)
             self.myIPv4 = __raw_data.get('myIPv4', None)
             self.agentIPv4.setText(self.myIPv4)
+            self.rmIPv4 = __raw_data.get('RMIPv4', None)
+            self.RMIPv4.setText(self.rmIPv4)
 
     def getConfigPath(self):
         configpath = QFileDialog.getOpenFileName(self, '请选择配置文件', BASE_DIR)
@@ -84,9 +93,3 @@ if __name__ == '__main__':
     window = logInWindow()
     window.show()
     sys.exit(app.exec_())
-
-'''
-f = open('./test/datatest_human.db','w')
-json.dump(a,f, indent=4, sort_keys=True, separators=(',', ':'))
-f.close()
-'''

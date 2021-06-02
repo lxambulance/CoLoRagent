@@ -15,10 +15,12 @@ from serviceTable import serviceTableModel, progressBarDelegate
 from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
 from mainPage import Ui_MainWindow
+import pyqtgraph as pg
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, 
-    QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog)
+    QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog,
+    QHeaderView, QTableWidgetItem)
 import os
 import sys
 import math
@@ -46,6 +48,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         FD.HOME_DIR = HOME_DIR
         # 用于统计频率和AS统计
         self.timer = QTimer()
+        self.timer_message = QTimer()
+        self.messagebox = None
         self.timer.setInterval(5000)
         self.asmetrics = {} # id:[(get num, get total size),(data num, data total size)]
 
@@ -56,6 +60,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
         self.graphics_global.setNid(self.nid)
+
+        # 设置表格头伸展方式
+        self.metricTable.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.dataPktReceive.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.dataPktReceive.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+
+        # 设置速度图线格式
+        self.speed_x = [x*5 for x in range(20)]
+        self.speed_y = [0]*20
+        self.totalsize = 0
+        speedpen = pg.mkPen(color=(255,0,0))
+        self.speedGraph.setBackground('w')
+        self.speed_line = self.speedGraph.plot(self.speed_x, self.speed_y, pen=speedpen)
 
         # 添加右键菜单
         self.listView.addAction(self.action_reg)
@@ -130,8 +147,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
         self.tableView.hide()
-        self.splitter_horizon.setSizes([300, 300, 500])
-        self.splitter_vertical.setSizes([700, 500])
+        self.splitter_horizon.setSizes([120, 120, 680])
+        self.splitter_vertical.setSizes([850, 350])
 
         # 设置线程池 TODO: 线程池放到窗口外面
         self.threadpool = QThreadPool()
@@ -171,9 +188,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.addLine.clicked.connect(self.setTopoEdgeEnable)
 
-        self.graphics_global.scene.chooseRouter.connect(self.setAccessRouter)
-        self.graphics_global.scene.choosePath.connect(self.setPath)
-        self.chooseRouter.clicked.connect(self.setTopoRouterEnable)
         self.graphics_global.signal_ret.choosenid.connect(
             lambda s: self.accessRouter.setText(s))
         self.graphics_global.signal_ret.chooseitem.connect(self.showItem)
@@ -187,10 +201,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lineType.currentIndexChanged.connect(self.setTopoLineType)
         self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
         self.timer.timeout.connect(self.showMetric)
+        self.timer.timeout.connect(self.updateSpeedLine)
+        self.timer_message.timeout.connect(self.timerMessageClear)
 
         # 载入拓扑图，需要相关信号绑定完成后再载入
         self.graphics_global.loadTopo(DATA_PATH)
         self.timer.start()
+
+    def updateSpeedLine(self):
+        self.speed_x = self.speed_x[1:]
+        self.speed_x.append(self.speed_x[-1] + 5)
+        self.speed_y = self.speed_y[1:]
+        self.speed_y.append(self.totalsize)
+        self.totalsize = 0
+        self.speed_line.setData(self.speed_x, self.speed_y)
 
     def changeMetric(self, ASid, Type, size):
         ''' docstring: 修改AS统计量 '''
@@ -201,20 +225,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             item = self.asmetrics[ASid]
         item[Type][0] += 1
         item[Type][1] += size
+        self.totalsize += size
 
     def showMetric(self):
         ''' docstring: 刷新显示AS统计量 '''
-        strtmp = f'收到包的AS数量{len(self.asmetrics)}\n'
-        for (key,value) in self.asmetrics.items():
-            strtmp += '\t' + str(key) + ':\n'
+        # TODO: 显示统计量
+        row_num = len(self.asmetrics)
+        if row_num and self.metricTable.rowCount() != row_num*4:
+            self.metricTable.setRowCount(row_num*4)
+            for (i, (key, value)) in enumerate(self.asmetrics.items()):
+                self.metricTable.setItem(i*4+0,0,QTableWidgetItem(key))
+                self.metricTable.setItem(i*4+0,1,QTableWidgetItem('get num'))
+                self.metricTable.setItem(i*4+1,1,QTableWidgetItem('get size'))
+                self.metricTable.setItem(i*4+2,1,QTableWidgetItem('data num'))
+                self.metricTable.setItem(i*4+3,1,QTableWidgetItem('data size'))
+        for (i, (key, value)) in enumerate(self.asmetrics.items()):
             getnum, getsize = value[0]
             datanum, datasize = value[1]
-            strtmp += '\t\t收到的get包 num = ' + str(getnum)
-            strtmp += '\tsize = ' + str(getsize) + '\n'
-            strtmp += '\t\t收到的data包 num = ' + str(datanum)
-            strtmp += '\tsize = ' + str(datasize) + '\n'
-        self.metrics.clear()
-        self.metrics.setText(strtmp)
+            self.metricTable.setItem(i*4+0,2,QTableWidgetItem(str(getnum)))
+            self.metricTable.setItem(i*4+1,2,QTableWidgetItem(str(getsize)))
+            self.metricTable.setItem(i*4+2,2,QTableWidgetItem(str(datanum)))
+            self.metricTable.setItem(i*4+3,2,QTableWidgetItem(str(datasize)))
 
     def chooseASs(self, flag):
         if flag:
@@ -242,12 +273,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.graphics_global.addedgeenable = True
         self.graphics_global.addedgetype = self.lineType.currentIndex()
 
-    def setAccessRouter(self, s):
-        self.accessRouter.setText(s)
-
-    def setPath(self, paths):
-        print(paths)
-
     def getPathFromPkt(self, type, SID, paths, size, nid):
         ''' docstring: 收包显示 '''
         name = 'Unknown packet'
@@ -255,10 +280,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if SID == self.fd.getData(i,2):
                 name = self.fd.getData(i,0)
                 break
-        if type == 0x72:
+        if (type&0xff) == 0x72:
             name = '<Get>' + name
-        elif type == 0x73:
-            name = '<Data>' + name
+        elif (type&0xff) == 0x73:
+            if not ((type >> 8) & 1):
+                name = '<Data>' + name
+                paths = paths[1:]
+            else:
+                name = '<Data Ack>' + name
+            paths.reverse()
         else:
             name = '<Control> packet'
         item = self.mapfromSIDtoItem.get(name+SID, None)
@@ -269,19 +299,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.mapfromSIDtoItem[name+SID] = self.datapackets[-1]
             item = self.datapackets[-1]
         path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
-        if type == 0x72:
+        if (type&0xff) == 0x72:
             item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
-            ASid = self.graphics_global.getASid(path_str)
-            print(ASid)
+            self.graphics_global.setMatchedPIDs(path_str, flag=False)
+            ASid = self.graphics_global.getASid(path_str, 0, size)
+            # print(ASid)
             if ASid:
                 self.changeMetric(ASid,0,size)
-        elif type == 0x73:
+        elif (type&0xff) == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), "PIDs="+path_str]))
+            self.graphics_global.setMatchedPIDs(path_str, flag=False)
             totsize = int(item.text(1))
             item.setText(1, str(totsize+size))
-            ASid = self.graphics_global.getASid(path_str)
-            print(ASid)
+            ASid = self.graphics_global.getASid(path_str, 1, size)
+            # print(ASid)
             if ASid:
                 self.changeMetric(ASid,1,size)
         else:
@@ -293,11 +325,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #print(item.text(column))
         pitem = item.parent()
         if not pitem or 'Control' in pitem.text(0):
+            self.setStatus('选择正确的包可显示匹配')
             return
-        self.graphics_global.setMatchedPIDs(item.text(2))
-
-    def setTopoRouterEnable(self):
-        self.graphics_global.accessrouterenable = True
+        else:
+            self.setStatus('')
+        if not self.graphics_global.setMatchedPIDs(item.text(2)):
+            self.setStatus('匹配失败')
 
     def setTopoEdgeEnable(self):
         self.graphics_global.addedgeenable = True
@@ -591,8 +624,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 恢复初始视图格式 '''
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
-        self.splitter_horizon.setSizes([300, 300, 500])
-        self.splitter_vertical.setSizes([700, 500])
+        self.splitter_horizon.setSizes([120, 120, 680])
+        self.splitter_vertical.setSizes([850, 350])
 
     def openHub(self):
         ''' docstring: 打开本地仓库 '''
@@ -608,9 +641,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif len(nowSelectItem) != 1:
             self.setStatus('选中文件过多')
             return
-        print(nowSelectItem[0])
+        # print(nowSelectItem[0])
         tmp = self.fd.getData(nowSelectItem[0], 1)
-        print(tmp)
+        # print(tmp)
         if not os.path.exists(tmp) or not tmp:
             self.setStatus('文件不存在')
             return
@@ -693,19 +726,40 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif messageType == 1:
             # 收到warning
             self.textEdit.append('<warning> ' + message + '\n')
+        elif messageType == 2:
+            # 收到攻击警告
+            self.textEdit.append('<attacking>' + message + '\n')
+            if not self.messagebox:
+                self.messagebox = QMessageBox(self)
+                self.messagebox.setWindowTitle('<Attacking>')
+                self.messagebox.setText(message)
+                self.messagebox.setModal(False)
+                self.messagebox.buttonClicked.connect(self.timerMessageClear)
+                self.messagebox.show()
+                self.timer_message.start(3000)
         else:
             self.setStatus('无效的后端信息')
 
+    def timerMessageClear(self):
+        self.timer_message.stop()
+        self.messagebox.done(1)
+        self.messagebox = None
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
 
+    # 测试收包匹配功能
     window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
-    window.getPathFromPkt(0x72, '123', [0x11222695,0x33446217], 1500, 0x23)
-    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x33446217], 1000, 0)
-    window.getPathFromPkt(0x73, 'abc', [0x11225689,0x33446217], 100, 0)
+    window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
+    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
     window.getPathFromPkt(0x74, '', [], 20, 0)
+    # 测试告警信息显示功能
+    window.handleMessageFromPkt(2, 'test1\ncontent1\n')
+    window.handleMessageFromPkt(2, 'test2\ncontent2\n')
 
     sys.exit(app.exec_())

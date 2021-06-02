@@ -37,6 +37,7 @@ class CoLoRApp(QApplication):
         # 初始化本终端信息
         CM.PL.IPv4 = self.loginwindow.myIPv4
         CM.PL.Nid = int('0x'+self.loginwindow.myNID, 16)
+        CM.PL.rmIPv4 = self.loginwindow.rmIPv4
         mw.HOME_DIR = self.loginwindow.filetmppath
         mw.DATA_PATH = self.loginwindow.configpath
         # print(f'before HOME_DIR{mw.HOME_DIR} DATA_PATH{mw.DATA_PATH}')
@@ -52,7 +53,7 @@ class CoLoRApp(QApplication):
         )
         thread_monitor.setDaemon(True)
         thread_monitor.start()
-        # CM.PL.RegFlag=1
+        CM.PL.RegFlag=1
         # time.sleep(2)
         # CM.PL.AddCacheSidUnit('F:\\ProjectCloud\\test\\testfile1.txt',1,1,1,1)
         # CM.PL.SidAnn()
@@ -65,6 +66,7 @@ class CoLoRApp(QApplication):
         # 取消qss格式
         self.setStyleSheet('')
         self.window.graphics_global.setBackground('#eee5ff')
+        self.window.speedGraph.setBackground('w')
         # 获取信号发起者名称，前6位为action，后面是相应主题名
         tmp = self.sender().objectName()[6:]
         # print(tmp)
@@ -73,6 +75,7 @@ class CoLoRApp(QApplication):
         elif tmp == 'Qdarkstyle':
             self.setStyleSheet(qds.load_stylesheet_pyqt5())
             self.window.graphics_global.setBackground('#4d4d4d')
+            self.window.speedGraph.setBackground('#000000')
         else:
             self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
 

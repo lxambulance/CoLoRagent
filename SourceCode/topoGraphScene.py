@@ -2,29 +2,50 @@
 ''' docstring: scene/view模型框架 '''
 
 from random import shuffle
-from math import pi
+from math import pi, fabs
 from json import load, dump
 from math import pi, sin, cos
 from queue import Queue
-from PyQt5.QtWidgets import QGraphicsScene
-from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal
+from PyQt5.QtGui import QColor, QPen, QPixmap
+from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsPixmapItem, QGraphicsScene
+from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal, Qt
+from scapy.fields import X3BytesField
 
 from NodeEdge import Node, Edge
+import resource_rc
 
+
+def Cross(a, b, o):
+    return (a.x()-o.x())*(b.y()-o.y())-(a.y()-o.y())*(b.x()-o.x())
+
+def sgn(x):
+    if fabs(x) < 1e-8:
+        return 0
+    return 1 if x > 0 else 0
 
 class topoGraphScene(QGraphicsScene):
     ''' docstring: 场景模型类 '''
-    chooseRouter = pyqtSignal(str)
-    choosePath = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.tmpnode = None
+        self.tmpnode_transparent = None
         self.tmpedge = None
+        # 添加特殊节点用于收包动画显示
+        self.node_file = QGraphicsEllipseItem(-12,-12,24,24)
+        self.node_file_img = QGraphicsPixmapItem(
+            QPixmap(':/icon/document').scaled(50, 50),
+            self.node_file)
+        self.node_file_img.setOffset(-25, -62)
+        self.node_file.setPen(QPen(QColor('#ffff80'),2))
+        self.node_file.setBrush(Qt.red)
+        self.node_file.setZValue(20)
+        self.addItem(self.node_file)
+        self.node_file.hide()
 
         self.node_me = None
         self.nid_me = None
-        self.waitlist = []
+        self.waitlist = [] # 用于暂存添加到topo图中的新节点修改属性
 
         self.ASinfo = {} # id:[node,...]
         self.belongAS = {} # id:ASitem
@@ -79,11 +100,33 @@ class topoGraphScene(QGraphicsScene):
             ret = []
             now = dest
             while now:
-                ret.append(now.nid)
+                ret.append(now.id)
                 now.setSelected(True)
                 now = now.prenode
             ret.reverse()
             return ret
+
+    def line_intersect(self, a, b, c, d):
+        ''' docstring: 判断线段是否相交
+            0为不相交
+            1为严格相交且交点不在线段端点上
+            2表示交点为某线段端点
+            3为线段平行且部分重合
+        '''
+        if (max(a.x(),b.x())<min(c.x(),d.x()))or(min(a.x(),b.x())>max(c.x(),d.x()))or \
+            (max(a.y(),b.y())<min(c.y(),d.y()))or(min(a.y(),b.y())>max(c.y(),d.y())):
+            return 0
+        x = Cross(a,c,b)
+        y = Cross(a,d,b)
+        z = Cross(c,a,d)
+        w = Cross(c,b,d)
+        if sgn(x) == 0 and sgn(y) == 0:
+            return 3
+        elif sgn(x)*sgn(y)<0 and sgn(z)*sgn(w)<0:
+            return 1
+        elif sgn(x)*sgn(y)<=0 and sgn(z)*sgn(w)<=0:
+            return 2
+        return 0
 
     def initTopo_config(self, path):
         ''' docstring: 初始化拓扑为配置文件信息 '''
@@ -109,19 +152,17 @@ class topoGraphScene(QGraphicsScene):
             elif ntp == 4:
                 item = Node(nodetype = ntp, nodename = nnm)
             else:
-                item = Node(nodetype = ntp, nodename = nnm, nodenid = node['nid'])
+                item = Node(nodetype = ntp, nodename = 'Me', nodenid = node['nid'])
                 self.node_me = item
             self.addItem(item)
             tmpnodes.append(item)
         # 添加AS信息
-        self.R = 0
         self.ASinfo = {}
         self.belongAS = {}
         for (i, asitem) in tmpass:
             nodelist = [tmpnodes[x] for x in self.topo['ASinfo'][str(i)]]
             # 随机打乱
             shuffle(nodelist)
-            self.R = max(self.R, len(nodelist))
             # 为了后续显示方便，将RM放首位置
             for (j, node) in enumerate(nodelist):
                 if node.type == 1:
@@ -133,9 +174,11 @@ class topoGraphScene(QGraphicsScene):
             self.belongAS[asitem.id] = asitem
             for x in self.topo['ASinfo'][str(i)]:
                 self.belongAS[tmpnodes[x].id] = asitem
+                # 直接载入云大小，不需要统计
+                # asitem.modifyCount(1)
         # 设置图元位置
-        self.R *= 64
         num1 = len(self.ASinfo)
+        self.R = 32 * num1 + 256
         now = 0
         for nodelist in self.ASinfo.values():
             alpha = pi * 2 / num1 * now
@@ -145,7 +188,7 @@ class topoGraphScene(QGraphicsScene):
             asitem = nodelist.pop()
             asitem.setPos(X, Y)
             num2 = len(nodelist)
-            r = num2*64*sin(pi/num1)
+            r = num2 * 16 + 100
             for i, node in enumerate(nodelist):
                 beta = pi * 2 / num2 * i + alpha
                 x = X-sin(beta)*r
@@ -154,19 +197,40 @@ class topoGraphScene(QGraphicsScene):
             nodelist.append(asitem)
         # 添加边
         for (x, y, PX) in self.topo['edges']:
-            lt = 0
+            lt = 1
             if self.belongAS[tmpnodes[x].id] is not self.belongAS[tmpnodes[y].id]:
-                lt = 1
+                lt = 0
             if tmpnodes[x] == self.node_me:
                 self.parent().signal_ret.choosenid.emit(f"{tmpnodes[y].name}<{tmpnodes[y].nid}>")
             elif tmpnodes[y] == self.node_me:
                 self.parent().signal_ret.choosenid.emit(f"{tmpnodes[x].name}<{tmpnodes[x].nid}>")
-            if not len(PX):
-                edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt)
-            else:
-                edgeitem = Edge(tmpnodes[x].scenePos(), tmpnodes[y].scenePos(), linetype = lt, linePX = PX)
+            edgeitem = Edge(tmpnodes[x], tmpnodes[y], linetype = lt, linePX = PX)
             self.addItem(edgeitem)
             self.addEdge(tmpnodes[x], tmpnodes[y], edgeitem)
+        # 检查边是否有相交
+        for item in self.items():
+            if isinstance(item, Node) and not item.type:
+                tmplist = self.ASinfo[item.id]
+                list_len = len(tmplist)
+                for i in range(list_len):
+                    for j in range(i+1,list_len):
+                        x = tmplist[i]
+                        y = tmplist[j]
+                        if x.type and y.type and self.nextedges.get(x.id, None) and \
+                            self.nextedges.get(y.id, None):
+                            for (nodex, edgex) in self.nextedges[x.id]:
+                                for (nodey, edgey) in self.nextedges[y.id]:
+                                    if self.line_intersect(x.scenePos(),nodex.scenePos(),
+                                        y.scenePos(),nodey.scenePos()):
+                                        # print('swap', x.nid, y.nid)
+                                        posx = x.scenePos()
+                                        posy = y.scenePos()
+                                        x.setPos(posy)
+                                        y.setPos(posx)
+                for node in tmplist:
+                    if node.type and self.nextedges.get(node.id, None):
+                        for (nextnode, edge) in self.nextedges[node.id]:
+                            edge.updateEdge()
         # 显示标签
         if self.parent().labelenable:
             for item in self.items():
@@ -191,7 +255,7 @@ class topoGraphScene(QGraphicsScene):
         nodes = self.items()
         for i in range(5):
             j = (i + 2) % 5
-            tmpedge = Edge(nodes[i*2+1].scenePos(), nodes[j*2+1].scenePos(), linetype=qrand()%2)
+            tmpedge = Edge(nodes[i*2+1], nodes[j*2+1], linetype=qrand()%2)
             self.addItem(tmpedge)
             self.addEdge(nodes[i*2+1], nodes[j*2+1], tmpedge)
 

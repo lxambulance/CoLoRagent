@@ -11,6 +11,7 @@ import time
 
 Nid = -0x1  # 当前终端NID，需要初始化
 IPv4 = ''  # 当前终端IPv4地址，需要初始化
+rmIPv4 = ''
 
 CacheSidUnits = {}  # 已生成但尚未通告的SID通告单元，key: path; value：class SidUnit
 Lock_CacheSidUnits = threading.Lock()  # CacheSidUnits变量锁
@@ -20,9 +21,9 @@ Lock_AnnSidUnits = threading.Lock()  # AnnSidUnits变量锁
 gets = {}  # 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）
 Lock_gets = threading.Lock()  # gets变量锁
 
-RegFlag = 0 # 代理注册成功标志，收到RM返回的Control包后置1
-PeerProxys = {} # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
-PXs = {} # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
+RegFlag = 0  # 代理注册成功标志，收到RM返回的Control包后置1
+PeerProxys = {}  # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
+PXs = {}  # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
 
 
 # 供线程调用的功能函数
@@ -57,7 +58,7 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1, WhiteList=[]):
         # 信息级别策略。标识为1，value范围为[1, 10]，value长度为1字节
         value = hex(level).replace('0x', '').zfill(2)
         Strategy_units[1] = value
-    if(len(WhiteList)!=0):
+    if(len(WhiteList) != 0):
         # 白名单策略。标识为2，value为数字列表，数字范围为[0, 255]
         value = ''
         for AS in WhiteList:
@@ -179,6 +180,7 @@ def ConvertByte(tar, path):
 
 class ControlPkt():
     # 控制包
+    # 包头信息
     V = 7
     Package = 4
     ttl = 64
@@ -186,10 +188,17 @@ class ControlPkt():
     HeaderLength = 0
     tag = 0
     DataLength = 0
+    # 负载信息
     ProxyIP = ''
     ProxyNid = -1
+    N_sid = -1  # tag = 17专用，非法DATA包的SID信息
+    L_sid = -1
+    CusNid = -1  # tag = 17专用，非法DATA包的目标NID
+    BRNid = -1  # tag = 18专用，告警BR的NID
+    Attacks = {}  # tag = 18专用，key：AS编号，value：攻击次数
     Proxys = []  # 元组（NID, IP）列表
     BRs = []  # 元组（PX, IP）列表
+    # 负载信息及完整报文的二进制字符串
     data = b''
     Pkt = b''
 
@@ -220,7 +229,7 @@ class ControlPkt():
                         pointer += 1
                     tempIP = ''
                     for j in range(4):
-                        tempIP = str(Pkt[pointer]) + '.' +tempIP
+                        tempIP = str(Pkt[pointer]) + '.' + tempIP
                         pointer += 1
                     tempIP = tempIP[:-1]
                     self.Proxys.append((tempNid, tempIP))
@@ -249,6 +258,46 @@ class ControlPkt():
                 for i in range(16):
                     self.ProxyNid = (self.ProxyNid << 8) + Pkt[pointer]
                     pointer += 1
+            elif(self.tag == 17):
+                # DATA包泄露警告
+                self.ProxyIP = ''
+                pointer += 12
+                for i in range(4):
+                    self.ProxyIP += str(Pkt[pointer]) + '.'
+                    pointer += 1
+                self.ProxyIP = self.ProxyIP[:-1]
+                pointer += 13
+                M = 1 if Pkt[pointer] & (1 << 4) > 0 else 0
+                pointer += 1
+                if (M == 1):
+                    pointer += 2
+                self.N_sid = 0
+                for i in range(16):
+                    self.N_sid = (self.N_sid << 8) + Pkt[pointer]
+                    pointer += 1
+                self.L_sid = 0
+                for i in range(20):
+                    self.L_sid = (self.L_sid << 8) + Pkt[pointer]
+                    pointer += 1
+                self.CusNid = 0
+                for i in range(16):
+                    self.CusNid = (self.CusNid << 8) + Pkt[pointer]
+                    pointer += 1
+            elif(self.tag == 18):
+                # 外部攻击警告
+                self.BRNid = 0
+                for i in range(16):
+                    self.BRNid = (self.BRNid << 8) + Pkt[pointer]
+                    pointer += 1
+                self.Attacks = {}
+                for i in range((self.DataLength-16)//5):
+                    ASNum = Pkt[pointer]
+                    pointer += 1
+                    AttackCount = 0
+                    for j in range(4):
+                        AttackCount += Pkt[pointer] << (8*i)
+                        pointer += 1
+                    self.Attacks[ASNum] = AttackCount
         elif(flag == 1):
             # 新建控制包
             self.ttl = ttl
@@ -276,7 +325,7 @@ class ControlPkt():
         # TarRest += self.data
         Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
         TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
-        Tar = TarPre + TarCS + TarRest + self.data # 计算出校验和的字节串
+        Tar = TarPre + TarCS + TarRest + self.data  # 计算出校验和的字节串
         # 封装并返回
         self.Pkt = Tar
         return self.Pkt
@@ -424,10 +473,11 @@ class DataPkt():
                 for i in range(16):
                     self.nid_cus = (self.nid_cus << 8) + Pkt[pointer]
                     pointer += 1
-            self.nid_pro = 0
-            for i in range(16):
-                self.nid_pro = (self.nid_pro << 8) + Pkt[pointer]
-                pointer += 1
+            if(self.B == 1 or self.R == 1):
+                self.nid_pro = 0
+                for i in range(16):
+                    self.nid_pro = (self.nid_pro << 8) + Pkt[pointer]
+                    pointer += 1
             if(self.Q == 1):
                 QosLen = Pkt[pointer]
                 pointer += 1
@@ -487,7 +537,8 @@ class DataPkt():
                 self.L_sid = int(SID, 16)
             if(self.B == 0):
                 # 普通数据报文
-                self.nid_pro = Nid
+                if(self.R == 1):
+                    self.nid_pro = Nid
                 self.nid_cus = nid_cus
             elif(self.B == 1):
                 # ACK报文
@@ -501,8 +552,8 @@ class DataPkt():
             if(self.M == 1):
                 self.HeaderLength += 2
             self.HeaderLength += 52
-            if(self.B == 0):
-                self.HeaderLength += 16  # nid_customer的长度
+            if(self.B == 0 and self.R == 1):
+                self.HeaderLength += 16  # 存在两个nid字段
             if(self.Q == 1):
                 self.HeaderLength += 1 + len(self.QoS)/2
             if(self.C == 1):
@@ -537,7 +588,8 @@ class DataPkt():
             TarRest += ConvertInt2Bytes(0, 20)
         if(self.B == 0):
             TarRest += ConvertInt2Bytes(self.nid_cus, 16)
-        TarRest += ConvertInt2Bytes(self.nid_pro, 16)
+        if(self.B == 1 or self.R == 1):
+            TarRest += ConvertInt2Bytes(self.nid_pro, 16)
         if(self.Q == 1):
             QosLen = len(self.QoS)/2
             TarRest += ConvertInt2Bytes(QosLen, 1)
@@ -757,14 +809,10 @@ def SendIpv4(ipdst, data):
 def GetRMip():
     ''' docstring: 读配置文件获取RM所在IP地址(适用IPv4) '''
     # TODO: 修改为与RM交互获取数据
-    return '10.0.0.1'
-
-
-def GetBRip():
-    ''' docstring: 读配置文件获取BR所在IP地址(适用IPv4)'''
-    return '192.168.50.129'
+    return rmIPv4
 
 
 if __name__ == '__main__':
-    print(ConvertInt2Bytes_LE(123,4))
-    print((123).to_bytes(4,byteorder='little'))
+    print(ConvertInt2Bytes_LE(123, 4))
+    print((123).to_bytes(4, byteorder='little'))
+    print(GetRMip())

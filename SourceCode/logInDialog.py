@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\CodeHub\CoLoRagent\PageUI\logInDialog.ui'
+# Form implementation generated from reading ui file '.\PageUI\logInDialog.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.2
 #
@@ -64,6 +64,12 @@ class Ui_Dialog(object):
         self.agentIPv4 = QtWidgets.QLineEdit(Dialog)
         self.agentIPv4.setObjectName("agentIPv4")
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.agentIPv4)
+        self.RMIPv4_label = QtWidgets.QLabel(Dialog)
+        self.RMIPv4_label.setObjectName("RMIPv4_label")
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.RMIPv4_label)
+        self.RMIPv4 = QtWidgets.QLineEdit(Dialog)
+        self.RMIPv4.setObjectName("RMIPv4")
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.RMIPv4)
         self.verticalLayout.addLayout(self.formLayout)
         spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem1)
@@ -88,4 +94,5 @@ class Ui_Dialog(object):
         self.filetmp_label.setText(_translate("Dialog", "文件存储目录"))
         self.choosepath_filetmp.setText(_translate("Dialog", "..."))
         self.agentIPv4_label.setText(_translate("Dialog", "代理IPv4"))
+        self.RMIPv4_label.setText(_translate("Dialog", "RM.IPv4"))
 import resource_rc
