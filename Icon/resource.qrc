@@ -17,6 +17,7 @@
     <file alias="switchView">switchView.png</file>
     <file alias="addFile">addFile.png</file>
     <file alias="openFolder">openFolder.png</file>
+    <file alias="openMap">openmap.png</file>
     <file alias="RM">resourceManagement.png</file>
     <file alias="PC">personalComputer.png</file>
   </qresource>

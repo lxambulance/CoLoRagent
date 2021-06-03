@@ -25,8 +25,12 @@ class serviceTableModel(QAbstractTableModel):
         ''' docstring: main function to get data as a role'''
         if role == Qt.DisplayRole:
             value = self.services.getData(index.row(), index.column())
-            if index.column() == 4:
+            if index.column() >= 3:
                 return str(value)+'%'
+            elif index.column() == 2:
+                tmpret = str(value)
+                tmpret = 'n_sid:' + tmpret[:32] + '\nl_sid:' + tmpret[32:]
+                return tmpret
             else:
                 return str(value)
         elif role == Qt.FontRole:
@@ -38,7 +42,7 @@ class serviceTableModel(QAbstractTableModel):
             if orientation == Qt.Horizontal:
                 return str(COLUMN[section])
             if orientation == Qt.Vertical:
-                return '条目' + str(section + 1)
+                return str(section + 1)
 
     def rowCount(self, index):
         return self.services.rowCount()
@@ -78,6 +82,9 @@ class MyTableView(QTableView):
         super().__init__(parent)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(self.ExtendedSelection)
+        self.setSortingEnabled(True)
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # self.horizontalHeader().setStretchLastSection(True)
     
     def mouseReleaseEvent(self, event):
         mouseBtn = event.button()

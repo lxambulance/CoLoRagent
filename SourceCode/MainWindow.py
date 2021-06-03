@@ -1,19 +1,19 @@
 # coding=utf-8
 ''' docstring: CoLoR Pan主页 '''
 
-# 添加文件路径../
+# 添加文件路径 ../
 import time
 import json
 import ProxyLib as PL
 from ProxyLib import (
     Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
-    SidAnn, Get, CacheSidUnits
-)
+    SidAnn, Get, CacheSidUnits)
 from worker import worker
 import FileData as FD
 from serviceTable import serviceTableModel, progressBarDelegate
 from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
+from GraphicsWindow import GraphicsWindow
 from mainPage import Ui_MainWindow
 import pyqtgraph as pg
 from PyQt5.QtGui import QIcon
@@ -43,14 +43,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         # 修改数据存储路径
-        # print(f'HOME_DIR{HOME_DIR} DATA_PATH{DATA_PATH}')
         FD.DATA_PATH = DATA_PATH
         FD.HOME_DIR = HOME_DIR
+
         # 用于统计频率和AS统计
         self.timer = QTimer()
         self.timer_message = QTimer()
+        self.timer.setInterval(3000)
         self.messagebox = None
-        self.timer.setInterval(5000)
         self.asmetrics = {} # id:[(get num, get total size),(data num, data total size)]
 
         # 用于收包显示的变量
@@ -59,10 +59,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
-        self.graphics_global.setNid(self.nid)
+        # self.graphics_global.setNid(self.nid)
 
         # 设置表格头伸展方式
-        self.metricTable.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # self.metricTable.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.dataPktReceive.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.dataPktReceive.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
 
@@ -89,15 +89,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.addAction(self.action_openDir)
 
         # 添加toolbar按钮
-        self.button_swi = QAction(QIcon(":/icon/switchView"), "切换", self)
+        self.button_swi = QAction(QIcon(":/icon/switchView"), "视图切换", self)
         self.button_swi.setStatusTip("视图切换")
         self.toolBar.addAction(self.button_swi)
-        self.button_openfolder = QAction(QIcon(":/icon/openFolder"), "打开", self)
+        self.button_openfolder = QAction(QIcon(":/icon/openFolder"), "打开文件夹", self)
         self.button_openfolder.setStatusTip("打开文件夹")
         self.toolBar.addAction(self.button_openfolder)
-        self.button_addfile = QAction(QIcon(":/icon/addFile"), "添加", self)
+        self.button_addfile = QAction(QIcon(":/icon/addFile"), "添加文件", self)
         self.button_addfile.setStatusTip("添加文件")
         self.toolBar.addAction(self.button_addfile)
+        self.button_showtopo = QAction(QIcon(":/icon/openMap"), "显示网络拓扑", self)
+        self.button_showtopo.setStatusTip("显示网络拓扑")
+        self.toolBar.addAction(self.button_showtopo)
+        self.button_showtopo.setCheckable(True)
+        self.graphics_global = GraphicsWindow()
+        self.graphics_global.graphics_global.loadTopo(DATA_PATH)
+        self.graphics_global.hide()
 
         # 设置选中条目
         self.selectItems = []
@@ -116,10 +123,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 设置tab control页
         for i in range(self.fd.rowCount()):
             filename = self.fd.getData(i)
-            self.chooseFile.addItem(filename)
             # 添加log记录
-            self.textEdit.append(f'<add> file {filename}\n')
-        self.chooseFile.setCurrentIndex(-1)
+            self.logText.append(f'<add> file {filename}\n')
 
         # 设置模型对应的view
         self.listView.setModel(self.listmodel)
@@ -129,26 +134,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.listView.setGridSize(QSize(80, 80))
         self.tableView.setModel(self.tablemodel)
         self.tableView.setItemDelegate(self.progressbardelegate)
-        self.tableView.setSortingEnabled(True)
-        self.tableView.setColumnWidth(0, 100)
-        self.tableView.setColumnWidth(1, 250)
-        self.tableView.setColumnWidth(2, 530)
-        self.tableView.setColumnWidth(3, 100)
-        self.tableView.setColumnWidth(4, 100)
-
-        # 设置禁止自添加
-        self.addNodes.setAcceptDrops(False)
-        # TODO: 暂时隐藏搜索功能
-        self.search_label.hide()
-        self.searchItem.hide()
-        self.itemlist_label.hide()
-        self.itemlist.hide()
 
         # 设置listview(0)与tableview(1)的视图转换
         self.switchlistortable = 0
         self.tableView.hide()
-        self.splitter_horizon.setSizes([120, 120, 680])
-        self.splitter_vertical.setSizes([850, 350])
+        self.splitter_horizontal.setSizes([200, 200, 500])
+        self.splitter_vertical.setSizes([350, 450])
 
         # 设置线程池 TODO: 线程池放到窗口外面
         self.threadpool = QThreadPool()
@@ -168,13 +159,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_del.triggered.connect(self.delItem)
         self.action_dow.triggered.connect(self.dowItem)
         self.action_reg.triggered.connect(self.regItem)
-        self.action_advancedreg.triggered.connect(self.showAdvancedReg)
-        self.chooseFile.currentIndexChanged[int].connect(self.showAdvancedRegArgs)
-        # textEdited不处理setText函数，textChanged处理所有改动
-        self.setlevel.textEdited.connect(lambda x:self.changeAdvancedReg(level=x))
-        self.whitelist.textChanged.connect(lambda x:self.changeAdvancedReg(whitelist=x))
-        self.whitelist_button.clicked.connect(self.chooseASs)
-        self.advancedReg.clicked.connect(self.advancedRegItem)
+        # logTexted不处理setText函数，textChanged处理所有改动
         self.action_undoReg.triggered.connect(self.undoRegItem)
         self.action_openDir.triggered.connect(self.openFolder)
         self.action_hub.triggered.connect(self.openHub)
@@ -185,28 +170,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_swi.triggered.connect(self.switchView)
         self.button_openfolder.triggered.connect(self.openFolder)
         self.button_addfile.triggered.connect(self.addItem)
+        self.button_showtopo.triggered.connect(self.showTopo)
 
-        self.addLine.clicked.connect(self.setTopoEdgeEnable)
-
-        self.graphics_global.signal_ret.choosenid.connect(
-            lambda s: self.accessRouter.setText(s))
-        self.graphics_global.signal_ret.chooseitem.connect(self.showItem)
-        self.addLine.clicked.connect(self.topoAddLine)
-        self.itemnid.returnPressed.connect(
-            lambda: self.graphics_global.modifyItem(itemnid=self.itemnid.text()))
-        self.itemas.returnPressed.connect(
-            lambda: self.graphics_global.modifyItem(itemas=self.itemas.text()))
-        self.itemname.returnPressed.connect(
-            lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
-        self.lineType.currentIndexChanged.connect(self.setTopoLineType)
+        # self.graphics_global.signal_ret.choosenid.connect(
+        #     lambda s: self.accessRouter.setText(s))
+        # self.graphics_global.signal_ret.chooseitem.connect(self.showItem)
+        # self.itemnid.returnPressed.connect(
+        #     lambda: self.graphics_global.modifyItem(itemnid=self.itemnid.text()))
+        # self.itemas.returnPressed.connect(
+        #     lambda: self.graphics_global.modifyItem(itemas=self.itemas.text()))
+        # self.itemname.returnPressed.connect(
+        #     lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
+        # self.lineType.currentIndexChanged.connect(self.setTopoLineType)
         self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
-        self.timer.timeout.connect(self.showMetric)
         self.timer.timeout.connect(self.updateSpeedLine)
         self.timer_message.timeout.connect(self.timerMessageClear)
 
         # 载入拓扑图，需要相关信号绑定完成后再载入
-        self.graphics_global.loadTopo(DATA_PATH)
+        # self.graphics_global.loadTopo(DATA_PATH)
         self.timer.start()
+    
+    def showTopo(self, status):
+        # print(status)
+        if status:
+            self.graphics_global.show()
+        else:
+            self.graphics_global.hide()
 
     def updateSpeedLine(self):
         self.speed_x = self.speed_x[1:]
@@ -227,29 +216,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         item[Type][1] += size
         self.totalsize += size
 
-    def showMetric(self):
-        ''' docstring: 刷新显示AS统计量 '''
-        # TODO: 显示统计量
-        row_num = len(self.asmetrics)
-        if row_num and self.metricTable.rowCount() != row_num*4:
-            self.metricTable.setRowCount(row_num*4)
-            for (i, (key, value)) in enumerate(self.asmetrics.items()):
-                self.metricTable.setItem(i*4+0,0,QTableWidgetItem(key))
-                self.metricTable.setItem(i*4+0,1,QTableWidgetItem('get num'))
-                self.metricTable.setItem(i*4+1,1,QTableWidgetItem('get size'))
-                self.metricTable.setItem(i*4+2,1,QTableWidgetItem('data num'))
-                self.metricTable.setItem(i*4+3,1,QTableWidgetItem('data size'))
-        for (i, (key, value)) in enumerate(self.asmetrics.items()):
-            getnum, getsize = value[0]
-            datanum, datasize = value[1]
-            self.metricTable.setItem(i*4+0,2,QTableWidgetItem(str(getnum)))
-            self.metricTable.setItem(i*4+1,2,QTableWidgetItem(str(getsize)))
-            self.metricTable.setItem(i*4+2,2,QTableWidgetItem(str(datanum)))
-            self.metricTable.setItem(i*4+3,2,QTableWidgetItem(str(datasize)))
-
     def chooseASs(self, flag):
         if flag:
-            row = self.chooseFile.currentIndex()
             if row == -1:
                 self.setStatus('请选择高级通告条目')
                 self.whitelist_button.setChecked(False)
@@ -271,7 +239,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def topoAddLine(self):
         self.graphics_global.addedgeenable = True
-        self.graphics_global.addedgetype = self.lineType.currentIndex()
+        # self.graphics_global.addedgetype = self.lineType.currentIndex()
 
     def getPathFromPkt(self, type, SID, paths, size, nid):
         ''' docstring: 收包显示 '''
@@ -365,9 +333,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if (ret) and (row != None):
             self.modelViewUpdate()
             filename = self.fd.getData(row, 0)
-            self.chooseFile.addItem(filename)
             # 添加log记录
-            self.textEdit.append(f'<add> file {filename}\n')
+            self.logText.append(f'<add> file {filename}\n')
             # 计算hash值
             if not self.fd.getData(row, 2):
                 filepath = self.fd.getData(row, 1)
@@ -391,9 +358,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     item = item_str.replace('\\', '/')
                     pos = item.rfind('/')
                     self.fd.addItem(filename=item[pos+1:], filepath=item)
-                    self.chooseFile.addItem(item[pos+1:])
                     # 添加log记录
-                    self.textEdit.append(f'<add> file {item[pos+1:]}\n')
+                    self.logText.append(f'<add> file {item[pos+1:]}\n')
                 elif os.path.isdir(item_str):
                     # TODO: 支持文件夹
                     pass
@@ -424,20 +390,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             delitemworker = worker(1, self.delItem_multi, nowSelectItems)
             delitemworker.signals.finished.connect(lambda: self.modelViewUpdate())
             delitemworker.signals.finished.connect(lambda: self.setStatus('条目已删除'))
-            delitemworker.signals.message.connect(self.textEdit.append)
+            delitemworker.signals.message.connect(self.logText.append)
             self.threadpool.start(delitemworker)
 
     def delItem_multi(self, items, message_callback, **kwargs):
         items.sort(reverse=True)
-        if self.chooseFile.currentIndex() in items:
-            self.chooseFile.setCurrentIndex(-1)
         for item in items:
             if not self.fd.getData(item, 0):
                 continue
             # 添加log记录
             message_callback.emit(f'<delete> file {self.fd.getData(item, 0)}\n')
             self.fd.removeItem(item)
-            self.chooseFile.removeItem(item)
             self.selectItems.remove(item)
 
     def dowItem(self):
@@ -452,7 +415,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.updateProgress(item, 4))
             dowitemworker.signals.finished.connect(
                 lambda: self.setStatus('条目已下载'))
-            dowitemworker.signals.message.connect(self.textEdit.append)
+            dowitemworker.signals.message.connect(self.logText.append)
             self.threadpool.start(dowitemworker)
 
     def dowItem_multi(self, items, progress_callback, message_callback):
@@ -487,7 +450,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.updateProgress(item, 3))
             regitemworker.signals.finished.connect(
                 lambda: self.setStatus('条目已通告'))
-            regitemworker.signals.message.connect(self.textEdit.append)
+            regitemworker.signals.message.connect(self.logText.append)
             self.threadpool.start(regitemworker)
 
     def showAdvancedReg(self):
@@ -500,16 +463,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             nowSelectItem = self.selectItems[0]
             # print("choose", nowSelectItem)
             self.tabWidget.setCurrentIndex(2)
-            self.chooseFile.setCurrentIndex(nowSelectItem)
             self.showAdvancedRegArgs(nowSelectItem)
     
     def showAdvancedRegArgs(self, row):
         ''' docstring: 高级通告切换显示 '''
         level = self.fd.getData(row, 5)
-        if level:
-            self.setlevel.setText(level)
-        else:
-            self.setlevel.setText('')
+        # if level:
+        #     self.setlevel.setText(level)
+        # else:
+        #     self.setlevel.setText('')
         whitelist = self.fd.getData(row, 6)
         if whitelist:
             self.whitelist.setText(whitelist)
@@ -519,7 +481,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def changeAdvancedReg(self, level=None, whitelist=None):
         ''' docstring: 修改高级通告策略 '''
-        nowSelectItem = self.chooseFile.currentIndex()
+        nowSelectItem = -1
         if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
             return
         newItem = self.fd.getItem(nowSelectItem)
@@ -533,7 +495,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.fd.setItem(nowSelectItem, newItem)
 
     def advancedRegItem(self):
-        nowSelectItem = self.chooseFile.currentIndex()
+        nowSelectItem = -1
         if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
             return
         filepath = self.fd.getData(nowSelectItem, 1)
@@ -580,7 +542,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.updateProgress(item, 3))
             undoregworker.signals.finished.connect(
                 lambda: self.setStatus('条目已取消通告'))
-            undoregworker.signals.message.connect(self.textEdit.append)
+            undoregworker.signals.message.connect(self.logText.append)
             self.threadpool.start(undoregworker)
 
     def undoRegItem_multi(self, items, progress_callback, message_callback):
@@ -624,8 +586,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 恢复初始视图格式 '''
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
-        self.splitter_horizon.setSizes([120, 120, 680])
-        self.splitter_vertical.setSizes([850, 350])
+        self.splitter_horizontal.setSizes([200, 200, 500])
+        self.splitter_vertical.setSizes([350, 450])
 
     def openHub(self):
         ''' docstring: 打开本地仓库 '''
@@ -665,9 +627,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.modelViewUpdate()
                 for i in range(lastlen, self.fd.rowCount()):
                     filename = self.fd.getData(i)
-                    self.chooseFile.addItem(filename)
                     # 添加log记录
-                    self.textEdit.append(f'<add> file {filename}\n')
+                    self.logText.append(f'<add> file {filename}\n')
 
     def closeEvent(self, event):
         ''' docstring: 关闭窗口时弹出警告 '''
@@ -686,7 +647,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def saveLog(self):
         with open(LOG_PATH, 'w', encoding='utf-8') as f:
-            s = self.textEdit.toPlainText()
+            s = self.logText.toPlainText()
             f.write(s)
 
     def viewInfo(self, index):
@@ -695,12 +656,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         filename = self.fd.getData(index.row(), 0)
         filepid = self.fd.getData(index.row(), 2)
         viewjsonworker = worker(0, self.viewJson, filename, filepath, filepid)
-        viewjsonworker.signals.result.connect(self.textEdit.append)
+        viewjsonworker.signals.result.connect(self.logText.append)
         self.threadpool.start(viewjsonworker)
 
     def viewJson(self, filename, filepath, filepid):
         ''' docstring: 双击显示Json格式文件 '''
-        ret = f'<double click> {filename} (PID:{filepid}) = '
+        ret = f'<double click> {filename} (SID:{filepid}) = '
         if not os.path.exists(filepath):
             return ret + '本地文件不存在\n'
         try:
@@ -722,13 +683,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def handleMessageFromPkt(self, messageType, message):
         ''' docstring: 显示后端发送的信息，添加log记录 '''
         if messageType == 0:
-            self.textEdit.append('<hint> ' + message + '\n')
+            self.logText.append('<hint> ' + message + '\n')
         elif messageType == 1:
             # 收到warning
-            self.textEdit.append('<warning> ' + message + '\n')
+            self.logText.append('<warning> ' + message + '\n')
         elif messageType == 2:
             # 收到攻击警告
-            self.textEdit.append('<attacking>' + message + '\n')
+            self.logText.append('<attacking>' + message + '\n')
             if not self.messagebox:
                 self.messagebox = QMessageBox(self)
                 self.messagebox.setWindowTitle('<Attacking>')
@@ -750,16 +711,16 @@ if __name__ == '__main__':
     window = MainWindow()
     window.show()
 
-    # 测试收包匹配功能
-    window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
-    window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
-    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
-    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
-    window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
-    window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
-    window.getPathFromPkt(0x74, '', [], 20, 0)
-    # 测试告警信息显示功能
-    window.handleMessageFromPkt(2, 'test1\ncontent1\n')
-    window.handleMessageFromPkt(2, 'test2\ncontent2\n')
+    # # 测试收包匹配功能
+    # window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
+    # window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
+    # window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
+    # window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
+    # window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
+    # window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
+    # window.getPathFromPkt(0x74, '', [], 20, 0)
+    # # 测试告警信息显示功能
+    # window.handleMessageFromPkt(2, 'test1\ncontent1\n')
+    # window.handleMessageFromPkt(2, 'test2\ncontent2\n')
 
     sys.exit(app.exec_())

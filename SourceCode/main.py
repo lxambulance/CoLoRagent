@@ -53,7 +53,7 @@ class CoLoRApp(QApplication):
         )
         thread_monitor.setDaemon(True)
         thread_monitor.start()
-        CM.PL.RegFlag=1
+        # CM.PL.RegFlag=1
         # time.sleep(2)
         # CM.PL.AddCacheSidUnit('F:\\ProjectCloud\\test\\testfile1.txt',1,1,1,1)
         # CM.PL.SidAnn()
@@ -65,7 +65,7 @@ class CoLoRApp(QApplication):
         ''' docstring: 切换格式 '''
         # 取消qss格式
         self.setStyleSheet('')
-        self.window.graphics_global.setBackground('#eee5ff')
+        # self.window.graphics_global.setBackground('#eee5ff')
         self.window.speedGraph.setBackground('w')
         # 获取信号发起者名称，前6位为action，后面是相应主题名
         tmp = self.sender().objectName()[6:]
@@ -74,11 +74,10 @@ class CoLoRApp(QApplication):
             self.setStyle(tmp)
         elif tmp == 'Qdarkstyle':
             self.setStyleSheet(qds.load_stylesheet_pyqt5())
-            self.window.graphics_global.setBackground('#4d4d4d')
+            # self.window.graphics_global.setBackground('#4d4d4d')
             self.window.speedGraph.setBackground('#000000')
         else:
             self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
-
 
 if __name__ == '__main__':
     app = CoLoRApp(sys.argv)
