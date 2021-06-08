@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>网络拓扑</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../Icon/resource.qrc">
+    <normaloff>:/icon/color</normaloff>:/icon/color</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
@@ -71,6 +75,8 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../Icon/resource.qrc"/>
+ </resources>
  <connections/>
 </ui>
