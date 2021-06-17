@@ -12,6 +12,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 import FileData
+import resource_rc
 
 COLUMN = ['文件名', '路径', 'SID', '是否通告', '是否下载']
 
@@ -25,8 +26,10 @@ class serviceTableModel(QAbstractTableModel):
         ''' docstring: main function to get data as a role'''
         if role == Qt.DisplayRole:
             value = self.services.getData(index.row(), index.column())
-            if index.column() >= 3:
+            if index.column() > 3:
                 return str(value)+'%'
+            elif index.column() == 3:
+                return value
             elif index.column() == 2:
                 tmpret = str(value)
                 tmpret = 'n_sid:' + tmpret[:32] + '\nl_sid:' + tmpret[32:]
@@ -57,7 +60,7 @@ class progressBarDelegate(QStyledItemDelegate):
         self.parent = parent
 
     def paint(self, painter, option, index):
-        if index.column() == 3 or index.column() == 4:
+        if index.column() == 4:
             pid = index.row() * len(COLUMN) + index.column()
             progress = int(index.data().replace('%',''))
             if not (pid in self.parent.progressbarpool):
@@ -71,7 +74,17 @@ class progressBarDelegate(QStyledItemDelegate):
             progressbar.rect = option.rect
             progressbar.progress = progress
             progressbar.text = str(progress) + '%'
-            QApplication.style().drawControl(QStyle.CE_ProgressBar, progressbar, painter)
+            widget = option.widget
+            style = widget.style() if widget else QApplication.style()
+            style.drawControl(QStyle.CE_ProgressBar, progressbar, painter, widget)
+        elif index.column() == 3:
+            value = index.data()
+            tmp = QPixmap(':icon/tick')
+            if value == 0:
+                tmp = QPixmap(':icon/cross')
+            widget = option.widget
+            style = widget.style() if widget else QApplication.style()
+            style.drawItemPixmap(painter, option.rect, Qt.AlignCenter, tmp)
         else:
             return super().paint(painter, option, index)
 

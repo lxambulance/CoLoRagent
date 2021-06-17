@@ -13,7 +13,7 @@ import FileData as FD
 from serviceTable import serviceTableModel, progressBarDelegate
 from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
-from GraphicsWindow import GraphicsWindow
+from GraphicWindow import GraphicWindow
 from mainPage import Ui_MainWindow
 import pyqtgraph as pg
 from PyQt5.QtGui import QIcon
@@ -45,6 +45,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 修改数据存储路径
         FD.DATA_PATH = DATA_PATH
         FD.HOME_DIR = HOME_DIR
+        
+        # 尝试新建文件仓库
+        if not os.path.exists(HOME_DIR):
+            os.mkdir(HOME_DIR)
+
+        # 设置线程池 TODO: 线程池放到窗口外面
+        self.threadpool = QThreadPool()
 
         # 用于统计频率和AS统计
         self.timer = QTimer()
@@ -59,7 +66,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # TODO: 在Get中写入Nid？
         self.nid = f"{PL.Nid:032x}"
-        # self.graphics_global.setNid(self.nid)
 
         # 设置表格头伸展方式
         # self.metricTable.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -102,9 +108,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_showtopo.setStatusTip("显示网络拓扑")
         self.toolBar.addAction(self.button_showtopo)
         self.button_showtopo.setCheckable(True)
-        self.graphics_global = GraphicsWindow()
-        self.graphics_global.graphics_global.loadTopo(DATA_PATH)
-        self.graphics_global.hide()
+
+        # 设置拓扑图并加载
+        self.save_geo = None
+        self.graphicwindow = GraphicWindow()
+        self.graphicwindow.graphics_global.loadTopo(DATA_PATH)
+        self.graphicwindow.hide()
 
         # 设置选中条目
         self.selectItems = []
@@ -141,20 +150,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.splitter_horizontal.setSizes([200, 200, 500])
         self.splitter_vertical.setSizes([350, 450])
 
-        # 设置线程池 TODO: 线程池放到窗口外面
-        self.threadpool = QThreadPool()
-
-        # 尝试新建文件仓库
-        if not os.path.exists(HOME_DIR):
-            os.mkdir(HOME_DIR)
-
         # 设置信号与槽的连接
+        # 视图信号
         self.tableView.signal_select.connect(self.setSelectItem)
         self.listView.signal_select.connect(self.setSelectItem)
         self.listView.signal_add.connect(self.addItems)
         self.tableView.doubleClicked.connect(self.viewInfo)
         self.listView.doubleClicked.connect(self.viewInfo)
-
+        # 动作信号
         self.action_add.triggered.connect(self.addItem)
         self.action_del.triggered.connect(self.delItem)
         self.action_dow.triggered.connect(self.dowItem)
@@ -166,12 +169,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_import.triggered.connect(self.importData)
         self.action_swi.triggered.connect(self.switchView)
         self.action_reset.triggered.connect(self.resetView)
-
+        # 按钮信号
         self.button_swi.triggered.connect(self.switchView)
         self.button_openfolder.triggered.connect(self.openFolder)
         self.button_addfile.triggered.connect(self.addItem)
         self.button_showtopo.triggered.connect(self.showTopo)
-
+        # 拓扑图信号
+        self.graphicwindow.GS.hide_window_signal.connect(self.showTopo)
         # self.graphics_global.signal_ret.choosenid.connect(
         #     lambda s: self.accessRouter.setText(s))
         # self.graphics_global.signal_ret.chooseitem.connect(self.showItem)
@@ -182,20 +186,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.itemname.returnPressed.connect(
         #     lambda: self.graphics_global.modifyItem(itemname=self.itemname.text()))
         # self.lineType.currentIndexChanged.connect(self.setTopoLineType)
+        # 收包信号
         self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
+        # 计时信号
         self.timer.timeout.connect(self.updateSpeedLine)
         self.timer_message.timeout.connect(self.timerMessageClear)
-
+        
         # 载入拓扑图，需要相关信号绑定完成后再载入
         # self.graphics_global.loadTopo(DATA_PATH)
+        # 计时器开始
         self.timer.start()
     
     def showTopo(self, status):
-        # print(status)
+        ''' docstring: 显示(status==True)/隐藏(False) 拓扑图函数 '''
         if status:
-            self.graphics_global.show()
+            self.graphicwindow.show()
+            if self.save_geo:
+                self.graphicwindow.setGeometry(self.save_geo)
         else:
-            self.graphics_global.hide()
+            # 确保通过x关闭后，主窗口按钮状态同步
+            if self.button_showtopo.isChecked():
+                self.button_showtopo.trigger()
+            self.graphicwindow.hide()
+            # 记录一下关闭后的位置，便于下次在同一地方显示出来
+            self.save_geo = self.graphicwindow.geometry()
 
     def updateSpeedLine(self):
         self.speed_x = self.speed_x[1:]
@@ -637,10 +651,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if reply == QMessageBox.Yes:
             # 做出保存操作
             self.fd.save()
-            self.graphics_global.saveTopo(DATA_PATH)
+            self.graphicwindow.graphics_global.saveTopo(DATA_PATH)
+            self.graphicwindow = None
             self.saveLog()
             event.accept()
         elif reply == QMessageBox.No:
+            self.graphicwindow = None
             event.accept()
         else:
             event.ignore()
@@ -711,16 +727,16 @@ if __name__ == '__main__':
     window = MainWindow()
     window.show()
 
-    # # 测试收包匹配功能
-    # window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
-    # window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
-    # window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
-    # window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
-    # window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
-    # window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
-    # window.getPathFromPkt(0x74, '', [], 20, 0)
-    # # 测试告警信息显示功能
-    # window.handleMessageFromPkt(2, 'test1\ncontent1\n')
-    # window.handleMessageFromPkt(2, 'test2\ncontent2\n')
+    # 测试收包匹配功能
+    window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
+    window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
+    window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
+    window.getPathFromPkt(0x74, '', [], 20, 0)
+    # 测试告警信息显示功能
+    window.handleMessageFromPkt(2, 'test1\ncontent1\n')
+    window.handleMessageFromPkt(2, 'test2\ncontent2\n')
 
     sys.exit(app.exec_())
