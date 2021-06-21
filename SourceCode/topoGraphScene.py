@@ -142,6 +142,7 @@ class topoGraphScene(QGraphicsScene):
             node = self.topo['nodes'][i]
             ntp = node['type']
             nnm = node.get('name', None)
+            pos = node['pos']
             if ntp == 0:
                 item = Node(nodetype = ntp, nodename = nnm, nodesize = node['size'])
                 tmpass.append((i, item))
@@ -155,6 +156,7 @@ class topoGraphScene(QGraphicsScene):
                 item = Node(nodetype = ntp, nodename = 'Me', nodenid = node['nid'])
                 self.node_me = item
             self.addItem(item)
+            item.setPos(pos[0], pos[1])
             tmpnodes.append(item)
         # 添加AS信息
         self.ASinfo = {}
@@ -177,24 +179,24 @@ class topoGraphScene(QGraphicsScene):
                 # 直接载入云大小，不需要统计
                 # asitem.modifyCount(1)
         # 设置图元位置
-        num1 = len(self.ASinfo)
-        self.R = 32 * num1 + 256
-        now = 0
-        for nodelist in self.ASinfo.values():
-            alpha = pi * 2 / num1 * now
-            now += 1
-            X, Y = (-sin(alpha)*self.R, -cos(alpha)*self.R)
-            # print(i, ':', alpha, '(', X, Y, ')', item.nid)
-            asitem = nodelist.pop()
-            asitem.setPos(X, Y)
-            num2 = len(nodelist)
-            r = num2 * 16 + 100
-            for i, node in enumerate(nodelist):
-                beta = pi * 2 / num2 * i + alpha
-                x = X-sin(beta)*r
-                y = Y-cos(beta)*r
-                node.setPos(x, y)
-            nodelist.append(asitem)
+        # num1 = len(self.ASinfo)
+        # self.R = 32 * num1 + 256
+        # now = 0
+        # for nodelist in self.ASinfo.values():
+        #     alpha = pi * 2 / num1 * now
+        #     now += 1
+        #     X, Y = (-sin(alpha)*self.R, -cos(alpha)*self.R)
+        #     # print(i, ':', alpha, '(', X, Y, ')', item.nid)
+        #     asitem = nodelist.pop()
+        #     asitem.setPos(X, Y)
+        #     num2 = len(nodelist)
+        #     r = num2 * 16 + 100
+        #     for i, node in enumerate(nodelist):
+        #         beta = pi * 2 / num2 * i + alpha
+        #         x = X-sin(beta)*r
+        #         y = Y-cos(beta)*r
+        #         node.setPos(x, y)
+        #     nodelist.append(asitem)
         # 添加边
         for (x, y, PX) in self.topo['edges']:
             lt = 1
@@ -208,29 +210,29 @@ class topoGraphScene(QGraphicsScene):
             self.addItem(edgeitem)
             self.addEdge(tmpnodes[x], tmpnodes[y], edgeitem)
         # 检查边是否有相交
-        for item in self.items():
-            if isinstance(item, Node) and not item.type:
-                tmplist = self.ASinfo[item.id]
-                list_len = len(tmplist)
-                for i in range(list_len):
-                    for j in range(i+1,list_len):
-                        x = tmplist[i]
-                        y = tmplist[j]
-                        if x.type and y.type and self.nextedges.get(x.id, None) and \
-                            self.nextedges.get(y.id, None):
-                            for (nodex, edgex) in self.nextedges[x.id]:
-                                for (nodey, edgey) in self.nextedges[y.id]:
-                                    if self.line_intersect(x.scenePos(),nodex.scenePos(),
-                                        y.scenePos(),nodey.scenePos()):
-                                        # print('swap', x.nid, y.nid)
-                                        posx = x.scenePos()
-                                        posy = y.scenePos()
-                                        x.setPos(posy)
-                                        y.setPos(posx)
-                for node in tmplist:
-                    if node.type and self.nextedges.get(node.id, None):
-                        for (nextnode, edge) in self.nextedges[node.id]:
-                            edge.updateEdge()
+        # for item in self.items():
+        #     if isinstance(item, Node) and not item.type:
+        #         tmplist = self.ASinfo[item.id]
+        #         list_len = len(tmplist)
+        #         for i in range(list_len):
+        #             for j in range(i+1,list_len):
+        #                 x = tmplist[i]
+        #                 y = tmplist[j]
+        #                 if x.type and y.type and self.nextedges.get(x.id, None) and \
+        #                     self.nextedges.get(y.id, None):
+        #                     for (nodex, edgex) in self.nextedges[x.id]:
+        #                         for (nodey, edgey) in self.nextedges[y.id]:
+        #                             if self.line_intersect(x.scenePos(),nodex.scenePos(),
+        #                                 y.scenePos(),nodey.scenePos()):
+        #                                 # print('swap', x.nid, y.nid)
+        #                                 posx = x.scenePos()
+        #                                 posy = y.scenePos()
+        #                                 x.setPos(posy)
+        #                                 y.setPos(posx)
+        #         for node in tmplist:
+        #             if node.type and self.nextedges.get(node.id, None):
+        #                 for (nextnode, edge) in self.nextedges[node.id]:
+        #                     edge.updateEdge()
         # 显示标签
         if self.parent().labelenable:
             for item in self.items():
@@ -288,6 +290,8 @@ class topoGraphScene(QGraphicsScene):
                 else:
                     node['name'] = item.name
                     node['nid'] = item.nid
+                pos = item.scenePos()
+                node['pos'] = [pos.x(), pos.y()]
                 tmpnodes.append(node)
                 tmpnodemap[item.id] = num
                 num += 1

@@ -18,9 +18,9 @@
     <normaloff>:/icon/color</normaloff>:/icon/color</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="GraphicWindow" name="graphics_global" native="true"/>
+     <widget class="GraphicWidget" name="graphics_global" native="true"/>
     </item>
    </layout>
   </widget>
@@ -39,39 +39,45 @@
    <addaction name="separator"/>
    <addaction name="actionc"/>
    <addaction name="actiond"/>
-   <addaction name="actione"/>
   </widget>
   <action name="actiona">
    <property name="text">
-    <string>a</string>
+    <string>基本信息</string>
+   </property>
+   <property name="toolTip">
+    <string>显示左下框基本信息</string>
    </property>
   </action>
   <action name="actionb">
    <property name="text">
-    <string>b</string>
+    <string>拓扑修改</string>
+   </property>
+   <property name="toolTip">
+    <string>显示右下框拓扑修改</string>
    </property>
   </action>
   <action name="actionc">
    <property name="text">
-    <string>c</string>
+    <string>高级通告</string>
+   </property>
+   <property name="toolTip">
+    <string>显示顶部居中高级通告</string>
    </property>
   </action>
   <action name="actiond">
    <property name="text">
-    <string>d</string>
+    <string>数据通量</string>
    </property>
-  </action>
-  <action name="actione">
-   <property name="text">
-    <string>e</string>
+   <property name="toolTip">
+    <string>显示各自治域数据通量</string>
    </property>
   </action>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>GraphicWindow</class>
+   <class>GraphicWidget</class>
    <extends>QWidget</extends>
-   <header>GraphicWindow</header>
+   <header>GraphicWidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

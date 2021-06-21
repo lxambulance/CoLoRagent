@@ -21,4 +21,13 @@
     <file alias="RM">resourceManagement.png</file>
     <file alias="PC">personalComputer.png</file>
   </qresource>
+  <qresource prefix="button">
+    <file alias="control-play">control.png</file>
+    <file alias="control-pause">control-pause.png</file>
+    <file alias="control-skip-f">control-skip-180.png</file>
+    <file alias="control-skip-b">control-skip.png</file>
+    <file alias="volume-mute">speaker-volume-control-mute.png</file>
+    <file alias="volume-up">speaker-volume-control-up.png</file>
+    <file alias="volume-down">speaker-volume-control.png</file>
+  </qresource>
 </RCC>
