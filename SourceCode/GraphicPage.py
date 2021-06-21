@@ -57,6 +57,6 @@ class Ui_MainWindow(object):
         self.actionc.setText(_translate("MainWindow", "高级通告"))
         self.actionc.setToolTip(_translate("MainWindow", "显示顶部居中高级通告"))
         self.actiond.setText(_translate("MainWindow", "数据通量"))
-        self.actiond.setToolTip(_translate("MainWindow", "显示数据通量"))
+        self.actiond.setToolTip(_translate("MainWindow", "显示各自治域数据通量"))
 from GraphicWidget import GraphicWidget
 import resource_rc

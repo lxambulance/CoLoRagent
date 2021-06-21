@@ -69,7 +69,7 @@
     <string>数据通量</string>
    </property>
    <property name="toolTip">
-    <string>显示数据通量</string>
+    <string>显示各自治域数据通量</string>
    </property>
   </action>
  </widget>

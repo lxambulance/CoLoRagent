@@ -18,6 +18,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         super().__init__(parent=parent)
         self.setupUi(self)
         self.GS = GraphicSignal()
+        self.flag_actionb = False
 
         # 暂时隐藏拓扑修改按钮
         self.actionb.setVisible(False)
@@ -25,12 +26,18 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
     def closeEvent(self, event):
         ''' docstring: 自定义关闭事件信号 '''
         self.GS.hide_window_signal.emit(False)
+        super().closeEvent(event)
 
     def keyPressEvent(self, event):
         ''' docstring: 自定义键盘按事件 '''
         key = event.key()
-        if key == Qt.Key_:
-            self.scaleView(1.2)
+        if key == Qt.Key_M:
+            if self.flag_actionb:
+                self.flag_actionb = False
+                self.actionb.setVisible(False)
+            else:
+                self.flag_actionb = True
+                self.actionb.setVisible(True)
 
 
 if __name__ == "__main__":

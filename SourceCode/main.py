@@ -29,6 +29,7 @@ class CoLoRApp(QApplication):
         super().__init__(argv)
         self.setStyle('Fusion')
 
+        self.setQuitOnLastWindowClosed(True)
         self.loginwindow = logInWindow()
         self.loginwindow.show()
 

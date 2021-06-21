@@ -14,6 +14,8 @@ from serviceTable import serviceTableModel, progressBarDelegate
 from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
 from GraphicWindow import GraphicWindow
+from videoWindow import videoWindow
+from cmdWindow import cmdWindow
 from mainPage import Ui_MainWindow
 import pyqtgraph as pg
 from PyQt5.QtGui import QIcon
@@ -111,11 +113,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.toolBar.addAction(self.button_showtopo)
         self.button_showtopo.setCheckable(True)
 
-        # 设置拓扑图并加载
-        self.save_geo = None
-        self.graphicwindow = GraphicWindow()
-        self.graphicwindow.graphics_global.loadTopo(DATA_PATH)
-        self.graphicwindow.hide()
+        # 设置其他窗口为空
+        self.graphicwindow = None
+        self.videowindow = None
+        self.cmdwindow = None
+        self.action_cmdline.setVisible(False) # TODO: 命令行待完善
 
         # 设置选中条目
         self.selectItems = []
@@ -171,13 +173,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_import.triggered.connect(self.importData)
         self.action_swi.triggered.connect(self.switchView)
         self.action_reset.triggered.connect(self.resetView)
+        self.action_video.triggered.connect(self.openVideoWindow)
+        self.action_cmdline.triggered.connect(self.openCmdWindow)
         # 按钮信号
         self.button_swi.triggered.connect(self.switchView)
         self.button_openfolder.triggered.connect(self.openFolder)
         self.button_addfile.triggered.connect(self.addItem)
         self.button_showtopo.triggered.connect(self.showTopo)
-        # 拓扑图信号
-        self.graphicwindow.GS.hide_window_signal.connect(self.showTopo)
         # 收包信号
         self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
         # 计时信号
@@ -186,20 +188,39 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         # 计时器开始
         self.timer.start()
-    
+
+    def openCmdWindow(self):
+        ''' docstring: 打开命令行窗口 '''
+        if not self.cmdwindow:
+            self.cmdwindow = cmdWindow()
+        else:
+            self.cmdwindow.setGeometry(self.cmdwindow.geometry())
+        self.cmdwindow.show()
+
+    def openVideoWindow(self):
+        ''' docstring: 打开视频窗口 '''
+        if not self.videowindow:
+            self.videowindow = videoWindow()
+        else:
+            self.videowindow.setGeometry(self.videowindow.geometry())
+        self.videowindow.show()
+
     def showTopo(self, status):
         ''' docstring: 显示(status==True)/隐藏(False) 拓扑图函数 '''
         if status:
+            if not self.graphicwindow:
+                self.graphicwindow = GraphicWindow()
+                self.graphicwindow.graphics_global.loadTopo(DATA_PATH)
+                # 拓扑图信号槽连接
+                self.graphicwindow.GS.hide_window_signal.connect(self.showTopo)
+            else:
+                self.graphicwindow.setGeometry(self.graphicwindow.geometry())
             self.graphicwindow.show()
-            if self.save_geo:
-                self.graphicwindow.setGeometry(self.save_geo)
         else:
             # 确保通过x关闭后，主窗口按钮状态同步
             if self.button_showtopo.isChecked():
                 self.button_showtopo.trigger()
             self.graphicwindow.hide()
-            # 记录一下关闭后的位置，便于下次在同一地方显示出来
-            self.save_geo = self.graphicwindow.geometry()
 
     def updateSpeedLine(self):
         ''' docstring: 设置折线图显示，3秒刷新一次 '''
@@ -278,21 +299,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
         if (type&0xff) == 0x72:
             item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
-            self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
-            ASid = self.graphicwindow.graphics_global.getASid(path_str, 0, size)
-            # print(ASid)
-            if ASid:
-                self.changeMetric(ASid,0,size)
+            # self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
+            # ASid = self.graphicwindow.graphics_global.getASid(path_str, 0, size)
+            # # print(ASid)
+            # if ASid:
+            #     self.changeMetric(ASid,0,size)
         elif (type&0xff) == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), "PIDs="+path_str]))
-            self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
+            # self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
             totsize = int(item.text(1))
             item.setText(1, str(totsize+size))
-            ASid = self.graphicwindow.graphics_global.getASid(path_str, 1, size)
-            # print(ASid)
-            if ASid:
-                self.changeMetric(ASid,1,size)
+            # ASid = self.graphicwindow.graphics_global.getASid(path_str, 1, size)
+            # # print(ASid)
+            # if ASid:
+            #     self.changeMetric(ASid,1,size)
         else:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), ""]))
@@ -652,10 +673,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.fd.save()
             self.graphicwindow.graphics_global.saveTopo(DATA_PATH)
             self.graphicwindow = None
+            self.cmdwindow = None
+            self.videowindow = None
             self.saveLog()
             event.accept()
         elif reply == QMessageBox.No:
             self.graphicwindow = None
+            self.cmdwindow = None
+            self.videowindow = None
             event.accept()
         else:
             event.ignore()

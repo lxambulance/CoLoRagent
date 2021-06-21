@@ -139,6 +139,8 @@
     <addaction name="action_swi"/>
     <addaction name="action_reset"/>
     <addaction name="action_hub"/>
+    <addaction name="action_video"/>
+    <addaction name="action_cmdline"/>
    </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
@@ -256,6 +258,16 @@
   <action name="action_advancedreg">
    <property name="text">
     <string>高级通告</string>
+   </property>
+  </action>
+  <action name="action_video">
+   <property name="text">
+    <string>视频通信</string>
+   </property>
+  </action>
+  <action name="action_cmdline">
+   <property name="text">
+    <string>命令行（仅测试）</string>
    </property>
   </action>
  </widget>

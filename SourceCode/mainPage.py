@@ -128,10 +128,16 @@ class Ui_MainWindow(object):
         self.actionwindowsvista.setObjectName("actionwindowsvista")
         self.action_advancedreg = QtWidgets.QAction(MainWindow)
         self.action_advancedreg.setObjectName("action_advancedreg")
+        self.action_video = QtWidgets.QAction(MainWindow)
+        self.action_video.setObjectName("action_video")
+        self.action_cmdline = QtWidgets.QAction(MainWindow)
+        self.action_cmdline.setObjectName("action_cmdline")
         self.menu.addAction(self.action_import)
         self.menu.addAction(self.action_swi)
         self.menu.addAction(self.action_reset)
         self.menu.addAction(self.action_hub)
+        self.menu.addAction(self.action_video)
+        self.menu.addAction(self.action_cmdline)
         self.menu_2.addAction(self.action_add)
         self.menu_2.addAction(self.action_reg)
         self.menu_2.addAction(self.action_advancedreg)
@@ -178,6 +184,8 @@ class Ui_MainWindow(object):
         self.actionQdarkstyle.setText(_translate("MainWindow", "Qdarkstyle"))
         self.actionwindowsvista.setText(_translate("MainWindow", "WindowsVista"))
         self.action_advancedreg.setText(_translate("MainWindow", "高级通告"))
+        self.action_video.setText(_translate("MainWindow", "视频通信"))
+        self.action_cmdline.setText(_translate("MainWindow", "命令行（仅测试）"))
 from pyqtgraph import PlotWidget
 from serviceList import MyListView
 from serviceTable import MyTableView
