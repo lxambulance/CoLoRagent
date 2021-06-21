@@ -7,6 +7,8 @@ import ColorMonitor as CM
 import MainWindow as mw
 from logInWindow import logInWindow
 from PyQt5.QtWidgets import QApplication, QStyleFactory
+from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt
 
 # import time
 
@@ -41,18 +43,22 @@ class CoLoRApp(QApplication):
         mw.HOME_DIR = self.loginwindow.filetmppath
         mw.DATA_PATH = self.loginwindow.configpath
         # print(f'before HOME_DIR{mw.HOME_DIR} DATA_PATH{mw.DATA_PATH}')
+
         self.window = mw.MainWindow()
         self.window.actionWindows.triggered.connect(self._setStyle)
         self.window.actionwindowsvista.triggered.connect(self._setStyle)
         self.window.actionFusion.triggered.connect(self._setStyle)
         self.window.actionQdarkstyle.triggered.connect(self._setStyle)
         self.window.show()
+        # 连接后端信号槽
         thread_monitor = CM.Monitor(
             message = app.window.handleMessageFromPkt,
             path = app.window.getPathFromPkt
         )
         thread_monitor.setDaemon(True)
         thread_monitor.start()
+
+        # 测试
         # CM.PL.RegFlag=1
         # time.sleep(2)
         # CM.PL.AddCacheSidUnit('F:\\ProjectCloud\\test\\testfile1.txt',1,1,1,1)
@@ -62,12 +68,12 @@ class CoLoRApp(QApplication):
         # CM.PL.Get(SID, 'F:\\ProjectCloud\\test.txt')
 
     def _setStyle(self):
-        ''' docstring: 切换格式 '''
+        ''' docstring: 切换qss格式 '''
         # 取消qss格式
         self.setStyleSheet('')
         self.window.graphicwindow.setStyleSheet('')
         self.window.graphicwindow.graphics_global.setBackground('#eee5ff')
-        self.window.speedGraph.setBackground('w')
+        self.window.speedGraph.setBackground(QColor(Qt.white))
         # 获取信号发起者名称，前6位为action，后面是相应主题名
         tmp = self.sender().objectName()[6:]
         # print(tmp)
@@ -77,7 +83,7 @@ class CoLoRApp(QApplication):
             self.setStyleSheet(qds.load_stylesheet_pyqt5())
             self.window.graphicwindow.setStyleSheet(qds.load_stylesheet_pyqt5())
             self.window.graphicwindow.graphics_global.setBackground('#4d4d4d')
-            self.window.speedGraph.setBackground('#000000')
+            self.window.speedGraph.setBackground(QColor(Qt.black))
         else:
             self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
 

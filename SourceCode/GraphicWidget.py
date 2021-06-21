@@ -140,8 +140,6 @@ class GraphicWidget(QWidget):
     def loadTopo(self, path):
         self.scene.initTopo_config(path)
         self.view.scaleView(0.5)
-        # if self.scene.node_me:
-        #     print(self.scene.node_me.nid)
 
     def saveTopo(self, path):
         self.scene.saveTopo(path)
@@ -320,14 +318,3 @@ class GraphicWidget(QWidget):
                 return ans.name
             else:
                 return None
-
-
-if __name__ == "__main__":
-    import sys
-    from PyQt5.QtWidgets import QApplication
-
-    app = QApplication([])
-    window = GraphicWidget()
-    window.scene.initTopo_config("D:/CodeHub/CoLoRagent/data.db")
-    window.show()
-    sys.exit(app.exec_())

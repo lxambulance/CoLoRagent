@@ -245,7 +245,3 @@ class topoGraphView(QGraphicsView):
         if factor < 0.05 or factor > 20:
             return
         self.scale(scaleFactor, scaleFactor)
-
-
-if __name__ == "__main__":
-    pass
