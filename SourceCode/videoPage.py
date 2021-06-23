@@ -25,10 +25,10 @@ class Ui_MainWindow(object):
         self.splitter = QtWidgets.QSplitter(self.centralwidget)
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
         self.splitter.setObjectName("splitter")
-        self.videoView = QtWidgets.QWidget(self.splitter)
-        self.videoView.setObjectName("videoView")
         self.channel = QtWidgets.QListView(self.splitter)
         self.channel.setObjectName("channel")
+        self.label = QtWidgets.QLabel(self.splitter)
+        self.label.setObjectName("label")
         self.verticalLayout.addWidget(self.splitter)
         self.videoSlider = QtWidgets.QSlider(self.centralwidget)
         self.videoSlider.setOrientation(QtCore.Qt.Horizontal)
@@ -98,6 +98,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "视频通信"))
+        self.label.setText(_translate("MainWindow", "TextLabel"))
         self.menu.setTitle(_translate("MainWindow", "文件"))
         self.open_local.setText(_translate("MainWindow", "打开本地文件"))
         self.open_service.setText(_translate("MainWindow", "打开频道"))

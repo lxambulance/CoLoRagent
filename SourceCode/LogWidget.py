@@ -40,6 +40,7 @@ class CollapsibleMessageBox(QWidget):
         if defaultLayout:
             lay = QVBoxLayout()
             self.text = QLabel()
+            self.text.setTextInteractionFlags(Qt.TextSelectableByMouse)
             self.text.setTextFormat(Qt.MarkdownText)
             self.text.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
             self.text.setWordWrap(True)
@@ -90,12 +91,15 @@ class LogWidget(QWidget):
         self.contentarea = QVBoxLayout(self.content)
         self.contentarea.addStretch()
 
-        # 日志大小调整信号
-        self.scrollarea.verticalScrollBar().rangeChanged.connect(self.sliderRangeChange)
-    
-    def sliderRangeChange(self, min, max):
-        bar = self.scrollarea.verticalScrollBar()
-        bar.setValue(max)
+        # 设置区间范围改变信号
+        self.scrollarea.verticalScrollBar().rangeChanged.connect(self.modifyBarValue)
+
+    def modifyBarValue(self, min, max):
+        if self.modifytime:
+            bar = self.scrollarea.verticalScrollBar()
+            bar.setValue(max)
+            self.modifytime -= 1
+            # print(bar.maximum(), bar.minimum(), bar.value(), self.modifytime)
 
     def addLog(self, title, message, flag=False):
         ''' docstring: 添加日志消息，默认选项卡关闭 '''
@@ -104,7 +108,7 @@ class LogWidget(QWidget):
         self.contentarea.insertWidget(index - 1, box)
         if flag:
             box.toggle_button.animateClick()
-        self.update()
+        self.modifytime=1
 
 
 if __name__ == "__main__":
@@ -133,13 +137,13 @@ if __name__ == "__main__":
         box.setContentLayout(lay)
     
     box = CollapsibleMessageBox(
-        Title=f"Message Box Header<add>",
+        Title="Message Box Header<add>",
         defaultLayout=True,
         Message="Hello World!"*10
     )
     vlay.insertWidget(vlay.count()-1, box)
-    for i in range(10):
-        lx.addLog(f"{i}",f"{i*i}",True)
+    for i in range(100):
+        lx.addLog(f"{i}",f"{i*i}")
 
     w.resize(640, 480)
     w.show()

@@ -239,6 +239,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.logWidget.addLog("<统计> 收包大小", f"Size = {self.totalsize} 字节", True)
         self.totalsize = 0
         self.speed_line.setData(self.speed_x, self.speed_y)
+        # 测试拖动条效果
+        # bar = self.logWidget.scrollarea.verticalScrollBar()
+        # print(bar.value(), bar.maximum())
 
     # def chooseASs(self, flag):
     # '''docstring: 高级通告选择 '''
