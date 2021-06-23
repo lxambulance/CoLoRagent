@@ -8,6 +8,7 @@ import ProxyLib as PL
 from ProxyLib import (
     Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
     SidAnn, Get, CacheSidUnits)
+from scapy.utils import randstring
 from worker import worker
 import FileData as FD
 from serviceTable import serviceTableModel, progressBarDelegate
@@ -18,11 +19,14 @@ from videoWindow import videoWindow
 from cmdWindow import cmdWindow
 from mainPage import Ui_MainWindow
 import pyqtgraph as pg
+from CollapsibleMessageBox import CollapsibleMessageBox
+
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, 
     QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog,
-    QHeaderView, QTableWidgetItem)
+    QHeaderView, QTableWidgetItem, QVBoxLayout, QScrollArea, QWidget)
+
 import os
 import sys
 import math
@@ -46,6 +50,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # 隐藏searchLog搜索框
         self.searchLog.hide()
+        # 设置logView布局
+        content = QWidget()
+        self.logView.setWidget(content)
+        self.logView_layout = QVBoxLayout(content)
+        self.logView_layout.addStretch()
 
         # 修改数据存储路径
         FD.DATA_PATH = DATA_PATH
@@ -113,8 +122,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.toolBar.addAction(self.button_showtopo)
         self.button_showtopo.setCheckable(True)
 
+        # 设置网络拓扑窗口
+        self.graphicwindow = GraphicWindow()
+        self.graphicwindow.graphics_global.loadTopo(DATA_PATH)
+        self.graphicwindow.hide()
         # 设置其他窗口为空
-        self.graphicwindow = None
         self.videowindow = None
         self.cmdwindow = None
         self.action_cmdline.setVisible(False) # TODO: 命令行待完善
@@ -161,6 +173,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.listView.signal_add.connect(self.addItems)
         self.tableView.doubleClicked.connect(self.viewInfo)
         self.listView.doubleClicked.connect(self.viewInfo)
+        # 拓扑图信号槽连接
+        self.graphicwindow.GS.hide_window_signal.connect(self.showTopo)
         # 动作信号
         self.action_add.triggered.connect(self.addItem)
         self.action_del.triggered.connect(self.delItem)
@@ -189,6 +203,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 计时器开始
         self.timer.start()
 
+    def addLog(self, title, message, flag=False):
+        ''' docstring: 添加日志消息，默认选项卡关闭 '''
+        index = self.logView_layout.count()
+        box = CollapsibleMessageBox(Title=title, defaultLayout=True, Message=message)
+        self.logView_layout.insertWidget(index - 1, box)
+        if flag:
+            box.toggle_button.animateClick()
+
     def openCmdWindow(self):
         ''' docstring: 打开命令行窗口 '''
         if not self.cmdwindow:
@@ -204,17 +226,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.videowindow.setGeometry(self.videowindow.geometry())
         self.videowindow.show()
+        self.addLog("<动作> 打开视频窗口", "", True)
 
     def showTopo(self, status):
         ''' docstring: 显示(status==True)/隐藏(False) 拓扑图函数 '''
         if status:
-            if not self.graphicwindow:
-                self.graphicwindow = GraphicWindow()
-                self.graphicwindow.graphics_global.loadTopo(DATA_PATH)
-                # 拓扑图信号槽连接
-                self.graphicwindow.GS.hide_window_signal.connect(self.showTopo)
-            else:
-                self.graphicwindow.setGeometry(self.graphicwindow.geometry())
+            self.graphicwindow.setGeometry(self.graphicwindow.geometry())
             self.graphicwindow.show()
         else:
             # 确保通过x关闭后，主窗口按钮状态同步
@@ -750,7 +767,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.messagebox.done(1)
         self.messagebox = None
 
+
 if __name__ == '__main__':
+    from random import randint
+
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
@@ -766,5 +786,8 @@ if __name__ == '__main__':
     # 测试告警信息显示功能
     window.handleMessageFromPkt(2, 'test1\ncontent1\n')
     window.handleMessageFromPkt(2, 'test2\ncontent2\n')
+    # log添加测试
+    for i in range(3):
+        window.addLog("Hello", f"world{i}", randint(1,5)==1)
 
     sys.exit(app.exec_())
