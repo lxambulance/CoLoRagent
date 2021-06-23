@@ -24,8 +24,12 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QWidget" name="videoView" native="true"/>
       <widget class="QListView" name="channel"/>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>TextLabel</string>
+       </property>
+      </widget>
      </widget>
     </item>
     <item>

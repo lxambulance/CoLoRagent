@@ -19,7 +19,6 @@ from videoWindow import videoWindow
 from cmdWindow import cmdWindow
 from mainPage import Ui_MainWindow
 import pyqtgraph as pg
-from CollapsibleMessageBox import CollapsibleMessageBox
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
@@ -50,11 +49,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # 隐藏searchLog搜索框
         self.searchLog.hide()
-        # 设置logView布局
-        content = QWidget()
-        self.logView.setWidget(content)
-        self.logView_layout = QVBoxLayout(content)
-        self.logView_layout.addStretch()
 
         # 修改数据存储路径
         FD.DATA_PATH = DATA_PATH
@@ -72,7 +66,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timer_message = QTimer()
         self.timer.setInterval(3000)
         self.messagebox = None
-        self.asmetrics = {} # id:[(get num, get total size),(data num, data total size)]
 
         # 用于收包显示的变量
         self.mapfromSIDtoItem = {}
@@ -203,14 +196,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 计时器开始
         self.timer.start()
 
-    def addLog(self, title, message, flag=False):
-        ''' docstring: 添加日志消息，默认选项卡关闭 '''
-        index = self.logView_layout.count()
-        box = CollapsibleMessageBox(Title=title, defaultLayout=True, Message=message)
-        self.logView_layout.insertWidget(index - 1, box)
-        if flag:
-            box.toggle_button.animateClick()
-
     def openCmdWindow(self):
         ''' docstring: 打开命令行窗口 '''
         if not self.cmdwindow:
@@ -218,6 +203,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.cmdwindow.setGeometry(self.cmdwindow.geometry())
         self.cmdwindow.show()
+        self.logWidget.addLog("<动作> 打开视频窗口", f"Geo = {self.cmdwindow.geometry()}", False)
 
     def openVideoWindow(self):
         ''' docstring: 打开视频窗口 '''
@@ -226,13 +212,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.videowindow.setGeometry(self.videowindow.geometry())
         self.videowindow.show()
-        self.addLog("<动作> 打开视频窗口", "", True)
+        self.logWidget.addLog("<动作> 打开视频窗口", f"Geo = {self.videowindow.geometry()}", False)
 
     def showTopo(self, status):
         ''' docstring: 显示(status==True)/隐藏(False) 拓扑图函数 '''
         if status:
-            self.graphicwindow.setGeometry(self.graphicwindow.geometry())
+            geo = self.graphicwindow.geometry()
+            # print(geo)
+            if geo.left() or geo.top():
+                self.graphicwindow.setGeometry(geo)
             self.graphicwindow.show()
+            self.logWidget.addLog("<动作> 打开拓扑窗口", f"Geo = {geo}", False)
         else:
             # 确保通过x关闭后，主窗口按钮状态同步
             if self.button_showtopo.isChecked():
@@ -245,19 +235,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.speed_x.append(self.speed_x[-1] + 3)
         self.speed_y = self.speed_y[1:]
         self.speed_y.append(self.totalsize)
+        if self.totalsize:
+            self.logWidget.addLog("<统计> 收包大小", f"Size = {self.totalsize} 字节", True)
         self.totalsize = 0
         self.speed_line.setData(self.speed_x, self.speed_y)
-
-    def changeMetric(self, ASid, Type, size):
-        ''' docstring: 修改AS统计量 TODO：不再维护这些参数，需要去graphicwindow里对应节点取 '''
-        # self.asmetrics = {} id:[[get num, get total size],[data num, data total size]]
-        item = self.asmetrics.get(ASid, None)
-        if not item:
-            self.asmetrics[ASid]=[[0,0],[0,0]]
-            item = self.asmetrics[ASid]
-        item[Type][0] += 1
-        item[Type][1] += size
-        self.totalsize += size
 
     # def chooseASs(self, flag):
     # '''docstring: 高级通告选择 '''
@@ -315,25 +296,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             item = self.datapackets[-1]
         path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
         if (type&0xff) == 0x72:
-            item.addChild(QTreeWidgetItem([f"from nid {nid:032x}", str(size), "PIDs="+path_str]))
+            item.addChild(QTreeWidgetItem([f"来源nid={nid:032x}", str(size), "PIDs="+path_str]))
             # self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
-            # ASid = self.graphicwindow.graphics_global.getASid(path_str, 0, size)
-            # # print(ASid)
-            # if ASid:
-            #     self.changeMetric(ASid,0,size)
+            self.totalsize += size # 统计总收包大小，speedline需要使用
         elif (type&0xff) == 0x73:
             num = item.childCount()
-            item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), "PIDs="+path_str]))
+            item.addChild(QTreeWidgetItem([f"包片段{num+1}", str(size), "PIDs="+path_str]))
             # self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
             totsize = int(item.text(1))
             item.setText(1, str(totsize+size))
-            # ASid = self.graphicwindow.graphics_global.getASid(path_str, 1, size)
-            # # print(ASid)
-            # if ASid:
-            #     self.changeMetric(ASid,1,size)
+            self.totalsize += size # 统计总收包大小，speedline需要使用
         else:
             num = item.childCount()
-            item.addChild(QTreeWidgetItem([f"piece<{num+1}>", str(size), ""]))
+            item.addChild(QTreeWidgetItem([f"包片段{num+1}", str(size), ""]))
 
     def showMatchedPIDs(self, item, column):
         ''' docstring: 选中物体，显示匹配 '''
@@ -346,6 +321,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.setStatus('')
         if not self.graphicwindow.graphics_global.setMatchedPIDs(item.text(2)):
             self.setStatus('匹配失败')
+
+    def handleMessageFromPkt(self, messageType, message):
+        ''' docstring: 显示后端发送的信息，添加log记录 '''
+        if messageType == 0:
+            # 收到hint
+            self.logWidget.addLog("<消息> 后端提示", f"消息码={messageType}\n\n消息内容\n\n{message}\n\n", True)
+        elif messageType == 1:
+            # 收到warning
+            self.logWidget.addLog("<警告> 后端警告", f"消息码={messageType}\n\n消息内容\n\n{message}\n\n", True)
+        elif messageType == 2:
+            # 收到攻击警告
+            self.logWidget.addLog("<警告> 收到攻击警告", f"消息码={messageType}\n\n消息内容\n\n{message}\n\n", True)
+            if not self.messagebox:
+                self.messagebox = QMessageBox(self)
+                self.messagebox.setWindowTitle('<Attacking>')
+                self.messagebox.setText(message)
+                self.messagebox.setModal(False)
+                self.messagebox.buttonClicked.connect(self.timerMessageClear)
+                self.messagebox.show()
+                self.timer_message.start(3000)
+        else:
+            self.setStatus('无效的后端信息')
 
     def setSelectItem(self, items):
         ''' docstring: 通过列表和表格多选信号返回选择条目对象 '''
@@ -738,29 +735,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ret += '\n' + json.dumps(data, sort_keys=True, indent=4, separators=(',', ':')) + '\n'
         return ret
 
-    def handleMessageFromPkt(self, messageType, message):
-        ''' docstring: 显示后端发送的信息，添加log记录 '''
-        if messageType == 0:
-            # self.logText.append('<hint> ' + message + '\n')
-            pass
-        elif messageType == 1:
-            # 收到warning
-            # self.logText.append('<warning> ' + message + '\n')
-            pass
-        elif messageType == 2:
-            # 收到攻击警告
-            # self.logText.append('<attacking>' + message + '\n')
-            if not self.messagebox:
-                self.messagebox = QMessageBox(self)
-                self.messagebox.setWindowTitle('<Attacking>')
-                self.messagebox.setText(message)
-                self.messagebox.setModal(False)
-                self.messagebox.buttonClicked.connect(self.timerMessageClear)
-                self.messagebox.show()
-                self.timer_message.start(3000)
-        else:
-            self.setStatus('无效的后端信息')
-
     def timerMessageClear(self):
         ''' docstring: 告警窗清空 '''
         self.timer_message.stop()
@@ -784,10 +758,10 @@ if __name__ == '__main__':
     window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
     window.getPathFromPkt(0x74, '', [], 20, 0)
     # 测试告警信息显示功能
-    window.handleMessageFromPkt(2, 'test1\ncontent1\n')
-    window.handleMessageFromPkt(2, 'test2\ncontent2\n')
+    window.handleMessageFromPkt(2, 'test1\n\ncontent1\n\n')
+    window.handleMessageFromPkt(2, 'test2\n\ncontent2\n\n')
     # log添加测试
     for i in range(3):
-        window.addLog("Hello", f"world{i}", randint(1,5)==1)
+        window.logWidget.addLog("Hello", f"world{i}", randint(1,5)==1)
 
     sys.exit(app.exec_())

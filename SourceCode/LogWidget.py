@@ -1,6 +1,7 @@
 # coding=utf-8
 
 
+from typing import Tuple
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import (
     Qt, QParallelAnimationGroup, QPropertyAnimation, pyqtSlot, QAbstractAnimation)
@@ -9,7 +10,7 @@ from PyQt5.QtWidgets import (
 
 
 class CollapsibleMessageBox(QWidget):
-    ''' docstring: 消息显示类，开关触发折叠 '''
+    ''' docstring: 消息显示类，按钮触发折叠 '''
     
     def __init__(self, Title="", parent=None, defaultLayout=False, Message=None):
         super().__init__(parent)
@@ -74,6 +75,38 @@ class CollapsibleMessageBox(QWidget):
         content_animation.setEndValue(content_height)
 
 
+class LogWidget(QWidget):
+    ''' docstring: 统一处理和显示折叠消息盒 '''
+
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.lay = QVBoxLayout(self)
+        self.scrollarea = QScrollArea()
+        self.lay.addWidget(self.scrollarea)
+        self.content = QWidget()
+        self.scrollarea.setWidget(self.content)
+        self.scrollarea.setWidgetResizable(True)
+
+        self.contentarea = QVBoxLayout(self.content)
+        self.contentarea.addStretch()
+
+        # 日志大小调整信号
+        self.scrollarea.verticalScrollBar().rangeChanged.connect(self.sliderRangeChange)
+    
+    def sliderRangeChange(self, min, max):
+        bar = self.scrollarea.verticalScrollBar()
+        bar.setValue(max)
+
+    def addLog(self, title, message, flag=False):
+        ''' docstring: 添加日志消息，默认选项卡关闭 '''
+        index = self.contentarea.count()
+        box = CollapsibleMessageBox(Title=title, defaultLayout=True, Message=message)
+        self.contentarea.insertWidget(index - 1, box)
+        if flag:
+            box.toggle_button.animateClick()
+        self.update()
+
+
 if __name__ == "__main__":
     import sys
     import random
@@ -82,22 +115,13 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     w = QMainWindow()
-    w.setCentralWidget(QWidget())
+    lx = LogWidget()
+    w.setCentralWidget(lx)
 
-    dock = QDockWidget("Collapsible Demo")
-    w.addDockWidget(Qt.LeftDockWidgetArea, dock)
-
-    scroll = QScrollArea()
-    dock.setWidget(scroll)
-
-    content = QWidget()
-    scroll.setWidget(content)
-    scroll.setWidgetResizable(True)
-    vlay = QVBoxLayout(content) # 可以直接设置parent，或者最后通过setLayout函数添加
-
+    vlay = lx.contentarea
     for i in range(10):
         box = CollapsibleMessageBox(f"Collapsible Box Header-{i}")
-        vlay.addWidget(box)
+        vlay.insertWidget(vlay.count()-1, box)
 
         lay = QVBoxLayout()
         for j in range(8):
@@ -113,9 +137,9 @@ if __name__ == "__main__":
         defaultLayout=True,
         Message="Hello World!"*10
     )
-    vlay.addWidget(box)
-
-    vlay.addStretch() # 添加松紧条（designer弹簧），便于其他对齐
+    vlay.insertWidget(vlay.count()-1, box)
+    for i in range(10):
+        lx.addLog(f"{i}",f"{i*i}",True)
 
     w.resize(640, 480)
     w.show()

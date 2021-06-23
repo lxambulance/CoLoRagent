@@ -64,21 +64,7 @@
           <widget class="QLineEdit" name="searchLog"/>
          </item>
          <item>
-          <widget class="QScrollArea" name="logView">
-           <property name="widgetResizable">
-            <bool>true</bool>
-           </property>
-           <widget class="QWidget" name="scrollAreaWidgetContents">
-            <property name="geometry">
-             <rect>
-              <x>0</x>
-              <y>0</y>
-              <width>280</width>
-              <height>184</height>
-             </rect>
-            </property>
-           </widget>
-          </widget>
+          <widget class="LogWidget" name="logWidget" native="true"/>
          </item>
         </layout>
        </widget>
@@ -299,7 +285,13 @@
   <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
-   <header location="global">pyqtgraph</header>
+   <header>pyqtgraph</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>LogWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">LogWidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
