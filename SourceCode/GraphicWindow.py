@@ -3,6 +3,7 @@
 
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtCore import pyqtSignal, QObject, Qt
+from PyQt5.QtGui import *
 
 from GraphicPage import Ui_MainWindow
 
@@ -22,7 +23,10 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
 
         # 暂时隐藏拓扑修改按钮
         self.actionb.setVisible(False)
-    
+
+        # 设置信号槽连接
+        self.actionReopenToolbar.triggered.connect(self.Toolbar.toggleViewAction().trigger) # 设置按钮打开/关闭工具栏
+
     def closeEvent(self, event):
         ''' docstring: 自定义关闭事件信号 '''
         self.GS.hide_window_signal.emit(False)

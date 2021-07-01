@@ -224,3 +224,7 @@ class Edge(QGraphicsLineItem):
         # 设置绘图属性，去掉外边框，妥协的做法
         option.state = QStyle.State_None
         super().paint(painter, option, widget)
+
+class Text():
+    '''docstring: 文本类显示文字信息 '''
+    
