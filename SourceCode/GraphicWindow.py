@@ -1,7 +1,7 @@
 # coding=utf-8
 ''' docstring: CoLoR拓扑图窗口 '''
 
-from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QMainWindow, QPushButton
 from PyQt5.QtCore import pyqtSignal, QObject, Qt
 from PyQt5.QtGui import *
 
@@ -25,7 +25,16 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.actionb.setVisible(False)
 
         # 设置信号槽连接
-        self.actionReopenToolbar.triggered.connect(self.Toolbar.toggleViewAction().trigger) # 设置按钮打开/关闭工具栏
+        self.actionReopenToolbar.triggered.connect(self.resetToolbar) # 设置按钮还原工具栏
+
+    def resetToolbar(self):
+        ''' docstring: 还原工具栏位置，采用删除后重填加的方式 '''
+        self.removeDockWidget(self.Toolbar)
+        if not self.Toolbar.isVisible(): # visible是自身属性，可以直接修改
+            self.Toolbar.toggleViewAction().trigger()
+        self.addDockWidget(Qt.DockWidgetArea(Qt.LeftDockWidgetArea), self.Toolbar)
+        if self.Toolbar.isFloating(): # floating属性涉及到外部dock位置，需要先确定父widget
+            self.Toolbar.setFloating(False)
 
     def closeEvent(self, event):
         ''' docstring: 自定义关闭事件信号 '''

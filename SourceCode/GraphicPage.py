@@ -189,7 +189,7 @@ class Ui_MainWindow(object):
         self.actionc.setToolTip(_translate("MainWindow", "显示顶部居中高级通告"))
         self.actiond.setText(_translate("MainWindow", "数据通量"))
         self.actiond.setToolTip(_translate("MainWindow", "显示各自治域数据通量"))
-        self.actionReopenToolbar.setText(_translate("MainWindow", "打开（关闭）工具栏"))
-        self.actionReopenToolbar.setToolTip(_translate("MainWindow", "打开（关闭）工具栏"))
+        self.actionReopenToolbar.setText(_translate("MainWindow", "还原工具栏"))
+        self.actionReopenToolbar.setToolTip(_translate("MainWindow", "还原工具栏"))
 from GraphicWidget import GraphicWidget
 import resource_rc

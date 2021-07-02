@@ -326,10 +326,10 @@
   </action>
   <action name="actionReopenToolbar">
    <property name="text">
-    <string>打开（关闭）工具栏</string>
+    <string>还原工具栏</string>
    </property>
    <property name="toolTip">
-    <string>打开（关闭）工具栏</string>
+    <string>还原工具栏</string>
    </property>
   </action>
  </widget>
