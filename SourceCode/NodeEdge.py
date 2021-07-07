@@ -13,8 +13,8 @@ from PyQt5.QtCore import (QObject, pyqtSignal, QRectF,
 import resource_rc
 
 NodeTypeLen = 6
-NodeImageStr = [':/icon/cloud', ':/icon/RM', ':/icon/BR',
-                ':/icon/router', ':/icon/switching', ':/icon/PC']
+NodeImageStr = [':/topo/cloud', ':/topo/RM', ':/topo/BR',
+                ':/topo/router', ':/topo/switching', ':/topo/PC']
 NodeZValue = [1, 10, 10, 10, 10, 10]
 NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'agent']
 NodeSize = [256, 64, 64, 64, 64, 64]
@@ -82,7 +82,7 @@ class Node(QGraphicsPixmapItem):
     def addClickTimes(self):
         self.clicktime += 1
         if self.clicktime & 1:
-            self.setPixmap(QPixmap(':icon/cloud-o').scaled(self.size, self.size))
+            self.setPixmap(QPixmap(':/topo/cloud-o').scaled(self.size, self.size))
         else:
             self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
 
@@ -139,7 +139,7 @@ class Node(QGraphicsPixmapItem):
         if not self.type:
             if not self.clicktime:
                 if self.isSelected():
-                    self.setPixmap(QPixmap(':icon/cloud-o').scaled(self.size, self.size))
+                    self.setPixmap(QPixmap(':/topo/cloud-o').scaled(self.size, self.size))
                 else:
                     self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
         else:

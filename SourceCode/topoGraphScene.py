@@ -34,7 +34,7 @@ class topoGraphScene(QGraphicsScene):
         # 添加特殊节点用于收包动画显示
         self.node_file = QGraphicsEllipseItem(-12,-12,24,24)
         self.node_file_img = QGraphicsPixmapItem(
-            QPixmap(':/icon/document').scaled(50, 50),
+            QPixmap(':/file/document').scaled(50, 50),
             self.node_file)
         self.node_file_img.setOffset(-25, -62)
         self.node_file.setPen(QPen(QColor('#ffff80'),2))
