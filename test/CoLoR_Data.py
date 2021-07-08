@@ -38,7 +38,7 @@ class CoLoR_Data(Packet):
             lambda pkt:pkt.Flags.C==True),
         ConditionalField(IntField("Seg_ID", None),
             lambda pkt:pkt.Flags.S==True),
-        FieldListField("PIDs", None, StrFixedLenField("", "", 4),
+        FieldListField("PIDs", [""], StrFixedLenField("", "", 4),
             count_from=lambda pkt:pkt.PID_num+(pkt.Flags.R==True))
     ]
     def post_build(self, pkt, pay):
