@@ -20,7 +20,17 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QWidget" name="widget" native="true"/>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="QListView" name="channel"/>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>TextLabel</string>
+       </property>
+      </widget>
+     </widget>
     </item>
     <item>
      <widget class="QSlider" name="videoSlider">
@@ -111,8 +121,26 @@
      <height>23</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>文件</string>
+    </property>
+    <addaction name="open_local"/>
+    <addaction name="open_service"/>
+   </widget>
+   <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="open_local">
+   <property name="text">
+    <string>打开本地文件</string>
+   </property>
+  </action>
+  <action name="open_service">
+   <property name="text">
+    <string>打开频道</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="../Icon/resource.qrc"/>

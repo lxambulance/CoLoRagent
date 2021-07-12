@@ -1,16 +1,6 @@
 <RCC>
   <qresource prefix="icon">
     <file alias="color">color.png</file>
-    <file alias="document">paper.png</file>
-    <file alias="folder">folder.png</file>
-    <file alias="rar">rar.png</file>
-    <file alias="RM">database-storage.png</file>
-    <file alias="BR">router-br.png</file>
-    <file alias="router">router.png</file>
-    <file alias="switching">switching.png</file>
-    <file alias="cloud">weather-cloud.png</file>
-    <file alias="cloud-o">weather-cloud-select.png</file>
-    <file alias="cloud-r">weather-cloud-warning.png</file>
     <file alias="tick">tick.png</file>
     <file alias="cross">cross.png</file>
     <file alias="minus">minus.png</file>
@@ -18,10 +8,34 @@
     <file alias="addFile">addFile.png</file>
     <file alias="openFolder">openFolder.png</file>
     <file alias="openMap">openmap.png</file>
+  </qresource>
+  <qresource prefix="file">
+    <file alias="document">paper.png</file>
+    <file alias="folder">folder.png</file>
+    <file alias="rar">rar.png</file>
+  </qresource>
+  <qresource prefix="topo">
     <file alias="RM">resourceManagement.png</file>
     <file alias="PC">personalComputer.png</file>
+    <file alias="RM">database-storage.png</file>
+    <file alias="BR">router-br.png</file>
+    <file alias="router">router.png</file>
+    <file alias="switching">switching.png</file>
+    <file alias="cloud">weather-cloud.png</file>
+    <file alias="cloud-o">weather-cloud-select.png</file>
+    <file alias="cloud-r">weather-cloud-warning.png</file>
+    <file alias="baseinfo">size-tag.png</file>
+    <file alias="throughput">hierarchy.png</file>
+    <file alias="advanced-reg">viral.png</file>
+    <file alias="modify">technics.png</file>
+    <file alias="dotline">dashed-line.png</file>
+    <file alias="solidline">line.png</file>
+    <file alias="edit">edit.png</file>
+    <file alias="reset">undo-arrow.png</file>
+    <file alias="choose">choosing.png</file>
+    <file alias="reg">log-out.png</file>
   </qresource>
-  <qresource prefix="button">
+  <qresource prefix="video">
     <file alias="control-play">control.png</file>
     <file alias="control-pause">control-pause.png</file>
     <file alias="control-skip-f">control-skip-180.png</file>

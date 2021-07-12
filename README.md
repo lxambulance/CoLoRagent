@@ -293,6 +293,12 @@ windows文件拖拽权限问题，explorer为中权限，运行环境为管理�
 
 通过简单的判断交叉然后交换位置消除的方法不行，存在交换后新生成交叉的情况，还需要进一步处理。
 
+#### 10.拖动条位置不理想 [solved]
+
+> 问题描述：修改了qwidget大小后，进度条无法保持在最下方
+
+与信号槽机制有关，函数修改大小后相关信号没有处理（即连接方式是队列连接而非直接连接，相关修改信号没有立即生效），此时设置进度条值无效。解决方法是再用一个信号滞后修改。
+
 ## Appendix
 
 ### A. pyqt学习记录
@@ -680,3 +686,12 @@ bind_layers(CoLoR_Control, IP_nid, tag="PROXY_REGISTER")
 # 用于构建时自动填写tag字段
 bind_layers(CoLoR_Control, IP_nid, {'tag':5})
 ```
+
+### G. 图标
+
+项目图标部分来自[fugue-icons-3.5.6](https://p.yusukekamiyamane.com/)，由[pyqt教程网站](https://www.learnpyqt.com/)推荐。
+
+另外部分来自[图标网站](https://www.flaticon.com/)
+
+
+

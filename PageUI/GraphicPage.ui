@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>700</width>
-    <height>700</height>
+    <height>698</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,23 +24,349 @@
     </item>
    </layout>
   </widget>
-  <widget class="QToolBar" name="toolBar">
-   <property name="windowTitle">
-    <string>toolBar</string>
+  <widget class="QDockWidget" name="Toolbar">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
    </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
+   <property name="allowedAreas">
+    <set>Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea</set>
+   </property>
+   <property name="windowTitle">
+    <string>工具</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
    </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="actiona"/>
-   <addaction name="actionb"/>
-   <addaction name="separator"/>
-   <addaction name="actionc"/>
-   <addaction name="actiond"/>
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
+      <layout class="QGridLayout" name="gridLayout1">
+       <item row="0" column="0">
+        <widget class="QPushButton" name="pushButtonShowBaseinfo">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/baseinfo</normaloff>:/topo/baseinfo</iconset>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QPushButton" name="pushButtonShowASThroughput">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/throughput</normaloff>:/topo/throughput</iconset>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QPushButton" name="pushButtonAdvancedReg">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/advanced-reg</normaloff>:/topo/advanced-reg</iconset>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QPushButton" name="pushButtonModifyTopo">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/modify</normaloff>:/topo/modify</iconset>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="Line" name="line1">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QGridLayout" name="gridLayout2">
+       <item row="0" column="1">
+        <widget class="QPushButton" name="pushButtonAddDottedLine">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/dotline</normaloff>:/topo/dotline</iconset>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QPushButton" name="pushButtonAddSolidLine">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/solidline</normaloff>:/topo/solidline</iconset>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QPushButton" name="pushButtonEdit">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/edit</normaloff>:/topo/edit</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QPushButton" name="pushButtonReset">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/reset</normaloff>:/topo/reset</iconset>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QListWidget" name="nodelist">
+       <property name="maximumSize">
+        <size>
+         <width>62</width>
+         <height>128</height>
+        </size>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>25</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="gridSize">
+        <size>
+         <width>30</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="viewMode">
+        <enum>QListView::IconMode</enum>
+       </property>
+       <item>
+        <property name="text">
+         <string>AS</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../Icon/resource.qrc">
+          <normaloff>:/topo/cloud</normaloff>:/topo/cloud</iconset>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>RM</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../Icon/resource.qrc">
+          <normaloff>:/topo/RM</normaloff>:/topo/RM</iconset>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>BR</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../Icon/resource.qrc">
+          <normaloff>:/topo/BR</normaloff>:/topo/BR</iconset>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>PC</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../Icon/resource.qrc">
+          <normaloff>:/topo/PC</normaloff>:/topo/PC</iconset>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="line2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="chooseFile">
+       <property name="maximumSize">
+        <size>
+         <width>62</width>
+         <height>16777215</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="secretLevel">
+       <property name="maximumSize">
+        <size>
+         <width>62</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>密级</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="ASlist">
+       <property name="maximumSize">
+        <size>
+         <width>62</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>通告路径</string>
+       </property>
+       <property name="text">
+        <string>[AS list]</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QPushButton" name="pushButtonChooseAS">
+         <property name="toolTip">
+          <string>在图中选择通告路径按钮</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/choose</normaloff>:/topo/choose</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>16</width>
+           <height>16</height>
+          </size>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QPushButton" name="pushButtonReg">
+         <property name="toolTip">
+          <string>通告</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/reg</normaloff>:/topo/reg</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>16</width>
+           <height>16</height>
+          </size>
+         </property>
+         <property name="checkable">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="Line" name="line3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </widget>
   </widget>
-  <action name="actiona">
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>700</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>设置</string>
+    </property>
+    <addaction name="actionShowBaseinfo"/>
+    <addaction name="actionShowASThroughput"/>
+    <addaction name="separator"/>
+    <addaction name="actionAdvancedReg"/>
+    <addaction name="actionModifyTopo"/>
+    <addaction name="separator"/>
+    <addaction name="actionReopenToolbar"/>
+   </widget>
+   <addaction name="menu"/>
+  </widget>
+  <action name="actionShowBaseinfo">
    <property name="text">
     <string>基本信息</string>
    </property>
@@ -48,7 +374,7 @@
     <string>显示左下框基本信息</string>
    </property>
   </action>
-  <action name="actionb">
+  <action name="actionModifyTopo">
    <property name="text">
     <string>拓扑修改</string>
    </property>
@@ -56,7 +382,7 @@
     <string>显示右下框拓扑修改</string>
    </property>
   </action>
-  <action name="actionc">
+  <action name="actionAdvancedReg">
    <property name="text">
     <string>高级通告</string>
    </property>
@@ -64,12 +390,20 @@
     <string>显示顶部居中高级通告</string>
    </property>
   </action>
-  <action name="actiond">
+  <action name="actionShowASThroughput">
    <property name="text">
     <string>数据通量</string>
    </property>
    <property name="toolTip">
     <string>显示各自治域数据通量</string>
+   </property>
+  </action>
+  <action name="actionReopenToolbar">
+   <property name="text">
+    <string>还原工具栏</string>
+   </property>
+   <property name="toolTip">
+    <string>还原工具栏</string>
    </property>
   </action>
  </widget>

@@ -52,9 +52,9 @@ class Ui_MainWindow(object):
         self.searchLog = QtWidgets.QLineEdit(self.layoutWidget)
         self.searchLog.setObjectName("searchLog")
         self.verticalLayout_1.addWidget(self.searchLog)
-        self.logView = QtWidgets.QWidget(self.layoutWidget)
-        self.logView.setObjectName("logView")
-        self.verticalLayout_1.addWidget(self.logView)
+        self.logWidget = LogWidget(self.layoutWidget)
+        self.logWidget.setObjectName("logWidget")
+        self.verticalLayout_1.addWidget(self.logWidget)
         self.layoutWidget1 = QtWidgets.QWidget(self.splitter_vertical)
         self.layoutWidget1.setObjectName("layoutWidget1")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.layoutWidget1)
@@ -186,6 +186,7 @@ class Ui_MainWindow(object):
         self.action_advancedreg.setText(_translate("MainWindow", "高级通告"))
         self.action_video.setText(_translate("MainWindow", "视频通信"))
         self.action_cmdline.setText(_translate("MainWindow", "命令行（仅测试）"))
+from LogWidget import LogWidget
 from pyqtgraph import PlotWidget
 from serviceList import MyListView
 from serviceTable import MyTableView

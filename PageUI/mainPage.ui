@@ -64,7 +64,7 @@
           <widget class="QLineEdit" name="searchLog"/>
          </item>
          <item>
-          <widget class="QWidget" name="logView" native="true"/>
+          <widget class="LogWidget" name="logWidget" native="true"/>
          </item>
         </layout>
        </widget>
@@ -285,7 +285,13 @@
   <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
-   <header location="global">pyqtgraph</header>
+   <header>pyqtgraph</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>LogWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">LogWidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
