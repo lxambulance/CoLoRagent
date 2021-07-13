@@ -19,7 +19,8 @@ class topoGraphView(QGraphicsView):
         # 设置场景坐标
         self.setScene(scene)
         self.scene().setSceneRect(-5000, -5000, 10000, 10000)
-        # 设置视图更新模式，可以只更新矩形框，也可以全部更新 TODO: 更新效率
+        # 设置视图更新模式，可以只更新矩形框，也可以全部更新
+        # TODO: 更新效率
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
         # 设置渲染属性
         self.setRenderHints(
@@ -47,12 +48,12 @@ class topoGraphView(QGraphicsView):
         return item
 
     def removeNode(self, item):
-        ''' docstring: 删除节点 '''
+        ''' docstring: 删除节点，步骤较繁琐，主要要考虑对所有参数的影响 '''
         # print(item.name, item.id)
-        if item.type == 0 and len(self.scene().ASinfo[item.id]) > 1:
+        if item.type == 0 and len(self.scene().ASinfo[item.id]) > 1: # 内部含有东西的AS不能直接删除
             # print([x.id for x in self.scene().ASinfo[item.id]])
             return
-        tmpas = self.scene().belongAS.pop(item.id, None)
+        tmpas = self.scene().belongAS.pop(item.id, None) # 获取所属AS节点列表，修改belongAS
         if tmpas:
             tmpas.modifyCount(-1)
             tmpnodelist = self.scene().ASinfo[tmpas.id]
@@ -60,16 +61,16 @@ class topoGraphView(QGraphicsView):
             tmpnodelist.remove(item)
             if len(tmpnodelist) == 0:
                 self.scene().ASinfo.pop(tmpas.id)
-        tmplist = self.scene().nextedges.pop(item.id, [])
+        tmplist = self.scene().nextedges.pop(item.id, []) # 获取所在边表，修改nextedges
         for nextnode, nextedge in tmplist:
             self.scene().nextedges[nextnode.id].remove((item, nextedge))
             self.scene().removeItem(nextedge)
-        if item in self.scene().waitlist:
+        if item in self.scene().waitlist: # 查看是否在等待列表中
             self.scene().waitlist.remove(item)
         self.scene().removeItem(item)
 
     def mousePressEvent(self, event):
-        ''' docstring: 鼠标按压事件 '''
+        ''' docstring: 鼠标按下事件 '''
         item = self.getItemAtClick(event)
         if event.button() == Qt.RightButton:
             # print(item.name, item.id)
@@ -143,7 +144,7 @@ class topoGraphView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        ''' docstring: 鼠标回弹事件 '''
+        ''' docstring: 鼠标释放事件 '''
         if self.parent().addedgeenable:
             self.parent().addedgeenable = False
             item = self.getItemAtClick(event)
@@ -198,7 +199,7 @@ class topoGraphView(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event):
-        ''' docstring: 键盘按事件 '''
+        ''' docstring: 键盘按下事件 '''
         key = event.key()
         if key == Qt.Key_Plus:
             self.scaleView(1.2)

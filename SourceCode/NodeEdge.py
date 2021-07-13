@@ -4,7 +4,7 @@
 from math import fabs, atan2, pi, sin, cos, sqrt
 from PyQt5.QtWidgets import (
     QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem,
-    QStyle, QGraphicsPolygonItem)
+    QStyle, QGraphicsPolygonItem, QGraphicsTextItem)
 from PyQt5.QtGui import (QPen, QColor, QPixmap,
     QFont, QPainter, QBrush, QPolygonF)
 from PyQt5.QtCore import (QObject, pyqtSignal, QRectF,
@@ -158,7 +158,7 @@ class Node(QGraphicsPixmapItem):
         super().paint(painter, option, widget)
 
 class Edge(QGraphicsLineItem):
-    ''' docstring: 边类'''
+    ''' docstring: 边类 '''
 
     def __init__(self, node1, node2, linetype=0, linePX=None):
         super().__init__()
@@ -225,6 +225,16 @@ class Edge(QGraphicsLineItem):
         option.state = QStyle.State_None
         super().paint(painter, option, widget)
 
-class Text():
+class Text(QGraphicsTextItem):
     '''docstring: 文本类显示文字信息 '''
-    
+    # TODO: 需要支持基本文字编辑工作，还有大小规整化操作
+    # TODO: 笔刷字形，设置两套方案
+    def __init__(self, parent=None, content=None):
+        super().__init__(parent)
+
+        # self.setPen(QPen(QColor('#ff99e5'), 12))
+        # self.setBrush(QColor(Qt.red))
+        # self.setFont(QFont("Times", 20))
+
+        if content:
+           self.setPlainText(content)

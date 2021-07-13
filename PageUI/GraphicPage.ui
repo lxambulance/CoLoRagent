@@ -46,6 +46,9 @@
       <layout class="QGridLayout" name="gridLayout1">
        <item row="0" column="0">
         <widget class="QPushButton" name="pushButtonShowBaseinfo">
+         <property name="toolTip">
+          <string>基本信息</string>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -60,6 +63,9 @@
        </item>
        <item row="0" column="1">
         <widget class="QPushButton" name="pushButtonShowASThroughput">
+         <property name="toolTip">
+          <string>数据通量</string>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -74,6 +80,9 @@
        </item>
        <item row="1" column="0">
         <widget class="QPushButton" name="pushButtonAdvancedReg">
+         <property name="toolTip">
+          <string>高级通告</string>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -88,6 +97,9 @@
        </item>
        <item row="1" column="1">
         <widget class="QPushButton" name="pushButtonModifyTopo">
+         <property name="toolTip">
+          <string>修改拓扑</string>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -113,6 +125,9 @@
       <layout class="QGridLayout" name="gridLayout2">
        <item row="0" column="1">
         <widget class="QPushButton" name="pushButtonAddDottedLine">
+         <property name="toolTip">
+          <string>添加虚线</string>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -127,6 +142,9 @@
        </item>
        <item row="0" column="0">
         <widget class="QPushButton" name="pushButtonAddSolidLine">
+         <property name="toolTip">
+          <string>添加实线</string>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -141,6 +159,9 @@
        </item>
        <item row="1" column="0">
         <widget class="QPushButton" name="pushButtonEdit">
+         <property name="toolTip">
+          <string>编辑属性</string>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -152,6 +173,9 @@
        </item>
        <item row="1" column="1">
         <widget class="QPushButton" name="pushButtonReset">
+         <property name="toolTip">
+          <string>重新自动布局</string>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -165,11 +189,11 @@
      </item>
      <item>
       <widget class="QListWidget" name="nodelist">
-       <property name="maximumSize">
-        <size>
-         <width>62</width>
-         <height>128</height>
-        </size>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Ignored" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
        <property name="iconSize">
         <size>
@@ -179,8 +203,8 @@
        </property>
        <property name="gridSize">
         <size>
-         <width>30</width>
-         <height>40</height>
+         <width>40</width>
+         <height>45</height>
         </size>
        </property>
        <property name="viewMode">
@@ -233,21 +257,24 @@
      </item>
      <item>
       <widget class="QComboBox" name="chooseFile">
-       <property name="maximumSize">
-        <size>
-         <width>62</width>
-         <height>16777215</height>
-        </size>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="toolTip">
+        <string>选择文件</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QSpinBox" name="secretLevel">
-       <property name="maximumSize">
-        <size>
-         <width>62</width>
-         <height>16777215</height>
-        </size>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
        <property name="toolTip">
         <string>密级</string>
@@ -256,11 +283,11 @@
      </item>
      <item>
       <widget class="QLineEdit" name="ASlist">
-       <property name="maximumSize">
-        <size>
-         <width>62</width>
-         <height>16777215</height>
-        </size>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
        <property name="toolTip">
         <string>通告路径</string>
@@ -275,7 +302,7 @@
        <item row="0" column="0">
         <widget class="QPushButton" name="pushButtonChooseAS">
          <property name="toolTip">
-          <string>在图中选择通告路径按钮</string>
+          <string>在图中选择通告路径</string>
          </property>
          <property name="text">
           <string/>
@@ -349,7 +376,7 @@
      <x>0</x>
      <y>0</y>
      <width>700</width>
-     <height>23</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

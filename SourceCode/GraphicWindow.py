@@ -86,6 +86,9 @@ if __name__ == "__main__":
     DATAPATH = "D:/CodeHub/CoLoRagent/data.db"
     window.graphics_global.loadTopo(DATAPATH)
     window.show()
+    from NodeEdge import Text
+    tmp = Text("Hello World")
+    window.graphics_global.scene.addItem(tmp)
     ret = app.exec_()
     window.graphics_global.saveTopo(DATAPATH)
     sys.exit(ret)

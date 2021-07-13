@@ -16,9 +16,11 @@ import resource_rc
 
 
 def Cross(a, b, o):
+    ''' docstring: 计算叉积函数 '''
     return (a.x()-o.x())*(b.y()-o.y())-(a.y()-o.y())*(b.x()-o.x())
 
 def sgn(x):
+    ''' docstring: 获取符号函数 '''
     if fabs(x) < 1e-8:
         return 0
     return 1 if x > 0 else 0
@@ -31,6 +33,7 @@ class topoGraphScene(QGraphicsScene):
         self.tmpnode = None
         self.tmpnode_transparent = None
         self.tmpedge = None
+
         # 添加特殊节点用于收包动画显示
         self.node_file = QGraphicsEllipseItem(-12,-12,24,24)
         self.node_file_img = QGraphicsPixmapItem(
@@ -43,15 +46,18 @@ class topoGraphScene(QGraphicsScene):
         self.addItem(self.node_file)
         self.node_file.hide()
 
+        # 观察节点特殊记录
         self.node_me = None
         self.nid_me = None
         self.waitlist = [] # 用于暂存添加到topo图中的新节点修改属性
 
-        self.ASinfo = {} # id:[node,...]
-        self.belongAS = {} # id:ASitem
-        self.nextedges = {} # id:[(nextnode, edge),...]
+        # 拓扑图主要参数
+        self.ASinfo = {} # AS所含节点信息，格式：id:[node,...]
+        self.belongAS = {} # 节点所属AS，格式：id:ASitem
+        self.nextedges = {} # 边表，邻接表存储，格式：id:[(nextnode, edge),...]
         self.R = 0 # 布局中大圆半径
 
+        # json格式转换时临时保存参数
         self.topo = {}
         self.data = {}
 
@@ -63,7 +69,7 @@ class topoGraphScene(QGraphicsScene):
         tmplist = self.nextedges.get(n2.id, [])
         tmplist.append((n1, edge))
         self.nextedges[n2.id] = tmplist
-        # 绑定对应点，便于删除
+        # 绑定对应点，便于边操作
         edge.node1 = n1
         edge.node2 = n2
 
@@ -73,7 +79,7 @@ class topoGraphScene(QGraphicsScene):
         self.nextedges[n2.id].remove((n1, edge))
 
     def findPath(self, dest):
-        ''' docstring: 根据目标地址选择路径，返回经过节点nid路径 '''
+        ''' docstring: 选择最短路径，以观察节点为起点，返回到目标节点的路径（nid序列） '''
         if self.node_me == None:
             return None
         # print('init')

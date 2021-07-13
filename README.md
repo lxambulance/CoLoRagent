@@ -30,6 +30,7 @@
 - 2021.4.25 完成了一次完整联调，还有待改进的点，以及一些小功能。
 - 2021.5.11 完成了联调，主要功能完成，操作体验上还有优化空间。
 - 2021.6.1 研究了scapy发包库，添加了一些测试工具，接下去要从界面设计，后续功能添加等方面考虑。
+- 2021.7.13 近期有点摸鱼，写不动代码，慢慢从细节修改。
 
 作为git练习，dev分支可能会出现许多无聊地、甚至错误地提交。
 
@@ -414,6 +415,16 @@ class CustSignal(QObject):
 > （原文：Shows the dialog as a modal dialog, blocking until the user closes it. The function returns a DialogCode result. Users cannot interact with any other window in the same application until they close the dialog. ）
 
 在实现上，exec仅仅是在show的基础上加了一个事件循环来阻塞当前事件。所以使用show()加modal=True的方式仅仅是半模态，当前事件不会停止，立刻进行后续动作，与exec还是存在区别。
+
+#### sizePolicy
+
+以下为qt widget基本的大小扩展策略，其余一些为以下的组合，多数时候不需要关心这个，只要正确使用了layout和widget的嵌套，qt会自动排布。只有当自动排布不太合适的时候才应该考虑这个。项目中在qdockwidget中用到了，因为位置太窄了，插入listwidget只能选水平空间ignore，有多少占用多少。
+
+| `QSizePolicy::GrowFlag`   | `1`  | The widget can grow beyond its size hint if necessary.       |
+| ------------------------- | ---- | ------------------------------------------------------------ |
+| `QSizePolicy::ExpandFlag` | `2`  | The widget should get as much space as possible.             |
+| `QSizePolicy::ShrinkFlag` | `4`  | The widget can shrink below its size hint if necessary.      |
+| `QSizePolicy::IgnoreFlag` | `8`  | The widget's size hint is ignored. The widget will get as much space as possible. |
 
 ### B. Packaging文件打包
 
