@@ -36,17 +36,21 @@ class PktHandler(threading.Thread):
         self.signals = pktSignals()
 
     def run(self):
+        # print("pkt")
         if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4):
+            # print("CoLoR pkt")
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
             if(PL.RegFlag == 0):
                 # 注册中状态
                 # 过滤掉其他格式的包。
                 if PktLength < 8 or data[0] != 0x74 or data[5] != 6 or PktLength != (data[4] + data[6] + ((data[7]) << 8)):
+                    print("return 1")
                     return
                 # 校验和检验
                 CS = PL.CalculateCS(data[0:8])
                 if(CS != 0):
+                    print("return 2")
                     return
                 # 解析报文内容
                 NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
@@ -90,8 +94,8 @@ class PktHandler(threading.Thread):
                     NidCus = NewGetPkt.nid
                     PIDs = NewGetPkt.PIDs.copy()
                     # 按最大长度减去IP报文和DATA报文头长度(QoS暂默认最长为1字节)，预留位占4字节，数据传输结束标志位位于负载内占1字节
-                    SidLoadLength = NewGetPkt.MTU-60-86-(4*len(PIDs)) - 4 - 1
-                    # SidLoadLength = 1000  # 仅在报文不经过RM的点对点调试用
+                    # SidLoadLength = NewGetPkt.MTU-60-86-(4*len(PIDs)) - 4 - 1
+                    SidLoadLength = 1000  # 仅在报文不经过RM的点对点调试用
                     DataLength = len(PL.ConvertFile(SidPath))
                     if (DataLength <= SidLoadLength):
                         ChipNum = 1
@@ -283,9 +287,9 @@ class PktHandler(threading.Thread):
                         if NewCtrlPkt.L_sid != 0:
                             NewSid += hex(NewCtrlPkt.L_sid).replace('0x',
                                                                 '').zfill(40)
-                        tmps = "泄露DATA包的节点源IP: " + NewCtrlPkt.ProxyIP + '\n'
-                        tmps += "泄露DATA包内含的SID: " + NewSid + '\n'
-                        tmps += "泄露DATA包的目的NID: " + f"{NewCtrlPkt.CusNid:032x}"
+                        tmps = "截获尝试泄露DATA包的节点源IP: " + NewCtrlPkt.ProxyIP + '\n'
+                        tmps += "截获尝试泄露DATA包内含的SID: " + NewSid + '\n'
+                        tmps += "截获尝试泄露DATA包去往目的NID: " + f"{NewCtrlPkt.CusNid:032x}"
                         self.signals.output.emit(2, tmps)
                     elif (NewCtrlPkt.tag == 18):
                         # 外部攻击警告
@@ -338,4 +342,4 @@ class Monitor(threading.Thread):
         AnnSender.signals.output.emit(0, "开启报文监听")
         AnnSender.start()
         # sniff(filter="ip", iface = "Realtek PCIe GBE Family Controller", prn=self.parser, count=0)
-        sniff(filter="ip", prn=self.parser, count=0)
+        sniff(filter="ip", iface = "Realtek USB GbE Family Controller", prn=self.parser, count=0)
