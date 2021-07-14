@@ -5,16 +5,19 @@ from math import fabs, atan2, pi, sin, cos, sqrt
 from PyQt5.QtWidgets import (
     QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem,
     QStyle, QGraphicsPolygonItem, QGraphicsTextItem)
-from PyQt5.QtGui import (QPen, QColor, QPixmap,
+from PyQt5.QtGui import (
+    QPen, QColor, QPixmap,
     QFont, QPainter, QBrush, QPolygonF)
-from PyQt5.QtCore import (QObject, pyqtSignal, QRectF,
+from PyQt5.QtCore import (
+    QObject, pyqtSignal, QRectF,
     QPointF, QLineF, Qt, qsrand, qrand, QTime)
 
 import resource_rc
 
 NodeTypeLen = 6
-NodeImageStr = [':/topo/cloud', ':/topo/RM', ':/topo/BR',
-                ':/topo/router', ':/topo/switching', ':/topo/PC']
+NodeImageStr = [
+    ':/topo/cloud', ':/topo/RM', ':/topo/BR',
+    ':/topo/router', ':/topo/switching', ':/topo/PC']
 NodeZValue = [1, 10, 10, 10, 10, 10]
 NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'agent']
 NodeSize = [256, 64, 64, 64, 64, 64]
@@ -226,7 +229,7 @@ class Edge(QGraphicsLineItem):
         super().paint(painter, option, widget)
 
 class Text(QGraphicsTextItem):
-    '''docstring: 文本类显示文字信息 '''
+    '''docstring: 文本类 '''
     # TODO: 需要支持基本文字编辑工作，还有大小规整化操作
     # TODO: 笔刷字形，设置两套方案
     def __init__(self, parent=None, content=None):

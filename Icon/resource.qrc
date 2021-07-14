@@ -34,6 +34,7 @@
     <file alias="reset">undo-arrow.png</file>
     <file alias="choose">choosing.png</file>
     <file alias="reg">log-out.png</file>
+    <file alias="del">trash.png</file>
   </qresource>
   <qresource prefix="video">
     <file alias="control-play">control.png</file>
