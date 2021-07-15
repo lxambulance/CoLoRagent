@@ -13,12 +13,14 @@ Nid = -0x1  # 当前终端NID，需要初始化
 IPv4 = ''  # 当前终端IPv4地址，需要初始化
 rmIPv4 = ''
 
-CacheSidUnits = {}  # 已生成但尚未通告的SID通告单元，key: path; value：class SidUnit
+# 已生成但尚未通告的SID通告单元，key: path（特殊内容时使用数字，如1代表流视频服务，也作为L_SID）; value：class SidUnit
+CacheSidUnits = {}
 Lock_CacheSidUnits = threading.Lock()  # CacheSidUnits变量锁
 # 已通告SID通告单元，key：SID(N_sid+L_sid)的16进制字符串，不存在时为空; value：class SidUnit
 AnnSidUnits = {}
 Lock_AnnSidUnits = threading.Lock()  # AnnSidUnits变量锁
-gets = {}  # 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）
+# 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）（特殊内容时使用数字，如1代表流视频服务)
+gets = {}
 Lock_gets = threading.Lock()  # gets变量锁
 
 RegFlag = 0  # 代理注册成功标志，收到RM返回的Control包后置1
@@ -64,7 +66,10 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1, WhiteList=[]):
         for AS in WhiteList:
             value += hex(AS).replace('0x', '').zfill(2)
         Strategy_units[2] = value
-    Hash_sid = int(Sha1Hash(path), 16)
+    if isinstance(path, str):
+        Hash_sid = int(Sha1Hash(path), 16)
+    else:
+        Hash_sid = path  # 特殊内容标识亦作为L_sid内容
     # TODO: 需通过Hash_sid判断内容是否来自其他生产节点，此处默认了path对应的文件是本终端提供的内容，待完善 #
     N_sid_temp = Nid if N == 1 else -1
     L_sid_temp = Hash_sid if L == 1 else -1
