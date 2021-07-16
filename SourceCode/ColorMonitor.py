@@ -1,6 +1,7 @@
 # coding=utf-8
 ''' docstring: CoLoR监听线程，负责与网络组件的报文交互 '''
 
+from re import S
 from scapy.all import *
 import threading
 import ProxyLib as PL
@@ -13,6 +14,8 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
 RecvingSid = {}  # 记录内容接收情况，key:SID，value:下一片指针
+WaitingACK = {}  # 流视频提供者记录ACK回复情况，key:NID（customer），value:连续未收到ACK个数
+Lock_WaitingACK = threading.Lock()
 RTO = 1  # 超时重传时间
 
 
@@ -67,6 +70,13 @@ class PktHandler(threading.Thread):
                 SegID = ((FrameCount << 16) % (1 << 32)) + ChipCount
                 NewDataPkt = PL.DataPkt(
                     1, 0, R, 0, Sid, nid_cus=NidCus, SegID=SegID, PIDs=PIDs, load=load)
+                if (R==1):
+                    Lock_WaitingACK.acquire()
+                    if NidCus not in WaitingACK.keys():
+                        WaitingACK[NidCus] = 1
+                    else:
+                        WaitingACK[NidCus] += 1
+                    Lock_WaitingACK.release()
                 Tar = NewDataPkt.packing()
                 PL.SendIpv4(ReturnIP, Tar)
                 ChipCount += 1
@@ -74,7 +84,20 @@ class PktHandler(threading.Thread):
             ret, frame = capture.read()
             cv2.imshow("img", frame)
             if cv2.waitKey(10) == 27:
+                # 视频提供者主动退出
+                Lock_WaitingACK.acquire()
+                if (NidCus in WaitingACK.keys()):
+                    WaitingACK.pop(NidCus)
+                Lock_WaitingACK.release()
                 break
+            Lock_WaitingACK.acquire()
+            if (NidCus in WaitingACK.keys()) and (WaitingACK[NidCus] > 3):
+                # 视频接收者退出后，视频提供者退出
+                WaitingACK.pop(NidCus)
+                Lock_WaitingACK.release()
+                self.signals.output.emit(0, '连续多个ACK未收到，判断链路中断，结束视频流传输')
+                break
+            Lock_WaitingACK.release()
 
     def run(self):
         if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4):
@@ -201,7 +224,7 @@ class PktHandler(threading.Thread):
                     self.signals.pathdata.emit(
                         0x73 | (RecvDataPkt.B << 8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, 0)
                     if(RecvDataPkt.B == 0):
-                        # 收到数据包，存储到本地并返回ACK
+                        # 收到数据包
                         # 判断是否为当前代理请求内容
                         PL.Lock_gets.acquire()
                         if NewSid not in PL.gets.keys():
@@ -209,7 +232,15 @@ class PktHandler(threading.Thread):
                             return
                         SavePath = PL.gets[NewSid]
                         PL.Lock_gets.release()
-                        if NewSid not in RecvingSid.keys():
+                        # 视频流数据
+                        if isinstance(SavePath, int) and SavePath == 1:
+                            FrameCount = RecvDataPkt.SegID >> 16
+                            ChipCount = RecvDataPkt.SegID % (1 << 16)
+                            
+                            if(RecvDataPkt.R == 0):
+                                return
+                        # 普通文件
+                        elif NewSid not in RecvingSid.keys():
                             # 新内容
                             if (RecvDataPkt.load[0] == 1):
                                 # 使用一个data包完成传输
@@ -264,6 +295,15 @@ class PktHandler(threading.Thread):
                         PL.SendIpv4(ReturnIP, Tar)
                     else:
                         # ACK包
+                        # 视频流
+                        if (isinstance(PL.AnnSidUnits[NewSid].path, int) and PL.AnnSidUnits[NewSid].path == 1):
+                            NidCus = RecvDataPkt.nid_cus
+                            Lock_WaitingACK.acquire()
+                            if (NidCus in WaitingACK.keys()):
+                                WaitingACK[NidCus] = 0
+                            Lock_WaitingACK.release()
+                            return
+                        # 普通文件
                         if (NewSid not in SendingSid.keys()) or (RecvDataPkt.SegID != SendingSid[NewSid][2]-1):
                             return
                         if(SendingSid[NewSid][0] > SendingSid[NewSid][2]):

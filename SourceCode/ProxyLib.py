@@ -483,6 +483,11 @@ class DataPkt():
                 for i in range(16):
                     self.nid_pro = (self.nid_pro << 8) + Pkt[pointer]
                     pointer += 1
+            if(self.B == 1):
+                self.nid_cus = 0
+                for i in range(16):
+                    self.nid_cus = (self.nid_cus << 8) + Pkt[pointer]
+                    pointer += 1
             if(self.Q == 1):
                 QosLen = Pkt[pointer]
                 pointer += 1
@@ -548,6 +553,7 @@ class DataPkt():
             elif(self.B == 1):
                 # ACK报文
                 self.nid_pro = nid_pro
+                self.nid_cus = Nid
             self.PIDs = PIDs.copy()
             if(self.B == 0 and self.R == 1):
                 self.PIDs.append(0)  # 预留字段
@@ -595,6 +601,8 @@ class DataPkt():
             TarRest += ConvertInt2Bytes(self.nid_cus, 16)
         if(self.B == 1 or self.R == 1):
             TarRest += ConvertInt2Bytes(self.nid_pro, 16)
+        if(self.B == 1):
+            TarRest += ConvertInt2Bytes(self.nid_cus, 16)
         if(self.Q == 1):
             QosLen = len(self.QoS)/2
             TarRest += ConvertInt2Bytes(QosLen, 1)
