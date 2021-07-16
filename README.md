@@ -306,6 +306,16 @@ windows文件拖拽权限问题，explorer为中权限，运行环境为管理�
 
 第三方库一般有专门的stubs文件，记录所有变量类型结构，主要用于pylance插件解析代码，PyQt5有一个PyQt5-stubs需要额外下载。
 
+#### 12.Html解析不成功 [solved]
+
+> 问题描述：垃圾PyQt5，setHtml属性按着教程写都没反应，直接原样输出。
+
+graphicsTextItem初始化错误，看起来是多加了一个parent的缘故，有点神奇。
+
+#### 13.font异常 [unsolved]
+
+> 问题描述：尝试修改GraphicsTextItem的Font类，现在两份Html除了color完全一样但是大小就是不一样。感觉Qt的Font和html里的Font在各玩各的。
+
 ## Appendix
 
 ### A. pyqt学习记录

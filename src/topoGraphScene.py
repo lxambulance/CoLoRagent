@@ -2,9 +2,8 @@
 ''' docstring: scene/view模型框架 '''
 
 from random import shuffle
-from math import pi, fabs
+from math import pi, fabs, sin, cos
 from json import load, dump
-from math import pi, sin, cos
 from queue import Queue
 from PyQt5.QtGui import QColor, QPen, QPixmap
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsPixmapItem, QGraphicsScene
@@ -14,16 +13,6 @@ from scapy.fields import X3BytesField
 from NodeEdge import Node, Edge
 import resource_rc
 
-
-def Cross(a, b, o):
-    ''' docstring: 计算叉积函数 '''
-    return (a.x()-o.x())*(b.y()-o.y())-(a.y()-o.y())*(b.x()-o.x())
-
-def sgn(x):
-    ''' docstring: 获取符号函数 '''
-    if fabs(x) < 1e-8:
-        return 0
-    return 1 if x > 0 else 0
 
 class topoGraphScene(QGraphicsScene):
     ''' docstring: 场景模型类 '''
@@ -36,9 +25,7 @@ class topoGraphScene(QGraphicsScene):
 
         # 添加特殊节点用于收包动画显示
         self.node_file = QGraphicsEllipseItem(-12,-12,24,24)
-        self.node_file_img = QGraphicsPixmapItem(
-            QPixmap(':/file/document').scaled(50, 50),
-            self.node_file)
+        self.node_file_img = QGraphicsPixmapItem(QPixmap(':/file/document').scaled(50, 50), self.node_file)
         self.node_file_img.setOffset(-25, -62)
         self.node_file.setPen(QPen(QColor('#ffff80'),2))
         self.node_file.setBrush(Qt.red)

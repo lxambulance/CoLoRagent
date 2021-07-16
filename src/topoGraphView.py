@@ -24,9 +24,9 @@ class topoGraphView(QGraphicsView):
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
         # 设置渲染属性
         self.setRenderHints(
-            QPainter.Antialiasing |
-            QPainter.HighQualityAntialiasing |
-            QPainter.TextAntialiasing |
+            # QPainter.Antialiasing |
+            # QPainter.HighQualityAntialiasing |
+            # QPainter.TextAntialiasing |
             QPainter.SmoothPixmapTransform |
             QPainter.LosslessImageRendering)
         # 设置缩放锚定点
@@ -38,7 +38,7 @@ class topoGraphView(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setDragMode(self.RubberBandDrag)
         # 设置背景色
-        self._color_background = QColor('#eee5ff')
+        self._color_background = QColor('#ffffff')
         self.setBackgroundBrush(self._color_background)
 
     def getItemAtClick(self, event):
@@ -201,29 +201,15 @@ class topoGraphView(QGraphicsView):
     def keyPressEvent(self, event):
         ''' docstring: 键盘按下事件 '''
         key = event.key()
-        if key == Qt.Key_Plus:
+        if key == Qt.Key_Plus: # 键盘加，作用同鼠标滚轮
             self.scaleView(1.2)
-        elif key == Qt.Key_Minus:
+        elif key == Qt.Key_Minus: # 键盘减，作用同鼠标滚轮
             self.scaleView(1/1.2)
-        elif key == Qt.Key_Space:
-            # 按到空格或回车时随机排布场景中物体
-            for item in self.scene().items():
-                if isinstance(item, Node):
-                    item.setPos(-1000 + qrand() % 2000, -1000 + qrand() % 2000)
-        # elif key == Qt.Key_N:
-        #     s = ''
-        #     for i in range(6):
-        #         s += f'{qrand()%16:x}'
-        #     newnode = Node(nodetype=qrand() %
-        #                    6, nodename='test-only', nodenid=s)
-        #     if self.parent().labelenable:
-        #         newnode.label.show()
-        #     self.scene().addItem(newnode)
-        elif key == Qt.Key_E:
+        elif key == Qt.Key_E: # 加边快捷键
             self.parent().addedgeenable = True
-        elif key == Qt.Key_F:
+        elif key == Qt.Key_F: # 寻路快捷键
             self.parent().findpathenable = True
-        elif key == Qt.Key_S:
+        elif key == Qt.Key_S: # 隐藏所有文字快捷键
             self.parent().labelenable = not self.parent().labelenable
             for item in self.items():
                 if isinstance(item, Node) or isinstance(item, Edge):
@@ -231,18 +217,16 @@ class topoGraphView(QGraphicsView):
                         item.label.show()
                     else:
                         item.label.hide()
-        else:
+        else: # 非上述事件由基类负责响应
             super().keyPressEvent(event)
 
     def wheelEvent(self, event):
-        ''' docstring: 鼠标滚轮事件 '''
+        ''' docstring: 鼠标滚轮事件，缩放 '''
         self.scaleView(pow(2.0, event.angleDelta().y() / 240.0))
 
     def scaleView(self, scaleFactor):
-        ''' docstring: 调整视图大小 '''
-        factor = self.transform().scale(
-            scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
-        # 对于单位矩阵宽度超出阈值的行为不与响应
-        if factor < 0.05 or factor > 20:
-            return
-        self.scale(scaleFactor, scaleFactor)
+        ''' docstring: 按比例调整视图大小 '''
+        factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
+        # 对于单位矩阵宽度超出阈值的缩放行为不与响应
+        if factor > 0.05 and factor < 20:
+            self.scale(scaleFactor, scaleFactor)

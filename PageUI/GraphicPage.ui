@@ -122,24 +122,7 @@
       </widget>
      </item>
      <item>
-      <layout class="QGridLayout" name="gridLayout2">
-       <item row="0" column="1">
-        <widget class="QPushButton" name="pushButtonAddDottedLine">
-         <property name="toolTip">
-          <string>添加虚线</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="../Icon/resource.qrc">
-           <normaloff>:/topo/dotline</normaloff>:/topo/dotline</iconset>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
+      <layout class="QGridLayout" name="gridLayout_2">
        <item row="0" column="0">
         <widget class="QPushButton" name="pushButtonAddSolidLine">
          <property name="toolTip">
@@ -171,7 +154,52 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
+       <item row="0" column="1">
+        <widget class="QPushButton" name="pushButtonAddDottedLine">
+         <property name="toolTip">
+          <string>添加虚线</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/dotline</normaloff>:/topo/dotline</iconset>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QPushButton" name="pushButtonSetFont">
+         <property name="toolTip">
+          <string>修改字形</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/font</normaloff>:/topo/font</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QPushButton" name="pushButtonDelete">
+         <property name="toolTip">
+          <string>删除</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../Icon/resource.qrc">
+           <normaloff>:/topo/del</normaloff>:/topo/del</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
         <widget class="QPushButton" name="pushButtonReset">
          <property name="toolTip">
           <string>重新自动布局</string>
@@ -185,17 +213,17 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QPushButton" name="pushButtonDelete">
+       <item row="2" column="0">
+        <widget class="QPushButton" name="pushButtonSetColor">
          <property name="toolTip">
-          <string>编辑属性</string>
+          <string>修改颜色</string>
          </property>
          <property name="text">
           <string/>
          </property>
          <property name="icon">
           <iconset resource="../Icon/resource.qrc">
-           <normaloff>:/topo/del</normaloff>:/topo/del</iconset>
+           <normaloff>:/topo/color</normaloff>:/topo/color</iconset>
          </property>
         </widget>
        </item>
@@ -291,7 +319,7 @@
         </sizepolicy>
        </property>
        <property name="toolTip">
-        <string>密级</string>
+        <string>指定密级</string>
        </property>
       </widget>
      </item>
@@ -414,6 +442,9 @@
    <property name="toolTip">
     <string>显示左下框基本信息</string>
    </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
   </action>
   <action name="actionModifyTopo">
    <property name="text">
@@ -421,6 +452,9 @@
    </property>
    <property name="toolTip">
     <string>显示右下框拓扑修改</string>
+   </property>
+   <property name="shortcut">
+    <string>F4</string>
    </property>
   </action>
   <action name="actionAdvancedReg">
@@ -430,6 +464,9 @@
    <property name="toolTip">
     <string>显示顶部居中高级通告</string>
    </property>
+   <property name="shortcut">
+    <string>F3</string>
+   </property>
   </action>
   <action name="actionShowASThroughput">
    <property name="text">
@@ -438,13 +475,19 @@
    <property name="toolTip">
     <string>显示各自治域数据通量</string>
    </property>
+   <property name="shortcut">
+    <string>F2</string>
+   </property>
   </action>
   <action name="actionReopenToolbar">
    <property name="text">
-    <string>还原工具栏</string>
+    <string>显示工具栏</string>
    </property>
    <property name="toolTip">
-    <string>还原工具栏</string>
+    <string>显示工具栏</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
    </property>
   </action>
  </widget>

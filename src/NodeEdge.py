@@ -4,15 +4,15 @@
 from math import fabs, atan2, pi, sin, cos, sqrt
 from PyQt5.QtWidgets import (
     QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem,
-    QStyle, QGraphicsPolygonItem, QGraphicsTextItem)
+    QStyle, QGraphicsPolygonItem, QGraphicsTextItem, QFontDialog, QColorDialog)
 from PyQt5.QtGui import (
     QPen, QColor, QPixmap,
     QFont, QPainter, QBrush, QPolygonF)
 from PyQt5.QtCore import (
     QObject, pyqtSignal, QRectF,
     QPointF, QLineF, Qt, qsrand, qrand, QTime)
-
 import resource_rc
+
 
 NodeTypeLen = 6
 NodeImageStr = [
@@ -22,6 +22,7 @@ NodeZValue = [1, 10, 10, 10, 10, 10]
 NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'agent']
 NodeSize = [256, 64, 64, 64, 64, 64]
 NodeNum = 0
+
 
 class Node(QGraphicsPixmapItem):
     ''' docstring: 图形点类 '''
@@ -232,12 +233,34 @@ class Text(QGraphicsTextItem):
     '''docstring: 文本类 '''
     # TODO: 需要支持基本文字编辑工作，还有大小规整化操作
     # TODO: 笔刷字形，设置两套方案
-    def __init__(self, parent=None, content=None):
-        super().__init__(parent)
+    def __init__(self, content):
+        super().__init__()
+        self.currentfont = QFont("Times New Roman", 10, QFont.Normal)
+        self.currentcolor = QColor("#0000ff")
+        self.setFont(self.currentfont)
 
-        # self.setPen(QPen(QColor('#ff99e5'), 12))
-        # self.setBrush(QColor(Qt.red))
-        # self.setFont(QFont("Times", 20))
+        self.content = f'''<p align="center">{content}</p>'''
+        self.setHtml(f'''<font color="{self.currentcolor.name()}">{self.content}</font>''')
+        self.adjustSize()
 
-        if content:
-           self.setPlainText(content)
+        # 设置文字对象可移动和选中
+        self.setFlags(self.ItemIsMovable | self.ItemIsSelectable)
+
+    def changeFont(self):
+        ''' docstring: 修改字体 '''
+        font, ok = QFontDialog.getFont(self.currentfont, caption="选择字体")
+        if ok:
+            self.setFont(font)
+            self.adjustSize()
+            self.currentfont = font
+
+    def changeColor(self):
+        ''' docstring: 修改颜色 '''
+        color = QColorDialog.getColor(self.currentcolor)
+        self.setHtml(f'''<font color="{color.name()}">{self.content}</font>''')
+        self.currentcolor = color
+
+    def changeText(self, content):
+        ''' docstring: 修改内容 '''
+        self.setHtml(f'''<font color="{self.currentcolor.name()}">{self.content}</font>''')
+        self.adjustSize()

@@ -35,6 +35,8 @@
     <file alias="choose">choosing.png</file>
     <file alias="reg">log-out.png</file>
     <file alias="del">trash.png</file>
+    <file alias="font">font.png</file>
+    <file alias="color">color-palette.png</file>
   </qresource>
   <qresource prefix="video">
     <file alias="control-play">control.png</file>

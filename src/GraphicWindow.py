@@ -8,17 +8,19 @@ from PyQt5.QtWidgets import QMainWindow, QPushButton
 from GraphicPage import Ui_MainWindow
 
 
-class GraphicSignal(QObject):
-    ''' docstring: 拓扑图专用信号返回 '''
+class GraphicSignals(QObject):
+    ''' docstring: 拓扑图专用信号组 '''
     hide_window_signal = pyqtSignal(bool)
+    message_signal = pyqtSignal(int, str)
+
 
 class GraphicWindow(QMainWindow, Ui_MainWindow):
     ''' docstring: CoLoR拓扑图窗口类 '''
 
     def __init__(self, parent=None):
-        super().__init__(parent=parent)
+        super().__init__(parent)
         self.setupUi(self)
-        self.GS = GraphicSignal()
+        self.GS = GraphicSignals()
         self.flagModifyTopo = False
 
         # 暂时隐藏部分按钮
@@ -26,6 +28,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonModifyTopo.setVisible(False)
         self.showModifyButton(False)
         self.showAdvancedReg(False)
+        self.removeDockWidget(self.Toolbar) # 初始化不开启工具栏
 
         # 设置禁止自添加
         self.nodelist.setAcceptDrops(False)
@@ -64,11 +67,12 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
     
     def showModifyButton(self, flag):
         ''' docstring: 显示拓扑修改相关按钮 '''
-        print(flag)
+        # print(flag) # 测试输出
         self.pushButtonAddSolidLine.setVisible(flag)
         self.pushButtonAddDottedLine.setVisible(flag)
         self.pushButtonEdit.setVisible(flag)
         self.pushButtonDelete.setVisible(flag)
+        self.pushButtonSetFont.setVisible(flag)
         self.pushButtonReset.setVisible(flag)
         self.nodelist.setVisible(flag)
         self.line2.setVisible(flag)
@@ -82,6 +86,10 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonReg.setVisible(flag)
         self.line3.setVisible(flag)
 
+    def messageTest(self, mType, message):
+        ''' docstring: 测试消息信号 '''
+        print('<', mType, '>', message)
+
 
 if __name__ == "__main__":
     import sys
@@ -92,13 +100,16 @@ if __name__ == "__main__":
     window = GraphicWindow()
     DATAPATH = "D:/CodeHub/CoLoRagent/data.db"
     # window.graphics_global.loadTopo(DATAPATH)
-    window.show()
     
     # 新节点类型测试
-    from NodeEdge import Text
-    tmp = Text("Hello World")
+    teststr = 'this is bold text with html strong tag'
+    from NodeEdge import Text, Node
+    tmp = Text(teststr)
     window.graphics_global.scene.addItem(tmp)
-
+    tmp.setPos(-300, -300)
+    window.show()
+    window.pushButtonShowBaseinfo.clicked.connect(tmp.changeFont)
+    window.pushButtonShowASThroughput.clicked.connect(tmp.changeColor)
     ret = app.exec_()
     window.graphics_global.saveTopo(DATAPATH)
     sys.exit(ret)
