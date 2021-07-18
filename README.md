@@ -312,9 +312,11 @@ windows文件拖拽权限问题，explorer为中权限，运行环境为管理�
 
 graphicsTextItem初始化错误，看起来是多加了一个parent的缘故，有点神奇。
 
-#### 13.font异常 [unsolved]
+#### 13.font异常 [solved]
 
 > 问题描述：尝试修改GraphicsTextItem的Font类，现在两份Html除了color完全一样但是大小就是不一样。感觉Qt的Font和html里的Font在各玩各的。
+
+逐步隔离，排查问题，最后另写了一个窗口成功复现问题，发现原因在于使用了全局的Font变量存储初始值，看起来两者虽然对外表现（指Font属性输出）一致，但是处于不同的作用域时表现出来的结果（指直接判相等）不同。看起来不同的作用域对其隐变量有影响，以后在不考虑内存消耗的情况下，尽量使用局部变量。
 
 ## Appendix
 

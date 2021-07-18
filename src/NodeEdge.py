@@ -1,6 +1,7 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架的两个基类 '''
 
+
 from math import fabs, atan2, pi, sin, cos, sqrt
 from PyQt5.QtWidgets import (
     QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem,
@@ -14,54 +15,49 @@ from PyQt5.QtCore import (
 import resource_rc
 
 
-NodeTypeLen = 6
-NodeImageStr = [
-    ':/topo/cloud', ':/topo/RM', ':/topo/BR',
-    ':/topo/router', ':/topo/switching', ':/topo/PC']
-NodeZValue = [1, 10, 10, 10, 10, 10]
-NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'agent']
-NodeSize = [256, 64, 64, 64, 64, 64]
-NodeNum = 0
-
-
 class Node(QGraphicsPixmapItem):
     ''' docstring: 图形点类 '''
+    NodeTypeLen = 6
+    NodeImageStr = [
+        ':/topo/cloud', ':/topo/RM', ':/topo/BR',
+        ':/topo/router', ':/topo/switching', ':/topo/PC'
+    ]
+    NodeZValue = [1, 10, 10, 10, 10, 10]
+    NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'agent']
+    NodeSize = [256, 64, 64, 64, 64, 64]
+    NodeNum = 0
 
     def __init__(self, nodetype=0, nodename=None, nodesize=0, nodenid=None):
         super().__init__()
-        self.type = nodetype
-        if not self.type:
+        self.myType = nodetype
+        if not self.myType:
             self.childCount = 0
-        self.name = nodename or NodeName[nodetype]
-        self.size = nodesize or NodeSize[nodetype]
-        if not nodenid:
-            nodenid = '142857'
-            for i in range(26):
-                nodenid += f"{qrand()%16:x}"
+        self.name = nodename or Node.NodeName[nodetype]
+        self.size = nodesize or Node.NodeSize[nodetype]
         self.nid = nodenid
-        global NodeNum
-        self.id = NodeNum
-        NodeNum += 1
+        # 采用统一计数器，全局id唯一
+        self.id = Node.NodeNum
+        Node.NodeNum += 1
+        # AS收发包数据统计量
         self.getnum = 0
         self.getsize = 0
         self.datanum = 0
         self.datasize = 0
-        # print(self.id) # test
-
+        
         # 设置图像大小和偏移量
-        self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
-        self.setOffset(-self.size/2, -self.size/2)
+        self.setPixmap(QPixmap(Node.NodeImageStr[self.myType]).scaled(self.size, self.size))
+        self.setOffset(-self.size/2, -self.size/2) # 图像中点为物体坐标原点
         # 设置点可选中可移动
         self.setFlags(self.ItemIsSelectable | self.ItemIsMovable)
-        self.setZValue(NodeZValue[self.type])
+        self.setZValue(Node.NodeZValue[self.myType])
 
         # 添加一个子文本类显示名字
         tmps = f"{self.name}"
-        if not self.type:
+        if not self.myType:
             tmps = '\t' + tmps + '\n'
         self.label = QGraphicsSimpleTextItem(tmps, self)
         self.label.setFont(QFont("Times", 20))
-        if not self.type:
+        if not self.myType:
             self.label.setPos(-80, -30)
             self.clicktime = 0
         else:
@@ -69,26 +65,31 @@ class Node(QGraphicsPixmapItem):
         self.label.setPen(QPen(QColor('#ff8000'),0.5))
         self.label.setBrush(QColor(Qt.red))
         self.label.hide()
-        if self.type == 5:
-            self.polygon = QPolygonF()
-            for i in range(12):
-                alpha = i*pi/6
-                r = self.size/2
-                x = r*cos(alpha)
-                y = r*sin(alpha)
-                if not (i&1):
-                    x *= sqrt(3)
-                    y *= sqrt(3)
-                self.polygon.append(QPointF(x,y))
-        # 设置高度信息
-        self.label.setZValue(NodeZValue[self.type])
+        self.label.setZValue(Node.NodeZValue[self.myType])
+        
+        if self.myType == 5:
+            self.addStarMark()
+
+    def addStarMark(self):
+        ''' docstring: 给代理节点添加了一个醒目星标记，颜色在绘制时确定 '''
+        self.polygon = QPolygonF()
+        for i in range(12):
+            alpha = i*pi/6
+            r = self.size/2
+            x = r*cos(alpha)
+            y = r*sin(alpha)
+            if not (i&1):
+                x *= sqrt(3)
+                y *= sqrt(3)
+            self.polygon.append(QPointF(x,y))
+        self.polygon.setZValue
 
     def addClickTimes(self):
         self.clicktime += 1
         if self.clicktime & 1:
             self.setPixmap(QPixmap(':/topo/cloud-o').scaled(self.size, self.size))
         else:
-            self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
+            self.setPixmap(QPixmap(Node.NodeImageStr[self.myType]).scaled(self.size, self.size))
 
     def updateLabel(self, name = None, nid = None, getsize = 0, datasize = 0):
         if name:
@@ -96,7 +97,7 @@ class Node(QGraphicsPixmapItem):
         if nid:
             self.nid = nid
         tmps = f"{self.name}"
-        if not self.type:
+        if not self.myType:
             tmps = '\t' + tmps + '\n'
         if getsize:
             self.getnum += 1
@@ -112,7 +113,7 @@ class Node(QGraphicsPixmapItem):
         self.update()
 
     def modifyCount(self, value):
-        if self.type:
+        if self.myType:
             return
         self.childCount += value
         if value > 0:
@@ -125,7 +126,7 @@ class Node(QGraphicsPixmapItem):
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
         # AS选中时选中其中所有点
-        if self.isSelected() and not self.type:
+        if self.isSelected() and not self.myType:
             # print(self.id, self.name)
             for node in self.scene().ASinfo[self.id]:
                 node.setSelected(True)
@@ -140,12 +141,13 @@ class Node(QGraphicsPixmapItem):
                     nextedge.updateEdge()
 
     def paint(self, painter, option, widget):
-        if not self.type:
+        if not self.myType:
             if not self.clicktime:
                 if self.isSelected():
                     self.setPixmap(QPixmap(':/topo/cloud-o').scaled(self.size, self.size))
                 else:
-                    self.setPixmap(QPixmap(NodeImageStr[self.type]).scaled(self.size, self.size))
+                    self.setPixmap(QPixmap(Node.NodeImageStr[self.myType]).scaled(
+                        self.size, self.size))
         else:
             if self.isSelected():
                 p = painter
@@ -153,13 +155,15 @@ class Node(QGraphicsPixmapItem):
                 p.setPen(QPen(QColor("#ff8000"), 4))
                 bRect = QRectF(-self.size/2, -self.size/2, self.size, self.size)
                 p.drawRect(bRect)
-            elif self.type == 5:
+            elif self.myType == 5:
                 p = painter
+                # 决定星标记颜色 
                 p.setPen(QPen(QColor("#ff8000"), 4))
                 p.setBrush(QColor(Qt.yellow))
                 p.drawPolygon(self.polygon)
         option.state = QStyle.State_None
         super().paint(painter, option, widget)
+
 
 class Edge(QGraphicsLineItem):
     ''' docstring: 边类 '''
@@ -167,7 +171,7 @@ class Edge(QGraphicsLineItem):
     def __init__(self, node1, node2, linetype=0, linePX=None):
         super().__init__()
         # 虚线1或实线0
-        self.type = linetype
+        self.myType = linetype
         if linetype == 0:
             self.setPen(QPen(QColor("#0099ff"), 4))
         else:
@@ -229,14 +233,14 @@ class Edge(QGraphicsLineItem):
         option.state = QStyle.State_None
         super().paint(painter, option, widget)
 
+
 class Text(QGraphicsTextItem):
     '''docstring: 文本类 '''
-    # TODO: 需要支持基本文字编辑工作，还有大小规整化操作
-    # TODO: 笔刷字形，设置两套方案
-    def __init__(self, content):
+
+    def __init__(self, content, font = None, color = None):
         super().__init__()
         self.currentfont = QFont("Times New Roman", 10, QFont.Normal)
-        self.currentcolor = QColor("#0000ff")
+        self.currentcolor = QColor("#000000")
         self.setFont(self.currentfont)
 
         self.content = f'''<p align="center">{content}</p>'''
@@ -245,6 +249,7 @@ class Text(QGraphicsTextItem):
 
         # 设置文字对象可移动和选中
         self.setFlags(self.ItemIsMovable | self.ItemIsSelectable)
+        # self.setTextInteractionFlags(Qt.TextEditorInteraction) # 设置可交互
 
     def changeFont(self):
         ''' docstring: 修改字体 '''
@@ -264,3 +269,4 @@ class Text(QGraphicsTextItem):
         ''' docstring: 修改内容 '''
         self.setHtml(f'''<font color="{self.currentcolor.name()}">{self.content}</font>''')
         self.adjustSize()
+

@@ -99,28 +99,6 @@ class topoGraphScene(QGraphicsScene):
             ret.reverse()
             return ret
 
-    def line_intersect(self, a, b, c, d):
-        ''' docstring: 判断线段是否相交
-            0为不相交
-            1为严格相交且交点不在线段端点上
-            2表示交点为某线段端点
-            3为线段平行且部分重合
-        '''
-        if (max(a.x(),b.x())<min(c.x(),d.x()))or(min(a.x(),b.x())>max(c.x(),d.x()))or \
-            (max(a.y(),b.y())<min(c.y(),d.y()))or(min(a.y(),b.y())>max(c.y(),d.y())):
-            return 0
-        x = Cross(a,c,b)
-        y = Cross(a,d,b)
-        z = Cross(c,a,d)
-        w = Cross(c,b,d)
-        if sgn(x) == 0 and sgn(y) == 0:
-            return 3
-        elif sgn(x)*sgn(y)<0 and sgn(z)*sgn(w)<0:
-            return 1
-        elif sgn(x)*sgn(y)<=0 and sgn(z)*sgn(w)<=0:
-            return 2
-        return 0
-
     def initTopo_config(self, path):
         ''' docstring: 初始化拓扑为配置文件信息 '''
         with open(path, 'r') as f:

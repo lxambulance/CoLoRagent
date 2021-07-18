@@ -1,6 +1,7 @@
 # coding=utf-8
 ''' docstring: CoLoR拓扑图窗口 '''
 
+
 from PyQt5.QtCore import QObject, Qt, pyqtSignal
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import QMainWindow, QPushButton
@@ -106,10 +107,18 @@ if __name__ == "__main__":
     from NodeEdge import Text, Node
     tmp = Text(teststr)
     window.graphics_global.scene.addItem(tmp)
-    tmp.setPos(-300, -300)
+    from PyQt5.QtCore import QPoint
     window.show()
+    h = window.graphics_global.view.height()
+    pos = window.graphics_global.view.mapToScene(QPoint(0, h))
+    tmp.setPos(pos.x(), pos.y() - tmp.document().size().height())
     window.pushButtonShowBaseinfo.clicked.connect(tmp.changeFont)
-    window.pushButtonShowASThroughput.clicked.connect(tmp.changeColor)
+    window.pushButtonShowASThroughput.clicked.connect(
+        lambda:print(window.graphics_global.view.mapToScene(QPoint(0, h)))
+    )
+    tmp.document().contentsChanged.connect(
+        lambda:tmp.setPos(pos.x(), pos.y() - tmp.document().size().height())
+    )
     ret = app.exec_()
     window.graphics_global.saveTopo(DATAPATH)
     sys.exit(ret)

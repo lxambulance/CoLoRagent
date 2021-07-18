@@ -45,6 +45,7 @@ class topoGraphView(QGraphicsView):
         ''' docstring: 返回点击的物体 '''
         pos = event.pos()
         item = self.itemAt(pos)
+        # print("click at", pos, self.mapToScene(pos))
         return item
 
     def removeNode(self, item):
