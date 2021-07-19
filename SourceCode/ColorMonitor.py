@@ -16,6 +16,10 @@ SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片�
 RecvingSid = {}  # 记录内容接收情况，key:SID，value:下一片指针
 WaitingACK = {}  # 流视频提供者记录ACK回复情况，key:NID（customer），value:连续未收到ACK个数
 Lock_WaitingACK = threading.Lock()
+VideoCache = {}  # 流视频接收者缓存数据片，{帧序号：{片序号：片内容}}，最多存储最新的三个帧的信息
+MergeFlag = {}  # 流视频接收者记录单个数据片的可拼装情况{帧序号：flag}；flag=0，未收到最后一片；收到最后一片：flag=片数
+Lock_VideoCache = threading.Lock()
+
 RTO = 1  # 超时重传时间
 
 
@@ -70,7 +74,7 @@ class PktHandler(threading.Thread):
                 SegID = ((FrameCount << 16) % (1 << 32)) + ChipCount
                 NewDataPkt = PL.DataPkt(
                     1, 0, R, 0, Sid, nid_cus=NidCus, SegID=SegID, PIDs=PIDs, load=load)
-                if (R==1):
+                if (R == 1):
                     Lock_WaitingACK.acquire()
                     if NidCus not in WaitingACK.keys():
                         WaitingACK[NidCus] = 1
@@ -82,6 +86,7 @@ class PktHandler(threading.Thread):
                 ChipCount += 1
             # 读取下一帧
             ret, frame = capture.read()
+            FrameCount += 1
             cv2.imshow("img", frame)
             if cv2.waitKey(10) == 27:
                 # 视频提供者主动退出
@@ -89,6 +94,8 @@ class PktHandler(threading.Thread):
                 if (NidCus in WaitingACK.keys()):
                     WaitingACK.pop(NidCus)
                 Lock_WaitingACK.release()
+                cv2.destroyAllWindows()
+                capture.release()
                 break
             Lock_WaitingACK.acquire()
             if (NidCus in WaitingACK.keys()) and (WaitingACK[NidCus] > 3):
@@ -96,6 +103,8 @@ class PktHandler(threading.Thread):
                 WaitingACK.pop(NidCus)
                 Lock_WaitingACK.release()
                 self.signals.output.emit(0, '连续多个ACK未收到，判断链路中断，结束视频流传输')
+                cv2.destroyAllWindows()
+                capture.release()
                 break
             Lock_WaitingACK.release()
 
@@ -236,7 +245,63 @@ class PktHandler(threading.Thread):
                         if isinstance(SavePath, int) and SavePath == 1:
                             FrameCount = RecvDataPkt.SegID >> 16
                             ChipCount = RecvDataPkt.SegID % (1 << 16)
-                            
+                            Lock_VideoCache.acquire()
+                            if (FrameCount in VideoCache.keys()):
+                                # 已经收到过当前帧的其他片
+                                VideoCache[FrameCount][ChipCount] = RecvDataPkt.load[1:]
+                                if (RecvDataPkt.load[0] == 1):
+                                    MergeFlag[FrameCount] = ChipCount + 1
+                                if MergeFlag[FrameCount] == len(VideoCache[FrameCount]):
+                                    # 当前帧接收完成
+                                    stringData = ''
+                                    for Chip in range(MergeFlag[FrameCount]):
+                                        stringData += VideoCache[FrameCount][Chip]
+                                    # 将获取到的字符流数据转换成1维数组
+                                    data = np.frombuffer(stringData, np.uint8)
+                                    decimg = cv2.imdecode(
+                                        data, cv2.IMREAD_COLOR)  # 将数组解码成图像
+                                    for frame in VideoCache.keys():
+                                        if frame == FrameCount or frame == ((FrameCount - 1) % (1 << 16)) or frame == ((FrameCount - 2) % (1 << 16)):
+                                            VideoCache.pop(frame)
+                                            MergeFlag.pop(frame)
+                                    Lock_VideoCache.release()
+                                    cv2.imshow('video', decimg)  # 显示图像
+                                    k = cv2.waitKey(10) & 0xff
+                                    if k == 27:
+                                        PL.Lock_gets.acquire()
+                                        if (NewSid in PL.gets.keys()):
+                                            PL.gets.pop(NewSid)
+                                            cv2.destroyAllWindows()
+                                        PL.Lock_gets.release()
+                            else:
+                                # 新的视频帧(这里默认不能单片完成传输，所以不包含显示逻辑)
+                                CacheKeys = list(VideoCache.keys())
+                                Max = max(CacheKeys)
+                                if (Max == (1 << 16) - 1) or (Max == (1 << 16) - 2):
+                                    # 可能出现了重置情况
+                                    if (2 in CacheKeys):
+                                        Max = 2
+                                    elif (1 in CacheKeys):
+                                        Max = 1
+                                NewMax = Max
+                                if (FrameCount < 10):
+                                    if (Max > (1 << 16) - 10) or (FrameCount > Max):
+                                        NewMax = FrameCount
+                                elif(FrameCount > (1 << 16) - 10):
+                                    if (Max > 10) and (FrameCount > Max):
+                                        NewMax = FrameCount
+                                elif(FrameCount > Max):
+                                    NewMax = FrameCount
+                                # 存入视频帧
+                                VideoCache[FrameCount][ChipCount] = RecvDataPkt.load[1:]
+                                if (RecvDataPkt.load[0] == 1):
+                                    MergeFlag[FrameCount] = ChipCount + 1
+                                # 重置缓冲区
+                                for frame in VideoCache.keys():
+                                    if frame != NewMax or frame != ((NewMax - 1) % (1 << 16)) or frame != ((NewMax - 2) % (1 << 16)):
+                                        VideoCache.pop(frame)
+                                        MergeFlag.pop(frame)
+                                Lock_VideoCache.release()
                             if(RecvDataPkt.R == 0):
                                 return
                         # 普通文件
