@@ -75,6 +75,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonDelete.setVisible(flag)
         self.pushButtonSetFont.setVisible(flag)
         self.pushButtonReset.setVisible(flag)
+        self.pushButtonSetColor.setVisible(flag)
         self.nodelist.setVisible(flag)
         self.line2.setVisible(flag)
 
@@ -104,8 +105,8 @@ if __name__ == "__main__":
     
     # 新节点类型测试
     teststr = 'this is bold text with html strong tag'
-    from NodeEdge import Text, Node
-    tmp = Text(teststr)
+    from GraphicsItem import Text, Node
+    tmp = Text(teststr, setAutoResize=True)
     window.graphics_global.scene.addItem(tmp)
     from PyQt5.QtCore import QPoint
     window.show()
@@ -119,6 +120,16 @@ if __name__ == "__main__":
     tmp.document().contentsChanged.connect(
         lambda:tmp.setPos(pos.x(), pos.y() - tmp.document().size().height())
     )
+    from GraphicsItem import Node, Edge
+    n1 = Node(nodetype=5, nodename="Test", nodenid="f"*20)
+    window.graphics_global.scene.addItem(n1)
+    n1.setPos(-200, -200)
+    n2 = Node(nodetype=4, nodename="Test", nodenid="f"*20)
+    window.graphics_global.scene.addItem(n2)
+    n2.setPos(200, 200)
+    e = Edge(n1, n2, 0, linePX="1122----")
+    window.graphics_global.scene.addItem(e)
+    window.pushButtonShowASThroughput.clicked.connect(e.updateEdge)
     ret = app.exec_()
-    window.graphics_global.saveTopo(DATAPATH)
+    # window.graphics_global.saveTopo(DATAPATH)
     sys.exit(ret)

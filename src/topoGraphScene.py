@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsPixmapItem, QGraphics
 from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal, Qt
 from scapy.fields import X3BytesField
 
-from NodeEdge import Node, Edge
+from GraphicsItem import Node, Edge
 import resource_rc
 
 
@@ -37,6 +37,26 @@ class topoGraphScene(QGraphicsScene):
         self.node_me = None
         self.nid_me = None
         self.waitlist = [] # 用于暂存添加到topo图中的新节点修改属性
+
+        # 绘制背景线
+        self.backgroundLines = []
+        for i in range(-250, 250):
+            n1 = Node(nodetype=1)
+            n2 = Node(nodetype=1)
+            n1.setPos(i*20, -5000)
+            n2.setPos(i*20, 5000)
+            e = Edge(n1, n2, 2)
+            e.setFlag(e.ItemIsSelectable, False)
+            self.addItem(e)
+            self.backgroundLines.append(e)
+            n3 = Node(nodetype=1)
+            n4 = Node(nodetype=1)
+            n3.setPos(-5000, i*20)
+            n4.setPos(5000, i*20)
+            e = Edge(n3, n4, 2)
+            e.setFlag(e.ItemIsSelectable, False)
+            self.addItem(e)
+            self.backgroundLines.append(e)
 
         # 拓扑图主要参数
         self.ASinfo = {} # AS所含节点信息，格式：id:[node,...]

@@ -1,17 +1,16 @@
 # coding=utf-8
-''' docstring: scene/view模型框架的两个基类 '''
+''' docstring: scene/view模型框架的几个基类 '''
 
 
 from math import fabs, atan2, pi, sin, cos, sqrt
 from PyQt5.QtWidgets import (
-    QGraphicsPixmapItem, QGraphicsSimpleTextItem, QGraphicsLineItem,
-    QStyle, QGraphicsPolygonItem, QGraphicsTextItem, QFontDialog, QColorDialog)
+    QGraphicsPixmapItem, QGraphicsLineItem,
+    QStyle, QGraphicsTextItem, QFontDialog, QColorDialog)
 from PyQt5.QtGui import (
     QPen, QColor, QPixmap,
-    QFont, QPainter, QBrush, QPolygonF)
+    QFont, QPainter, QPolygonF)
 from PyQt5.QtCore import (
-    QObject, pyqtSignal, QRectF,
-    QPointF, QLineF, Qt, qsrand, qrand, QTime)
+    QRectF, QPointF, QLineF, Qt)
 import resource_rc
 
 
@@ -32,6 +31,7 @@ class Node(QGraphicsPixmapItem):
         self.myType = nodetype
         if not self.myType:
             self.childCount = 0
+            self.clicktime = 0
         self.name = nodename or Node.NodeName[nodetype]
         self.size = nodesize or Node.NodeSize[nodetype]
         self.nid = nodenid
@@ -52,39 +52,36 @@ class Node(QGraphicsPixmapItem):
         self.setZValue(Node.NodeZValue[self.myType])
 
         # 添加一个子文本类显示名字
-        tmps = f"{self.name}"
-        if not self.myType:
-            tmps = '\t' + tmps + '\n'
-        self.label = QGraphicsSimpleTextItem(tmps, self)
-        self.label.setFont(QFont("Times", 20))
-        if not self.myType:
-            self.label.setPos(-80, -30)
-            self.clicktime = 0
-        else:
-            self.label.setPos(-self.size/4, self.size/2)
-        self.label.setPen(QPen(QColor('#ff8000'),0.5))
-        self.label.setBrush(QColor(Qt.red))
+        self.label = Text(self.name, self, color=QColor('#ff8000'))
         self.label.hide()
-        self.label.setZValue(Node.NodeZValue[self.myType])
-        
+        self.label.setZValue(Node.NodeZValue[self.myType]+1)
+        # 设置文本位置
+        if not self.myType:
+            self.label.setTextWidth(self.size*2//3)
+            self.label.setPos(-self.size/3, self.size/6)
+        else:
+            self.label.setTextWidth(self.size)
+            self.label.setPos(-self.size/2, self.size/2)
+
         if self.myType == 5:
             self.addStarMark()
 
     def addStarMark(self):
         ''' docstring: 给代理节点添加了一个醒目星标记，颜色在绘制时确定 '''
         self.polygon = QPolygonF()
-        for i in range(12):
-            alpha = i*pi/6
-            r = self.size/2
+        myconst = sin(pi*7/10)/sin(pi/10)
+        for i in range(10):
+            alpha = i*pi/5 + pi/10
+            r = self.size/3
             x = r*cos(alpha)
             y = r*sin(alpha)
-            if not (i&1):
-                x *= sqrt(3)
-                y *= sqrt(3)
+            if (i&1):
+                x *= myconst
+                y *= myconst
             self.polygon.append(QPointF(x,y))
-        self.polygon.setZValue
 
     def addClickTimes(self):
+        ''' docstring: 添加点击数，选择AS路径时使用 '''
         self.clicktime += 1
         if self.clicktime & 1:
             self.setPixmap(QPixmap(':/topo/cloud-o').scaled(self.size, self.size))
@@ -92,6 +89,7 @@ class Node(QGraphicsPixmapItem):
             self.setPixmap(QPixmap(Node.NodeImageStr[self.myType]).scaled(self.size, self.size))
 
     def updateLabel(self, name = None, nid = None, getsize = 0, datasize = 0):
+        ''' docstring: 更新标签 '''
         if name:
             self.name = name
         if nid:
@@ -113,6 +111,8 @@ class Node(QGraphicsPixmapItem):
         self.update()
 
     def modifyCount(self, value):
+        ''' docstring: 用于云动态改变大小 '''
+        # TODO：修改得更精细化
         if self.myType:
             return
         self.childCount += value
@@ -124,6 +124,7 @@ class Node(QGraphicsPixmapItem):
         self.update()
 
     def mousePressEvent(self, event):
+        ''' docstring: 鼠标按下事件 '''
         super().mousePressEvent(event)
         # AS选中时选中其中所有点
         if self.isSelected() and not self.myType:
@@ -132,6 +133,7 @@ class Node(QGraphicsPixmapItem):
                 node.setSelected(True)
 
     def mouseMoveEvent(self, event):
+        ''' docstring: 鼠标移动事件 '''
         super().mouseMoveEvent(event)
         # 选中移动时更新所连边类
         for item in self.scene().selectedItems():
@@ -141,6 +143,7 @@ class Node(QGraphicsPixmapItem):
                     nextedge.updateEdge()
 
     def paint(self, painter, option, widget):
+        ''' docstring: 绘制类，重构了部分图形选中时轮廓和背景 '''
         if not self.myType:
             if not self.clicktime:
                 if self.isSelected():
@@ -170,45 +173,56 @@ class Edge(QGraphicsLineItem):
 
     def __init__(self, node1, node2, linetype=0, linePX=None):
         super().__init__()
-        # 虚线1或实线0
+        # 实线0或虚线1或背景线2
         self.myType = linetype
         if linetype == 0:
             self.setPen(QPen(QColor("#0099ff"), 4))
-        else:
+            self.setZValue(5)
+        elif linetype == 1:
             self.setPen(QPen(QColor("#00cc00"), 4, Qt.DashDotDotLine))
+            self.setZValue(5)
+        else:
+            self.setPen(QPen(QColor("#111111"), 1, Qt.DotLine))
+            self.setZValue(0)
         self.node1 = node1
         self.node2 = node2
         self.setFlags(self.ItemIsSelectable)
 
         # 添加一个子文本类显示名字
         self.PX = linePX
+        tmpname = ""
         if linePX:
-            name = f"PX:{self.PX}"
-        else:
-            name = ""
-        self.label = QGraphicsSimpleTextItem(name, self)
-        self.label.setFont(QFont("Times", 20, QFont.Bold))
-        self.label.setPen(QPen(QColor('#ffffb3'), 0.1))
-        self.label.setBrush(QColor(Qt.red))
+            tmpname = f"PX:{self.PX}"
+        self.label = Text(tmpname, self,
+            font=QFont("Times New Roman", 12),
+            color=QColor('#ff0000'))
         self.label.hide()
+        self.label.setZValue(11) # 没有效果，因为先比父节点Z值
         
-        # 设置高度信息
-        self.setZValue(5)
-        self.label.setZValue(10)
+        # 计算label位置坐标
         self.updateEdge()
 
-    def calcposalpha(self):
+    def calcLabelPos(self):
         ''' docstring: 用于计算标签位置 '''
         n1 = self.node1.scenePos()
         n2 = self.node2.scenePos()
         if n1.x()>n2.x() or fabs(n1.x()-n2.x())<1e-8 and n1.y()>n2.y():
             n1, n2 = n2, n1
         alpha = atan2(n2.y()-n1.y(), n2.x()-n1.x())
-        x = (n1.x()*3 + n2.x()*2) / 5
-        y = (n1.y()*3 + n2.y()*2) / 5
-        return QPointF(x, y), alpha
+        len = sqrt((n1.x()-n2.x())*(n1.x()-n2.x())+(n1.y()-n2.y())*(n1.y()-n2.y()))
+        if len > 200:
+            self.label.setTextWidth(len*2/3)
+            x = (n1.x()*5 + n2.x()) / 6
+            y = (n1.y()*5 + n2.y()) / 6
+        else:
+            self.label.setTextWidth(len)
+            x = n1.x()
+            y = n1.y()
+        self.label.setPos(x, y)
+        self.label.setRotation(alpha/pi*180)
 
     def updateLabel(self, linePX):
+        ''' docstring: 更新标签内容 '''
         self.PX = linePX
         self.label.setText(f"PX:{self.PX}")
         self.label.update()
@@ -218,9 +232,7 @@ class Edge(QGraphicsLineItem):
         n1 = self.node1.scenePos()
         n2 = self.node2.scenePos()
         self.setLine(QLineF(n1, n2))
-        pos, alpha = self.calcposalpha()
-        self.label.setPos(pos)
-        self.label.setRotation(alpha/pi*180)
+        self.calcLabelPos()
         self.update()
 
     def paint(self, painter, option, widget):
@@ -237,18 +249,18 @@ class Edge(QGraphicsLineItem):
 class Text(QGraphicsTextItem):
     '''docstring: 文本类 '''
 
-    def __init__(self, content, font = None, color = None):
-        super().__init__()
-        self.currentfont = QFont("Times New Roman", 10, QFont.Normal)
-        self.currentcolor = QColor("#000000")
+    def __init__(self, content, parent = None, font = None, color = None, setAutoResize = False):
+        super().__init__(parent)
+        self.currentfont = font or QFont("Times New Roman", 10, QFont.Normal)
+        self.currentcolor = color or QColor("#000000")
         self.setFont(self.currentfont)
 
         self.content = f'''<p align="center">{content}</p>'''
         self.setHtml(f'''<font color="{self.currentcolor.name()}">{self.content}</font>''')
-        self.adjustSize()
+        if setAutoResize:
+            self.adjustSize()
 
-        # 设置文字对象可移动和选中
-        self.setFlags(self.ItemIsMovable | self.ItemIsSelectable)
+        # self.setFlags(self.ItemIsMovable | self.ItemIsSelectable) # 设置文字对象可移动和选中
         # self.setTextInteractionFlags(Qt.TextEditorInteraction) # 设置可交互
 
     def changeFont(self):
@@ -256,7 +268,6 @@ class Text(QGraphicsTextItem):
         font, ok = QFontDialog.getFont(self.currentfont, caption="选择字体")
         if ok:
             self.setFont(font)
-            self.adjustSize()
             self.currentfont = font
 
     def changeColor(self):
@@ -268,5 +279,4 @@ class Text(QGraphicsTextItem):
     def changeText(self, content):
         ''' docstring: 修改内容 '''
         self.setHtml(f'''<font color="{self.currentcolor.name()}">{self.content}</font>''')
-        self.adjustSize()
 

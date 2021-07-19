@@ -1,7 +1,7 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架 '''
 
-from NodeEdge import Node, Edge
+from GraphicsItem import Node, Edge
 from PyQt5.QtWidgets import QGraphicsView
 from PyQt5.QtCore import (QParallelAnimationGroup, Qt, qrand, QRectF, QPointF, 
     QEasingCurve, QPropertyAnimation, pyqtProperty)
@@ -45,7 +45,7 @@ class topoGraphView(QGraphicsView):
         ''' docstring: 返回点击的物体 '''
         pos = event.pos()
         item = self.itemAt(pos)
-        # print("click at", pos, self.mapToScene(pos))
+        print("click at", pos, self.mapToScene(pos))
         return item
 
     def removeNode(self, item):
@@ -230,4 +230,21 @@ class topoGraphView(QGraphicsView):
         factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
         # 对于单位矩阵宽度超出阈值的缩放行为不与响应
         if factor > 0.05 and factor < 20:
+            # print(factor)
+            if factor > 4:
+                keynum = 1
+            elif factor > 1:
+                keynum = 2
+            elif factor > 0.5:
+                keynum = 4
+            elif factor > 0.17:
+                keynum = 8
+            else:
+                keynum = 16
+            for i, line in enumerate(self.scene().backgroundLines):
+                if i % (keynum * 2) < 2:
+                    line.show()
+                else:
+                    line.hide()
             self.scale(scaleFactor, scaleFactor)
+

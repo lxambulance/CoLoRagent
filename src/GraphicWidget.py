@@ -2,7 +2,7 @@
 ''' docstring: scene/view模型框架 '''
 
 from math import floor
-from NodeEdge import Node, Edge
+from GraphicsItem import Node, Edge
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from PyQt5.QtGui import QColor, QStandardItemModel
 from PyQt5.QtCore import (QEasingCurve, QPointF, QPropertyAnimation, QSequentialAnimationGroup, qsrand,
