@@ -105,7 +105,7 @@ if __name__ == "__main__":
     
     # 新节点类型测试
     teststr = 'this is bold text with html strong tag'
-    from GraphicsItem import Text, Node
+    from GraphicsItem import Text
     tmp = Text(teststr, setAutoResize=True)
     window.graphics_global.scene.addItem(tmp)
     from PyQt5.QtCore import QPoint
@@ -113,13 +113,6 @@ if __name__ == "__main__":
     h = window.graphics_global.view.height()
     pos = window.graphics_global.view.mapToScene(QPoint(0, h))
     tmp.setPos(pos.x(), pos.y() - tmp.document().size().height())
-    window.pushButtonShowBaseinfo.clicked.connect(tmp.changeFont)
-    window.pushButtonShowASThroughput.clicked.connect(
-        lambda:print(window.graphics_global.view.mapToScene(QPoint(0, h)))
-    )
-    tmp.document().contentsChanged.connect(
-        lambda:tmp.setPos(pos.x(), pos.y() - tmp.document().size().height())
-    )
     from GraphicsItem import Node, Edge
     n1 = Node(nodetype=5, nodename="Test", nodenid="f"*20)
     window.graphics_global.scene.addItem(n1)

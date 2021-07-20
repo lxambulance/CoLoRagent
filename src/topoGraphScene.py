@@ -7,9 +7,7 @@ from json import load, dump
 from queue import Queue
 from PyQt5.QtGui import QColor, QPen, QPixmap
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsPixmapItem, QGraphicsScene
-from PyQt5.QtCore import qsrand, qrand, QTime, pyqtSignal, Qt
-from scapy.fields import X3BytesField
-
+from PyQt5.QtCore import qrand, Qt
 from GraphicsItem import Node, Edge
 import resource_rc
 
