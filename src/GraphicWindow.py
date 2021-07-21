@@ -3,8 +3,7 @@
 
 
 from PyQt5.QtCore import QObject, Qt, pyqtSignal
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import QMainWindow, QPushButton
+from PyQt5.QtWidgets import QMainWindow
 
 from GraphicPage import Ui_MainWindow
 
@@ -61,10 +60,9 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 自定义键盘按事件 '''
         key = event.key()
         if key == Qt.Key_M:
-            if not self.pushButtonModifyTopo.isChecked():
-                self.flagModifyTopo = not self.flagModifyTopo
-                self.actionModifyTopo.setVisible(self.flagModifyTopo)
-                self.pushButtonModifyTopo.setVisible(self.flagModifyTopo)
+            self.flagModifyTopo = not self.flagModifyTopo
+            self.actionModifyTopo.setVisible(self.flagModifyTopo)
+            self.pushButtonModifyTopo.setVisible(self.flagModifyTopo)
     
     def showModifyButton(self, flag):
         ''' docstring: 显示拓扑修改相关按钮 '''
@@ -92,6 +90,15 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 测试消息信号 '''
         print('<', mType, '>', message)
 
+    def loadTopo(self, path):
+        ''' docstring: 载入拓扑 '''
+        self.graphics_global.scene.initTopo(path)
+        self.graphics_global.view.scaleView(0.45)
+
+    def saveTopo(self, path):
+        ''' docstring: 保存拓扑 '''
+        self.graphics_global.scene.saveTopo(path)
+
 
 if __name__ == "__main__":
     import sys
@@ -101,28 +108,18 @@ if __name__ == "__main__":
     app = QApplication([])
     window = GraphicWindow()
     DATAPATH = "D:/CodeHub/CoLoRagent/data.db"
-    # window.graphics_global.loadTopo(DATAPATH)
-    
-    # 新节点类型测试
-    teststr = 'this is bold text with html strong tag'
-    from GraphicsItem import Text
-    tmp = Text(teststr, setAutoResize=True)
-    window.graphics_global.scene.addItem(tmp)
-    from PyQt5.QtCore import QPoint
+    window.loadTopo(DATAPATH)
+    window.actionReopenToolbar.trigger()
+    window.pushButtonAdvancedReg.click()
+    from PyQt5.QtCore import QCoreApplication
+    from PyQt5.QtGui import QGuiApplication, QKeyEvent
+    QCoreApplication.postEvent(window,
+        QKeyEvent(QKeyEvent.KeyPress, Qt.Key_M, QGuiApplication.keyboardModifiers()))
+    window.pushButtonModifyTopo.click()
     window.show()
-    h = window.graphics_global.view.height()
-    pos = window.graphics_global.view.mapToScene(QPoint(0, h))
-    tmp.setPos(pos.x(), pos.y() - tmp.document().size().height())
-    from GraphicsItem import Node, Edge
-    n1 = Node(nodetype=5, nodename="Test", nodenid="f"*20)
-    window.graphics_global.scene.addItem(n1)
-    n1.setPos(-200, -200)
-    n2 = Node(nodetype=4, nodename="Test", nodenid="f"*20)
-    window.graphics_global.scene.addItem(n2)
-    n2.setPos(200, 200)
-    e = Edge(n1, n2, 0, linePX="1122----")
-    window.graphics_global.scene.addItem(e)
-    window.pushButtonShowASThroughput.clicked.connect(e.updateEdge)
+    # h = window.graphics_global.view.height()
+    # pos = window.graphics_global.view.mapToScene(QPoint(0, h))
+    # tmp.setPos(pos.x(), pos.y() - tmp.document().size().height())
     ret = app.exec_()
-    # window.graphics_global.saveTopo(DATAPATH)
+    window.saveTopo(DATAPATH)
     sys.exit(ret)

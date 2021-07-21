@@ -143,15 +143,6 @@ class GraphicWidget(QWidget):
             else:
                 node.label.hide()
 
-    def loadTopo(self, path):
-        ''' docstring: 载入拓扑 '''
-        self.scene.initTopo_config(path)
-        self.view.scaleView(0.5)
-
-    def saveTopo(self, path):
-        ''' docstring: 保存拓扑 '''
-        self.scene.saveTopo(path)
-
     def setBackground(self, colorstr):
         ''' docstring: 修改拓扑背景颜色以适配风格修改 '''
         self.view._color_background = QColor(colorstr)

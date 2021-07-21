@@ -26,7 +26,7 @@ class Node(QGraphicsPixmapItem):
     NodeSize = [256, 64, 64, 64, 64, 64]
     NodeNum = 0
 
-    def __init__(self, nodetype=0, nodename=None, nodesize=0, nodenid=None):
+    def __init__(self, nodetype=0, nodename=None, nodesize=0, nodenid=None, font=None, color=None):
         super().__init__()
         self.myType = nodetype
         if not self.myType:
@@ -52,7 +52,8 @@ class Node(QGraphicsPixmapItem):
         self.setZValue(Node.NodeZValue[self.myType])
 
         # 添加一个子文本类显示名字
-        self.label = Text(self.name, self, color=QColor('#ff8000'))
+        color = QColor(color or '#ff8000')
+        self.label = Text(self.name, self, font=font, color=color)
         self.label.hide()
         self.label.setZValue(Node.NodeZValue[self.myType]+1)
         # 设置文本位置
@@ -171,7 +172,7 @@ class Node(QGraphicsPixmapItem):
 class Edge(QGraphicsLineItem):
     ''' docstring: 边类 '''
 
-    def __init__(self, node1, node2, linetype=0, linePX=None):
+    def __init__(self, node1, node2, linetype=0, linePX=None, font=None, color=None):
         super().__init__()
         # 实线0或虚线1或背景线2
         self.myType = linetype
@@ -193,9 +194,9 @@ class Edge(QGraphicsLineItem):
         tmpname = ""
         if linePX:
             tmpname = f"PX:{self.PX}"
-        self.label = Text(tmpname, self,
-            font=QFont("Times New Roman", 12),
-            color=QColor('#ff0000'))
+        font = font or QFont("Times New Roman", 12)
+        color = QColor(color or '#ff0000')
+        self.label = Text(tmpname, self, font=font, color=color)
         self.label.hide()
         self.label.setZValue(11) # 没有效果，因为先比父节点Z值
         
