@@ -7,8 +7,8 @@ from json import load, dump
 from queue import Queue
 from PyQt5.QtGui import QColor, QPen, QPixmap, QFont
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsPixmapItem, QGraphicsScene
-from PyQt5.QtCore import qrand, Qt
-from GraphicsItem import Node, Edge
+from PyQt5.QtCore import qrand, Qt, QPoint
+from GraphicsItem import Node, Edge, Text
 import resource_rc
 
 
@@ -20,6 +20,7 @@ class topoGraphScene(QGraphicsScene):
         self.tmpnode = None
         self.tmpnode_transparent = None
         self.tmpedge = None
+        self.signal_to_mainwindow = None
 
         # 添加特殊节点用于收包动画显示
         # TODO: 建立新的点类
@@ -31,6 +32,12 @@ class topoGraphScene(QGraphicsScene):
         self.node_file.setZValue(20)
         self.addItem(self.node_file)
         self.node_file.hide()
+
+        # 设置特殊文本类显示信息
+        self.nodeInfo = Text("节点信息显示框",
+            font =QFont("SimHei", 20, QFont.Normal),
+            color=QColor("#000000"))
+        self.addItem(self.nodeInfo)
 
         # 观察节点特殊记录
         self.node_me = None

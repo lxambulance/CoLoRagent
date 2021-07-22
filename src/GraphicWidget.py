@@ -27,6 +27,7 @@ class GraphicWidget(QWidget):
         self.signal_ret = GraphicMessage()
         self.scene = topoGraphScene(self)
         self.view = topoGraphView(self.scene, self)
+        self.signal_to_mainwindow = None
         self.addedgetype = 0
         self.addedgeenable = False
         self.findpathenable = False
@@ -129,12 +130,12 @@ class GraphicWidget(QWidget):
                 self.node_me = node
             pos = self.view.mapToScene(event.pos())
             item = self.view.getItemAtClick(event)
-            if item and not item.type:
-                # print(item.type, item.name)
+            if item and not item.myType:
+                # print(item.myType, item.name)
                 self.scene.belongAS[node.id] = item
                 self.scene.ASinfo[item.id].append(node)
                 item.modifyCount(1)
-            elif node.type:
+            elif node.myType:
                 self.scene.waitlist.append(node)
             self.scene.addItem(node)
             node.setPos(pos)
@@ -191,13 +192,14 @@ class GraphicWidget(QWidget):
         # 先尝试载入已有选择
         try:
             tmpASlist = list(map(int,tmplist.split(',')))
+            # print(tmpASlist)
         except ValueError:
             pass
         self.chooseASenable = True
         for item in self.scene.items():
-            if isinstance(item, Node) and item.type: # 将无关节点隐藏
+            if isinstance(item, Node) and item.myType: # 将无关节点隐藏
                 item.hide()
-            if isinstance(item, Node) and not item.type:
+            if isinstance(item, Node) and not item.myType:
                 num = item.name
                 pos = len(num)-1
                 while pos>=0 and num[pos].isdigit():
@@ -205,30 +207,34 @@ class GraphicWidget(QWidget):
                 num = num[pos+1:] # 从名字里截取AS号
                 if num in tmplist:
                     item.addClickTimes()
+                item.setFlag(item.ItemIsMovable, False)
         if self.scene.node_me:
             self.scene.node_me.show()
+            self.scene.node_me.setFlag(self.scene.node_me.ItemIsMovable, False)
 
     def endChooseAS(self):
         ''' docstring: 结束AS选择模式 '''
         self.chooseASenable = False
-        tmpASlist = None
+        if self.scene.node_me:
+            self.scene.node_me.setFlag(self.scene.node_me.ItemIsMovable, True)
+        tmpASlist = []
         for item in self.scene.items():
-            if isinstance(item, Node) and item.type:
+            if isinstance(item, Node) and item.myType:
                 item.show()
-            if isinstance(item, Node) and not item.type and (item.clicktime & 1):
+            if isinstance(item, Node) and not item.myType:
+                item.setFlag(item.ItemIsMovable, True)
+            if isinstance(item, Node) and not item.myType and (item.clicktime & 1):
                 num = item.name
                 pos = len(num)-1
                 while pos>=0 and num[pos].isdigit():
                     pos -= 1
                 num = num[pos+1:]
-                if not tmpASlist:
-                    tmpASlist = num
-                else:
-                    tmpASlist = num + ',' + tmpASlist
-            if isinstance(item, Node) and not item.type:
+                tmpASlist.append(int(num))
+            if isinstance(item, Node) and not item.myType:
                 item.clicktime = 0
                 item.setSelected(False)
-        return tmpASlist # 最后返回所选结果字符串
+        tmpASlist.sort()
+        return ",".join(list(map(str, tmpASlist))) # 最后返回所选结果字符串
 
     def setMatchedPIDs(self, PIDs, flag=True):
         ''' docstring: 显示一次PID匹配 '''
@@ -261,11 +267,14 @@ class GraphicWidget(QWidget):
             if self.scene.belongAS[tmpnode[j+1].id].id != lastnode: # 通过与当前列表中最后一个点比较，判断这条边上点的顺序
                 tmpnode[j], tmpnode[j+1] = tmpnode[j+1], tmpnode[j]
             lastnode = self.scene.belongAS[tmpnode[j].id].id
-        poslist = [x.scenePos() for x in tmpnode] # 获取节点位置序列
+        poslist = [] # 获取节点位置序列
+        for i, node in enumerate(tmpnode):
+            if not i or node.id != tmpnode[i-1].id:
+                poslist.append(node.scenePos())
         poslist.append(self.scene.node_me.scenePos())
         self.showAnimation(poslist)
         return True
-    
+
     def showAnimation(self, poslist):
         ''' docstring: 显示收包动画 '''
         if self.poslist:
@@ -324,3 +333,9 @@ class GraphicWidget(QWidget):
                 return ans.name
             else:
                 return None
+
+    def setMessageSignal(self, signal):
+        ''' docstring: 设置信号向主窗体直接连接 '''
+        self.signal_to_mainwindow = signal
+        self.view.signal_to_mainwindow = signal
+        self.scene.signal_to_mainwindow = signal

@@ -321,6 +321,12 @@
        <property name="toolTip">
         <string>指定密级</string>
        </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>10</number>
+       </property>
       </widget>
      </item>
      <item>
@@ -335,7 +341,7 @@
         <string>通告路径</string>
        </property>
        <property name="text">
-        <string>[AS list]</string>
+        <string/>
        </property>
       </widget>
      </item>
@@ -435,6 +441,7 @@
    </widget>
    <addaction name="menu"/>
   </widget>
+  <widget class="QStatusBar" name="statusBar"/>
   <action name="actionShowBaseinfo">
    <property name="text">
     <string>基本信息</string>

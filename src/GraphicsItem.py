@@ -84,6 +84,7 @@ class Node(QGraphicsPixmapItem):
     def addClickTimes(self):
         ''' docstring: 添加点击数，选择AS路径时使用 '''
         self.clicktime += 1
+        # print(self.name, self.clicktime)
         if self.clicktime & 1:
             self.setPixmap(QPixmap(':/topo/cloud-o').scaled(self.size, self.size))
         else:
@@ -252,7 +253,7 @@ class Text(QGraphicsTextItem):
 
     def __init__(self, content, parent = None, font = None, color = None, setAutoResize = False):
         super().__init__(parent)
-        self.currentfont = font or QFont("Times New Roman", 10, QFont.Normal)
+        self.currentfont = font or QFont("Times New Roman", 15, QFont.Normal)
         self.currentcolor = color or QColor("#000000")
         self.setFont(self.currentfont)
 

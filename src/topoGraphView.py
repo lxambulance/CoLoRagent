@@ -4,7 +4,7 @@
 from GraphicsItem import Node, Edge
 from PyQt5.QtWidgets import QGraphicsView
 from PyQt5.QtCore import (QParallelAnimationGroup, Qt, qrand, QRectF, QPointF, 
-    QEasingCurve, QPropertyAnimation, pyqtProperty)
+    QEasingCurve, QPropertyAnimation, pyqtProperty, QPoint)
 from PyQt5.QtGui import QPainter, QColor
 
 
@@ -13,6 +13,7 @@ class topoGraphView(QGraphicsView):
 
     def __init__(self, scene, parent=None):
         super().__init__(parent)
+        self.signal_to_mainwindow = None
         self.allmove = False
         self.tmppos = None
 
@@ -45,13 +46,14 @@ class topoGraphView(QGraphicsView):
         ''' docstring: 返回点击的物体 '''
         pos = event.pos()
         item = self.itemAt(pos)
-        print("click at", pos, self.mapToScene(pos))
+        tmppos = self.mapToScene(pos)
+        self.signal_to_mainwindow.emit(1, f"点击位置<{tmppos.x():.1f},{tmppos.y():.1f}>")
         return item
 
     def removeNode(self, item):
         ''' docstring: 删除节点，步骤较繁琐，主要要考虑对所有参数的影响 '''
         # print(item.name, item.id)
-        if item.type == 0 and len(self.scene().ASinfo[item.id]) > 1: # 内部含有东西的AS不能直接删除
+        if item.myType == 0 and len(self.scene().ASinfo[item.id]) > 1: # 内部含有东西的AS不能直接删除
             # print([x.id for x in self.scene().ASinfo[item.id]])
             return
         tmpas = self.scene().belongAS.pop(item.id, None) # 获取所属AS节点列表，修改belongAS
@@ -88,7 +90,7 @@ class topoGraphView(QGraphicsView):
         elif self.parent().addedgeenable:
             if event.button() == Qt.LeftButton and isinstance(item, Node) \
                     and item not in self.scene().waitlist \
-                    and (self.parent().addedgetype!=0 or item.type == 2 or item.type == 0):
+                    and (self.parent().addedgetype!=0 or item.myType == 2 or item.myType == 0):
                 self.scene().tmpnode = item
                 self.tmppos = item.scenePos()
                 # 增加一个虚拟点用于建边的时候移动
@@ -99,7 +101,7 @@ class topoGraphView(QGraphicsView):
                 self.scene().addItem(self.scene().tmpnode_transparent)
                 self.scene().addItem(self.scene().tmpedge)
         elif self.parent().findpathenable:
-            if event.button() == Qt.LeftButton and isinstance(item, Node) and item.type:
+            if event.button() == Qt.LeftButton and isinstance(item, Node) and item.myType:
                 # TODO: 多线程处理
                 nidlist = self.scene().findPath(item)
                 print(nidlist)
@@ -113,12 +115,12 @@ class topoGraphView(QGraphicsView):
                         asstr = f"{asitem.name}<{asitem.nid}>({asitem.id})"
                     self.parent().chooseItem = item
                     self.parent().signal_ret.chooseitem.emit(item.name, item.nid, asstr)
-                    if item.type == 0 and self.parent().chooseASenable:
+                    if item.myType == 0 and self.parent().chooseASenable:
                         item.addClickTimes()
                 elif isinstance(item, Edge):
                     n1 = f"{item.node1.name}<{item.node1.nid}>"
                     n2 = f"{item.node2.name}<{item.node2.nid}>"
-                    linename = f"Edge<{item.type}>({n1},{n2})"
+                    linename = f"Edge<{item.myType}>({n1},{n2})"
                     linePX = f"PX:{item.PX}"
                     self.parent().chooseItem = item
                     self.parent().signal_ret.chooseitem.emit(linename, linePX, "")
@@ -149,15 +151,15 @@ class topoGraphView(QGraphicsView):
         if self.parent().addedgeenable:
             self.parent().addedgeenable = False
             item = self.getItemAtClick(event)
-            # print('check', item.type, self.scene().tmpnode.type)
+            # print('check', item.myType, self.scene().tmpnode.myType)
             if self.scene().tmpedge:
                 if isinstance(item, Node) and item is not self.scene().tmpnode \
                         and item not in self.scene().waitlist \
-                        and (self.parent().addedgetype!=0 or item.type == 2 or \
-                            (item.type == 0 and self.scene().tmpnode.type == 0)) \
+                        and (self.parent().addedgetype!=0 or item.myType == 2 or \
+                            (item.myType == 0 and self.scene().tmpnode.myType == 0)) \
                         and (self.parent().addedgetype!=1 or self.scene().belongAS[item.id] \
                         ==self.scene().belongAS[self.scene().tmpnode.id]):
-                    if item.type == 0:
+                    if item.myType == 0:
                         # 连边对象是两个AS，需要新建两个BR
                         node1 = Node(2)
                         node2 = Node(2)
@@ -183,7 +185,7 @@ class topoGraphView(QGraphicsView):
                         self.scene().tmpedge.updateEdge()
                     else:
                         # 正常连边，虚实都有
-                        if self.scene().tmpedge.type == 0:
+                        if self.scene().tmpedge.myType == 0:
                             self.scene().waitlist.append(self.scene().tmpedge)
                         self.scene().addEdge(self.scene().tmpnode, item, self.scene().tmpedge)
                         self.scene().tmpedge.updateEdge()
@@ -230,7 +232,6 @@ class topoGraphView(QGraphicsView):
         factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
         # 对于单位矩阵宽度超出阈值的缩放行为不与响应
         if factor > 0.05 and factor < 20:
-            # print(factor)
             if factor > 4:
                 keynum = 1
             elif factor > 1:
@@ -247,4 +248,13 @@ class topoGraphView(QGraphicsView):
                 else:
                     line.hide()
             self.scale(scaleFactor, scaleFactor)
+            self.scene().nodeInfo.setScale(1/scaleFactor)
+
+    def resetNodeInfoPos(self):
+        h = self.height()
+        pos = self.mapToScene(QPoint(0, h))
+        h0 = self.scene().nodeInfo.document().size().height()
+        h0 = h0 * self.scene().nodeInfo.scale()
+        print(pos, h, h0)
+        self.scene().nodeInfo.setPos(pos.x(), pos.y()-h0)
 

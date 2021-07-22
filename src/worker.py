@@ -16,7 +16,7 @@ class workerSignals(QObject):
     # progress用于回调函数显示任务进度
     progress = pyqtSignal(int)
     # message用于中间消息显示
-    message = pyqtSignal(str)
+    message = pyqtSignal(str, str)
 
 class worker(QRunnable):
     ''' docstring: worker class '''

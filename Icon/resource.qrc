@@ -21,9 +21,8 @@
     <file alias="BR">router-br.png</file>
     <file alias="router">router.png</file>
     <file alias="switching">switching.png</file>
-    <file alias="cloud">weather-cloud.png</file>
-    <file alias="cloud-o">weather-cloud-select.png</file>
-    <file alias="cloud-r">weather-cloud-warning.png</file>
+    <file alias="cloud">cloud.png</file>
+    <file alias="cloud-o">cloud-o.png</file>
     <file alias="baseinfo">size-tag.png</file>
     <file alias="throughput">hierarchy.png</file>
     <file alias="advanced-reg">viral.png</file>

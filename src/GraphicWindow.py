@@ -2,7 +2,7 @@
 ''' docstring: CoLoR拓扑图窗口 '''
 
 
-from PyQt5.QtCore import QObject, Qt, pyqtSignal
+from PyQt5.QtCore import QObject, Qt, pyqtSignal, QPoint
 from PyQt5.QtWidgets import QMainWindow
 
 from GraphicPage import Ui_MainWindow
@@ -12,15 +12,18 @@ class GraphicSignals(QObject):
     ''' docstring: 拓扑图专用信号组 '''
     hide_window_signal = pyqtSignal(bool)
     message_signal = pyqtSignal(int, str)
+    advencedRegrow_signal = pyqtSignal(int)
 
 
 class GraphicWindow(QMainWindow, Ui_MainWindow):
     ''' docstring: CoLoR拓扑图窗口类 '''
 
-    def __init__(self, parent=None):
+    def __init__(self, fd, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+        self.fd = fd
         self.GS = GraphicSignals()
+        self.graphics_global.setMessageSignal(self.GS.message_signal)
         self.flagModifyTopo = False
 
         # 暂时隐藏部分按钮
@@ -28,7 +31,9 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonModifyTopo.setVisible(False)
         self.showModifyButton(False)
         self.showAdvancedReg(False)
-        self.removeDockWidget(self.Toolbar) # 初始化不开启工具栏
+        # 初始化不开启工具栏
+        if self.Toolbar.isVisible():
+            self.Toolbar.setVisible(False)
 
         # 设置禁止自添加
         self.nodelist.setAcceptDrops(False)
@@ -41,6 +46,21 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.actionAdvancedReg.triggered.connect(self.pushButtonAdvancedReg.click)
         self.actionShowBaseinfo.triggered.connect(self.pushButtonShowBaseinfo.click)
         self.actionShowASThroughput.triggered.connect(self.pushButtonShowASThroughput.click)
+        # 通告信号相关
+        self.chooseFile.currentIndexChanged.connect(self.showAdvancedRegrow)
+        self.secretLevel.valueChanged[int].connect(
+            lambda x:self.changeAdvancedReg(self.chooseFile.currentIndex(), level=x)
+        )
+        self.ASlist.returnPressed.connect(
+            lambda:self.changeAdvancedReg(self.chooseFile.currentIndex(),
+            whitelist=self.ASlist.text())
+        )
+        self.pushButtonChooseAS.clicked.connect(self.chooseASs)
+        self.pushButtonReg.clicked.connect(
+            lambda:self.GS.advencedRegrow_signal.emit(self.chooseFile.currentIndex())
+        )
+        # 自定义内部信号
+        self.GS.message_signal.connect(self.messageTest)
 
     def resetToolbar(self):
         ''' docstring: 还原工具栏位置，采用删除后重填加的方式 '''
@@ -54,6 +74,8 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
     def closeEvent(self, event):
         ''' docstring: 自定义关闭事件信号 '''
         self.GS.hide_window_signal.emit(False)
+        if self.Toolbar.isFloating():
+            self.removeDockWidget(self.Toolbar)
         super().closeEvent(event)
 
     def keyPressEvent(self, event):
@@ -88,7 +110,10 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
 
     def messageTest(self, mType, message):
         ''' docstring: 测试消息信号 '''
-        print('<', mType, '>', message)
+        if mType == 1:
+            self.setStatus(message)
+        else:
+            print("unexpected message<", mType, ">", message)
 
     def loadTopo(self, path):
         ''' docstring: 载入拓扑 '''
@@ -99,6 +124,70 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 保存拓扑 '''
         self.graphics_global.scene.saveTopo(path)
 
+    def showAdvancedRegrow(self, row):
+        ''' docstring: 高级通告条目切换 '''
+        if row<0 and row>=self.chooseFile.count():
+            return
+        level = self.fd.getData(row, 5)
+        self.secretLevel.setValue(int(level) if level else 1)
+        whitelist = self.fd.getData(row, 6)
+        self.ASlist.setText(whitelist if whitelist else "")
+        # TODO: 如何避免下面的蠢方法
+        self.keepVisible(self.Toolbar.isVisible())
+    
+    def keepVisible(self, flag):
+        self.Toolbar.setVisible(flag)
+
+    def changeAdvancedReg(self, nowSelectItem, level=None, whitelist=None):
+        ''' docstring: 修改高级通告策略 '''
+        if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
+            return
+        newItem = self.fd.getItem(nowSelectItem)
+        while len(newItem)<7:
+            newItem.append(None)
+        if level != None:
+            newItem[5] = level
+            self.fd.setItem(nowSelectItem, newItem)
+        if whitelist != None:
+            newItem[6] = whitelist
+            self.fd.setItem(nowSelectItem, newItem)
+
+    def setStatus(self, s):
+        ''' docstring: 状态栏信息显示 '''
+        self.statusBar.showMessage(s)
+
+    def chooseASs(self, flag):
+        '''docstring: 高级通告选择 '''
+        row = self.chooseFile.currentIndex()
+        # print(row, flag)
+        if row == -1:
+            self.setStatus('请选择高级通告条目')
+            self.pushButtonChooseAS.setChecked(False)
+            return
+        if flag:
+            self.ASlist.setToolTip('确认选择完毕')
+            self.graphics_global.startChooseAS(self.ASlist.text())
+        else:
+            self.ASlist.setToolTip('在图中选择通告路径')
+            ret = self.graphics_global.endChooseAS()
+            self.ASlist.setText(ret)
+            self.changeAdvancedReg(row, whitelist=ret)
+
+    # def setTopoLineType(self, index):
+    #     ''' docstring: 设置拓扑图添加连线的类型 '''
+    #     self.graphicwindow.graphics_global.addedgetype = index
+
+    # def topoAddLine(self):
+    #     ''' docstring: 拓扑图添加连线 '''
+    #     self.graphicwindow.graphics_global.addedgeenable = True
+    #     # self.graphicwindow.graphics_global.addedgetype = self.lineType.currentIndex()
+
+    # def showItem(self, name, nid, AS):
+    # '''docstring: 显示图形元素 '''
+    #     self.itemname.setText(name)
+    #     self.itemnid.setText(nid)
+    #     self.itemas.setText(AS)
+
 
 if __name__ == "__main__":
     import sys
@@ -106,20 +195,31 @@ if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication
 
     app = QApplication([])
-    window = GraphicWindow()
+    from FileData import FileData
+    fd = FileData()
+    window = GraphicWindow(fd)
     DATAPATH = "D:/CodeHub/CoLoRagent/data.db"
     window.loadTopo(DATAPATH)
     window.actionReopenToolbar.trigger()
     window.pushButtonAdvancedReg.click()
     from PyQt5.QtCore import QCoreApplication
-    from PyQt5.QtGui import QGuiApplication, QKeyEvent
+    from PyQt5.QtGui import QGuiApplication, QKeyEvent, QFont, QColor
     QCoreApplication.postEvent(window,
         QKeyEvent(QKeyEvent.KeyPress, Qt.Key_M, QGuiApplication.keyboardModifiers()))
     window.pushButtonModifyTopo.click()
     window.show()
+    # from GraphicsItem import Text
+    # tmp = Text("Hello World!<br>"*5,
+    #         font =QFont("Times", 20, QFont.Bold),
+    #         color=QColor("#000000"))
+    # window.graphics_global.scene.addItem(tmp)
     # h = window.graphics_global.view.height()
+    window.graphics_global.view.resetNodeInfoPos()
+    h = window.centralwidget.height()
+    # print("test", h, window.graphics_global.view.mapToScene(QPoint(0, h)))
     # pos = window.graphics_global.view.mapToScene(QPoint(0, h))
     # tmp.setPos(pos.x(), pos.y() - tmp.document().size().height())
+    window.chooseFile.addItem("testfile")
     ret = app.exec_()
     window.saveTopo(DATAPATH)
     sys.exit(ret)

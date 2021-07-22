@@ -69,7 +69,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
                 try:
                     copyfile(b, HOME_DIR + '/' + a)
                 except IOError:
-                    print("Unable to copy file %s" % a)
+                    print(f"Unable to copy file {a}")
                 else:
                     b = HOME_DIR + '/' + a
             c = self.addtext if self.addtext != None else ''
