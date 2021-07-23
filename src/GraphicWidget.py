@@ -12,19 +12,12 @@ from topoGraphView import topoGraphView
 from topoGraphScene import topoGraphScene
 
 
-class GraphicMessage(QObject):
-    ''' docstring: 拓扑图专用信号返回 '''
-    choosenid = pyqtSignal(str)
-    chooseitem = pyqtSignal(str, str, str)
-
-
 class GraphicWidget(QWidget):
     ''' docstring: 拓扑图窗口类 '''
 
     def __init__(self, parent=None):
         super().__init__(parent)
         qsrand(QTime(0, 0, 0).secsTo(QTime.currentTime()))
-        self.signal_ret = GraphicMessage()
         self.scene = topoGraphScene(self)
         self.view = topoGraphView(self.scene, self)
         self.signal_to_mainwindow = None
@@ -33,7 +26,7 @@ class GraphicWidget(QWidget):
         self.findpathenable = False
         self.labelenable = True
         self.chooseASenable = False
-        self.chooseItem = None
+        self.chooseItem = None # 记录当前鼠标点击物体
         self.poslist = None
 
         # 设置属性，允许拖放

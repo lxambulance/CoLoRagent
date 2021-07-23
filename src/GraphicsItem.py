@@ -4,7 +4,7 @@
 
 from math import fabs, atan2, pi, sin, cos, sqrt
 from PyQt5.QtWidgets import (
-    QGraphicsPixmapItem, QGraphicsLineItem,
+    QGraphicsPixmapItem, QGraphicsLineItem, QGraphicsSimpleTextItem,
     QStyle, QGraphicsTextItem, QFontDialog, QColorDialog)
 from PyQt5.QtGui import (
     QPen, QColor, QPixmap,
@@ -34,7 +34,7 @@ class Node(QGraphicsPixmapItem):
             self.clicktime = 0
         self.name = nodename or Node.NodeName[nodetype]
         self.size = nodesize or Node.NodeSize[nodetype]
-        self.nid = nodenid
+        self.nid = nodenid or ""
         # 采用统一计数器，全局id唯一
         self.id = Node.NodeNum
         Node.NodeNum += 1
@@ -177,18 +177,19 @@ class Edge(QGraphicsLineItem):
         super().__init__()
         # 实线0或虚线1或背景线2
         self.myType = linetype
+        self.node1 = node1
+        self.node2 = node2
         if linetype == 0:
-            self.setPen(QPen(QColor("#0099ff"), 4))
+            self.setPen(QPen(QColor("#6c62d0"), 4))
             self.setZValue(5)
+            self.setFlags(self.ItemIsSelectable)
         elif linetype == 1:
-            self.setPen(QPen(QColor("#00cc00"), 4, Qt.DashDotDotLine))
+            self.setPen(QPen(QColor("#6c62d0"), 4, Qt.DashDotDotLine))
             self.setZValue(5)
+            self.setFlags(self.ItemIsSelectable)
         else:
             self.setPen(QPen(QColor("#111111"), 1, Qt.DotLine))
             self.setZValue(0)
-        self.node1 = node1
-        self.node2 = node2
-        self.setFlags(self.ItemIsSelectable)
 
         # 添加一个子文本类显示名字
         self.PX = linePX
@@ -197,10 +198,9 @@ class Edge(QGraphicsLineItem):
             tmpname = f"PX:{self.PX}"
         font = font or QFont("Times New Roman", 12)
         color = QColor(color or '#ff0000')
-        self.label = Text(tmpname, self, font=font, color=color)
+        self.label = Text(tmpname, self if not linetype else None, font=font, color=color)
         self.label.hide()
         self.label.setZValue(11) # 没有效果，因为先比父节点Z值
-        
         # 计算label位置坐标
         self.updateEdge()
 
@@ -241,18 +241,20 @@ class Edge(QGraphicsLineItem):
         ''' docstring: 用于显示被选中的变化，并且去掉外边框 '''
         if self.node1 and self.node2 and \
             (self.node1.isSelected() and self.node2.isSelected() or self.isSelected()):
-            painter.setPen(QPen(QColor('#ff99e5'), 12)) #ff99e5 66ff33
+            painter.setPen(QPen(QColor('#3e9405'), 6)) #85f83a ff99e5 66ff33
             painter.drawLine(self.node1.scenePos(), self.node2.scenePos())
-        # 设置绘图属性，去掉外边框，妥协的做法
-        option.state = QStyle.State_None
-        super().paint(painter, option, widget)
+        else:
+            # 设置绘图属性，去掉外边框，妥协的做法
+            option.state = QStyle.State_None
+            super().paint(painter, option, widget)
 
 
 class Text(QGraphicsTextItem):
     '''docstring: 文本类 '''
 
     def __init__(self, content, parent = None, font = None, color = None, setAutoResize = False):
-        super().__init__(parent)
+        super().__init__(parent=parent)
+        self.parent = parent
         self.currentfont = font or QFont("Times New Roman", 15, QFont.Normal)
         self.currentcolor = color or QColor("#000000")
         self.setFont(self.currentfont)
@@ -271,6 +273,7 @@ class Text(QGraphicsTextItem):
         if ok:
             self.setFont(font)
             self.currentfont = font
+            self.adjustSize()
 
     def changeColor(self):
         ''' docstring: 修改颜色 '''
@@ -280,5 +283,5 @@ class Text(QGraphicsTextItem):
 
     def changeText(self, content):
         ''' docstring: 修改内容 '''
+        self.content = f'''<p align="center">{content}</p>'''
         self.setHtml(f'''<font color="{self.currentcolor.name()}">{self.content}</font>''')
-

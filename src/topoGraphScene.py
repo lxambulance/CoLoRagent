@@ -34,10 +34,12 @@ class topoGraphScene(QGraphicsScene):
         self.node_file.hide()
 
         # 设置特殊文本类显示信息
-        self.nodeInfo = Text("节点信息显示框",
-            font =QFont("SimHei", 20, QFont.Normal),
-            color=QColor("#000000"))
-        self.addItem(self.nodeInfo)
+        self.baseinfo = Text("信息显示框",
+            font =QFont("SimHei", 10, QFont.Normal),
+            color=QColor("#ff8000"))
+        self.addItem(self.baseinfo)
+        self.baseinfo.setFlag(self.baseinfo.ItemIgnoresTransformations)
+        self.baseinfo.hide()
 
         # 观察节点特殊记录
         self.node_me = None
@@ -47,12 +49,15 @@ class topoGraphScene(QGraphicsScene):
         # 绘制背景线
         self.backgroundLines = []
         for i in range(-250, 250):
+            j = i+250
             n1 = Node(nodetype=1)
             n2 = Node(nodetype=1)
             n1.setPos(i*20, -5000)
             n2.setPos(i*20, 5000)
             e = Edge(n1, n2, 2)
             e.setFlag(e.ItemIsSelectable, False)
+            if j%8==0:
+                e.setPen(QPen(QColor("#111111"), 2, Qt.DotLine))
             self.addItem(e)
             self.backgroundLines.append(e)
             n3 = Node(nodetype=1)
@@ -61,6 +66,8 @@ class topoGraphScene(QGraphicsScene):
             n4.setPos(5000, i*20)
             e = Edge(n3, n4, 2)
             e.setFlag(e.ItemIsSelectable, False)
+            if j%8==0:
+                e.setPen(QPen(QColor("#111111"), 2, Qt.DotLine))
             self.addItem(e)
             self.backgroundLines.append(e)
 

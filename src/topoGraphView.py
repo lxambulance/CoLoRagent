@@ -1,10 +1,9 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架 '''
 
-from GraphicsItem import Node, Edge
+from GraphicsItem import Node, Edge, Text
 from PyQt5.QtWidgets import QGraphicsView
-from PyQt5.QtCore import (QParallelAnimationGroup, Qt, qrand, QRectF, QPointF, 
-    QEasingCurve, QPropertyAnimation, pyqtProperty, QPoint)
+from PyQt5.QtCore import (Qt, QRectF, QPointF, QPoint)
 from PyQt5.QtGui import QPainter, QColor
 
 
@@ -75,8 +74,11 @@ class topoGraphView(QGraphicsView):
     def mousePressEvent(self, event):
         ''' docstring: 鼠标按下事件 '''
         item = self.getItemAtClick(event)
+        # 设置点到文字等于点到对应物体
+        if isinstance(item, Text):
+            if item.parent:
+                item = item.parent
         if event.button() == Qt.RightButton:
-            # print(item.name, item.id)
             if isinstance(item, Node):
                 if item is self.scene().node_me:
                     self.scene().node_me = None
@@ -108,22 +110,30 @@ class topoGraphView(QGraphicsView):
         else:
             if event.button() == Qt.LeftButton:
                 if isinstance(item, Node):
-                    asitem = self.scene().belongAS.get(item.id, None)
-                    if not asitem:
-                        asstr = '???<???>(???)'
-                    else:
-                        asstr = f"{asitem.name}<{asitem.nid}>({asitem.id})"
                     self.parent().chooseItem = item
-                    self.parent().signal_ret.chooseitem.emit(item.name, item.nid, asstr)
+                    asitem = self.scene().belongAS.get(item.id, None)
+                    asstr = f"{asitem.name}" if asitem else ""
+                    if item.myType:
+                        message = "节点名称:"+item.name+"<br/>" \
+                            + "nid:"+item.nid+"<br/>" \
+                            + "所属AS:"+asstr
+                    else:
+                        message = "名称:"+item.name
+                    self.signal_to_mainwindow.emit(2, message)
                     if item.myType == 0 and self.parent().chooseASenable:
                         item.addClickTimes()
                 elif isinstance(item, Edge):
-                    n1 = f"{item.node1.name}<{item.node1.nid}>"
-                    n2 = f"{item.node2.name}<{item.node2.nid}>"
-                    linename = f"Edge<{item.myType}>({n1},{n2})"
-                    linePX = f"PX:{item.PX}"
                     self.parent().chooseItem = item
-                    self.parent().signal_ret.chooseitem.emit(linename, linePX, "")
+                    n1 = f"{item.node1.name}"
+                    n2 = f"{item.node2.name}"
+                    message = "边类型:"+('域内' if item.myType else '跨域')+"<br/>" \
+                        + "端点:"+f"{n1}-{n2}"
+                    if item.PX:
+                        message = message + "<br/>PX: " + item.PX
+                    self.signal_to_mainwindow.emit(2, message)
+                else:
+                    self.parent().chooseItem = None
+                    self.signal_to_mainwindow.emit(2, "信息显示框")
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -248,13 +258,10 @@ class topoGraphView(QGraphicsView):
                 else:
                     line.hide()
             self.scale(scaleFactor, scaleFactor)
-            self.scene().nodeInfo.setScale(1/scaleFactor)
+            self.resetNodeInfoPos()
 
     def resetNodeInfoPos(self):
-        h = self.height()
-        pos = self.mapToScene(QPoint(0, h))
-        h0 = self.scene().nodeInfo.document().size().height()
-        h0 = h0 * self.scene().nodeInfo.scale()
-        print(pos, h, h0)
-        self.scene().nodeInfo.setPos(pos.x(), pos.y()-h0)
-
+        h = self.viewport().height()
+        h0 = self.scene().baseinfo.document().size().height()
+        pos = self.mapToScene(QPoint(0, h-h0))
+        self.scene().baseinfo.setPos(pos)

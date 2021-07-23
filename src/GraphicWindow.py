@@ -42,6 +42,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.actionReopenToolbar.triggered.connect(self.resetToolbar) # 设置按钮还原工具栏
         self.pushButtonModifyTopo.clicked.connect(self.showModifyButton)
         self.pushButtonAdvancedReg.clicked.connect(self.showAdvancedReg)
+        self.pushButtonShowBaseinfo.clicked.connect(self.showInfoText)
         self.actionModifyTopo.triggered.connect(self.pushButtonModifyTopo.click) # 将动作与对应按钮绑定
         self.actionAdvancedReg.triggered.connect(self.pushButtonAdvancedReg.click)
         self.actionShowBaseinfo.triggered.connect(self.pushButtonShowBaseinfo.click)
@@ -61,6 +62,13 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         )
         # 自定义内部信号
         self.GS.message_signal.connect(self.messageTest)
+
+    def showInfoText(self, flag):
+        ''' docstring: 显示基础信息框 '''
+        if flag:
+            self.graphics_global.scene.baseinfo.show()
+        else:
+            self.graphics_global.scene.baseinfo.hide()
 
     def resetToolbar(self):
         ''' docstring: 还原工具栏位置，采用删除后重填加的方式 '''
@@ -112,6 +120,9 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 测试消息信号 '''
         if mType == 1:
             self.setStatus(message)
+        elif mType == 2:
+            self.graphics_global.scene.baseinfo.changeText(message)
+            self.graphics_global.view.resetNodeInfoPos()
         else:
             print("unexpected message<", mType, ">", message)
 
@@ -198,27 +209,19 @@ if __name__ == "__main__":
     from FileData import FileData
     fd = FileData()
     window = GraphicWindow(fd)
+    window.show()
     DATAPATH = "D:/CodeHub/CoLoRagent/data.db"
     window.loadTopo(DATAPATH)
+    
     window.actionReopenToolbar.trigger()
     window.pushButtonAdvancedReg.click()
+    window.pushButtonShowBaseinfo.click()
     from PyQt5.QtCore import QCoreApplication
     from PyQt5.QtGui import QGuiApplication, QKeyEvent, QFont, QColor
     QCoreApplication.postEvent(window,
         QKeyEvent(QKeyEvent.KeyPress, Qt.Key_M, QGuiApplication.keyboardModifiers()))
     window.pushButtonModifyTopo.click()
-    window.show()
-    # from GraphicsItem import Text
-    # tmp = Text("Hello World!<br>"*5,
-    #         font =QFont("Times", 20, QFont.Bold),
-    #         color=QColor("#000000"))
-    # window.graphics_global.scene.addItem(tmp)
-    # h = window.graphics_global.view.height()
-    window.graphics_global.view.resetNodeInfoPos()
-    h = window.centralwidget.height()
-    # print("test", h, window.graphics_global.view.mapToScene(QPoint(0, h)))
-    # pos = window.graphics_global.view.mapToScene(QPoint(0, h))
-    # tmp.setPos(pos.x(), pos.y() - tmp.document().size().height())
+    
     window.chooseFile.addItem("testfile")
     ret = app.exec_()
     window.saveTopo(DATAPATH)
