@@ -563,7 +563,7 @@ class DataPkt():
             if(self.M == 1):
                 self.HeaderLength += 2
             self.HeaderLength += 52
-            if(self.B == 0 and self.R == 1):
+            if(self.B == 0 and self.R == 1) or (self.B == 1):
                 self.HeaderLength += 16  # 存在两个nid字段
             if(self.Q == 1):
                 self.HeaderLength += 1 + len(self.QoS)/2

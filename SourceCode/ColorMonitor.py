@@ -9,18 +9,23 @@ import math
 import time
 import cv2
 import numpy as np
+import zlib
+import queue
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+# 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
 RecvingSid = {}  # 记录内容接收情况，key:SID，value:下一片指针
 WaitingACK = {}  # 流视频提供者记录ACK回复情况，key:NID（customer），value:连续未收到ACK个数
+RTO = 1  # 超时重传时间
+# 视频传输相关全局变量
 Lock_WaitingACK = threading.Lock()
 VideoCache = {}  # 流视频接收者缓存数据片，{帧序号：{片序号：片内容}}，最多存储最新的三个帧的信息
 MergeFlag = {}  # 流视频接收者记录单个数据片的可拼装情况{帧序号：flag}；flag=0，未收到最后一片；收到最后一片：flag=片数
 Lock_VideoCache = threading.Lock()
-
-RTO = 1  # 超时重传时间
+FrameCache = queue.Queue(10) # 视频接收者完整帧的缓存区
+FrameSid = queue.Queue(10) # 记录视频帧对应的SID
 
 
 class pktSignals(QObject):
@@ -53,11 +58,12 @@ class PktHandler(threading.Thread):
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 15]
         while ret:
             # 避免发送过快
-            time.sleep(0.01)
+            # time.sleep(0.01)
             # 单帧编码
             result, imgencode = cv2.imencode('.jpg', frame, encode_param)
             data = np.array(imgencode)
             stringData = data.tostring()
+            stringData = zlib.compress(stringData)
             # 单帧数据发送
             ChipNum = math.ceil(len(stringData) / LoadLength)
             ChipCount = 0  # 单帧片序号
@@ -164,8 +170,8 @@ class PktHandler(threading.Thread):
                     NidCus = NewGetPkt.nid
                     PIDs = NewGetPkt.PIDs.copy()
                     # 按最大长度减去IP报文和DATA报文头长度(QoS暂默认最长为1字节)，预留位占4字节，数据传输结束标志位位于负载内占1字节
-                    SidLoadLength = NewGetPkt.MTU-60-86-(4*len(PIDs)) - 4 - 1
-                    # SidLoadLength = 1000  # 仅在报文不经过RM的点对点调试用
+                    # SidLoadLength = NewGetPkt.MTU-60-86-(4*len(PIDs)) - 4 - 1
+                    SidLoadLength = 1400  # 仅在报文不经过RM的点对点调试用
                     ReturnIP = ''
                     if (len(PIDs) == 0):
                         # 域内请求
@@ -253,55 +259,59 @@ class PktHandler(threading.Thread):
                                     MergeFlag[FrameCount] = ChipCount + 1
                                 if MergeFlag[FrameCount] == len(VideoCache[FrameCount]):
                                     # 当前帧接收完成
-                                    stringData = ''
+                                    stringData = b''
                                     for Chip in range(MergeFlag[FrameCount]):
                                         stringData += VideoCache[FrameCount][Chip]
+                                    stringData = zlib.decompress(stringData)
                                     # 将获取到的字符流数据转换成1维数组
                                     data = np.frombuffer(stringData, np.uint8)
                                     decimg = cv2.imdecode(
                                         data, cv2.IMREAD_COLOR)  # 将数组解码成图像
+                                    pops = []
                                     for frame in VideoCache.keys():
                                         if frame == FrameCount or frame == ((FrameCount - 1) % (1 << 16)) or frame == ((FrameCount - 2) % (1 << 16)):
-                                            VideoCache.pop(frame)
-                                            MergeFlag.pop(frame)
-                                    Lock_VideoCache.release()
-                                    cv2.imshow('video', decimg)  # 显示图像
-                                    k = cv2.waitKey(10) & 0xff
-                                    if k == 27:
-                                        PL.Lock_gets.acquire()
-                                        if (NewSid in PL.gets.keys()):
-                                            PL.gets.pop(NewSid)
-                                            cv2.destroyAllWindows()
-                                        PL.Lock_gets.release()
+                                            pops.append(frame)
+                                    for frame in pops:
+                                        VideoCache.pop(frame)
+                                        MergeFlag.pop(frame)
+                                    FrameSid.put(NewSid)
+                                    FrameCache.put(decimg)
                             else:
                                 # 新的视频帧(这里默认不能单片完成传输，所以不包含显示逻辑)
                                 CacheKeys = list(VideoCache.keys())
-                                Max = max(CacheKeys)
-                                if (Max == (1 << 16) - 1) or (Max == (1 << 16) - 2):
-                                    # 可能出现了重置情况
-                                    if (2 in CacheKeys):
-                                        Max = 2
-                                    elif (1 in CacheKeys):
-                                        Max = 1
-                                NewMax = Max
-                                if (FrameCount < 10):
-                                    if (Max > (1 << 16) - 10) or (FrameCount > Max):
+                                if(len(CacheKeys) != 0):
+                                    Max = max(CacheKeys)
+                                    if (Max == (1 << 16) - 1) or (Max == (1 << 16) - 2):
+                                        # 可能出现了重置情况
+                                        if (2 in CacheKeys):
+                                            Max = 2
+                                        elif (1 in CacheKeys):
+                                            Max = 1
+                                    NewMax = Max
+                                    if (FrameCount < 10):
+                                        if (Max > (1 << 16) - 10) or (FrameCount > Max):
+                                            NewMax = FrameCount
+                                    elif(FrameCount > (1 << 16) - 10):
+                                        if (Max > 10) and (FrameCount > Max):
+                                            NewMax = FrameCount
+                                    elif(FrameCount > Max):
                                         NewMax = FrameCount
-                                elif(FrameCount > (1 << 16) - 10):
-                                    if (Max > 10) and (FrameCount > Max):
-                                        NewMax = FrameCount
-                                elif(FrameCount > Max):
+                                else:
                                     NewMax = FrameCount
                                 # 存入视频帧
+                                if FrameCount not in VideoCache.keys():
+                                    VideoCache[FrameCount] = {}
                                 VideoCache[FrameCount][ChipCount] = RecvDataPkt.load[1:]
-                                if (RecvDataPkt.load[0] == 1):
-                                    MergeFlag[FrameCount] = ChipCount + 1
+                                MergeFlag[FrameCount] = ChipCount + 1 if (RecvDataPkt.load[0] == 1) else 0
                                 # 重置缓冲区
+                                pops = []
                                 for frame in VideoCache.keys():
                                     if frame != NewMax or frame != ((NewMax - 1) % (1 << 16)) or frame != ((NewMax - 2) % (1 << 16)):
-                                        VideoCache.pop(frame)
-                                        MergeFlag.pop(frame)
-                                Lock_VideoCache.release()
+                                        pops.append(frame)
+                                for frame in pops:
+                                    VideoCache.pop(frame)
+                                    MergeFlag.pop(frame)
+                            Lock_VideoCache.release()
                             if(RecvDataPkt.R == 0):
                                 return
                         # 普通文件
@@ -477,6 +487,22 @@ class ControlPktSender(threading.Thread):
             else:
                 break
 
+class video_customer(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+    
+    def run(self):
+        while 1:
+            frame = FrameCache.get()
+            sid = FrameSid.get()
+            cv2.imshow("img", frame)  # 显示图像
+            k = cv2.waitKey(10) & 0xff
+            if k == 27:
+                PL.Lock_gets.acquire()
+                if (sid in PL.gets.keys()):
+                    PL.gets.pop(sid)
+                    cv2.destroyAllWindows()
+                PL.Lock_gets.release()
 
 class Monitor(threading.Thread):
     ''' docstring: 自行实现的监听线程类，继承自线程类 '''
@@ -500,5 +526,7 @@ class Monitor(threading.Thread):
         AnnSender.signals.output.connect(self.message)
         AnnSender.signals.output.emit(0, "开启报文监听")
         AnnSender.start()
+        VideoCus = video_customer()
+        VideoCus.start()
         # sniff(filter="ip", iface = "Realtek PCIe GBE Family Controller", prn=self.parser, count=0)
         sniff(filter="ip", prn=self.parser, count=0)
