@@ -51,7 +51,7 @@ class CollapsibleMessageBox(QWidget):
             self.text.setWordWrap(True)
             if not Message:
                 Message = '空'
-            self.text.setText(Message)
+            self.text.setText(Message+'\n')
             lay.addWidget(self.text)
             self.setContentLayout(lay)
 
@@ -121,8 +121,10 @@ if __name__ == "__main__":
     import random
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QApplication, QMainWindow, QDockWidget
+    import qdarkstyle as qds
 
     app = QApplication(sys.argv)
+    app.setStyleSheet(qds.load_stylesheet_pyqt5())
     w = QMainWindow()
     lx = LogWidget()
     w.setCentralWidget(lx)

@@ -35,7 +35,7 @@ sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
 DATA_PATH = __BASE_DIR + '/data.db'
 starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
-LOG_PATH = __BASE_DIR + f'/{starttime}.log'
+LOG_PATH = HOME_DIR + f'/{starttime}.log'
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -700,8 +700,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     from random import randint
+    import qdarkstyle as qds
 
     app = QApplication(sys.argv)
+    # app.setStyleSheet(qds.load_stylesheet_pyqt5())
     window = MainWindow()
     window.show()
 
