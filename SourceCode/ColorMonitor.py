@@ -55,7 +55,7 @@ class PktHandler(threading.Thread):
         capture = cv2.VideoCapture(0)
         ret, frame = capture.read()
         # 压缩参数，15代表图像质量，越高代表图像质量越好为 0-100，默认95
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 15]
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 10]
         while ret:
             # 避免发送过快
             # time.sleep(0.01)
@@ -76,7 +76,7 @@ class PktHandler(threading.Thread):
                     load = PL.ConvertInt2Bytes(0, 1)
                     load += stringData[ChipCount *
                                        LoadLength:(ChipCount + 1) * LoadLength]
-                R = 1 if (FrameCount % 15 == 0 and ChipNum == 0) else 0
+                R = 1 if (FrameCount % 15 == 0 and ChipCount == 0) else 0
                 SegID = ((FrameCount << 16) % (1 << 32)) + ChipCount
                 NewDataPkt = PL.DataPkt(
                     1, 0, R, 0, Sid, nid_cus=NidCus, SegID=SegID, PIDs=PIDs, load=load)
@@ -104,7 +104,7 @@ class PktHandler(threading.Thread):
                 capture.release()
                 break
             Lock_WaitingACK.acquire()
-            if (NidCus in WaitingACK.keys()) and (WaitingACK[NidCus] > 3):
+            if (NidCus in WaitingACK.keys()) and (WaitingACK[NidCus] > 2):
                 # 视频接收者退出后，视频提供者退出
                 WaitingACK.pop(NidCus)
                 Lock_WaitingACK.release()
@@ -171,7 +171,7 @@ class PktHandler(threading.Thread):
                     PIDs = NewGetPkt.PIDs.copy()
                     # 按最大长度减去IP报文和DATA报文头长度(QoS暂默认最长为1字节)，预留位占4字节，数据传输结束标志位位于负载内占1字节
                     # SidLoadLength = NewGetPkt.MTU-60-86-(4*len(PIDs)) - 4 - 1
-                    SidLoadLength = 1400  # 仅在报文不经过RM的点对点调试用
+                    SidLoadLength = 1200  # 仅在报文不经过RM的点对点调试用
                     ReturnIP = ''
                     if (len(PIDs) == 0):
                         # 域内请求
@@ -306,7 +306,7 @@ class PktHandler(threading.Thread):
                                 # 重置缓冲区
                                 pops = []
                                 for frame in VideoCache.keys():
-                                    if frame != NewMax or frame != ((NewMax - 1) % (1 << 16)) or frame != ((NewMax - 2) % (1 << 16)):
+                                    if frame != NewMax and frame != ((NewMax - 1) % (1 << 16)) and frame != ((NewMax - 2) % (1 << 16)):
                                         pops.append(frame)
                                 for frame in pops:
                                     VideoCache.pop(frame)
@@ -353,7 +353,7 @@ class PktHandler(threading.Thread):
                             1, 1, 0, 0, NewSid, nid_pro=RecvDataPkt.nid_pro, SegID=RecvDataPkt.SegID, PIDs=RecvDataPkt.PIDs[1:][::-1])
                         Tar = NewDataPkt.packing()
                         ReturnIP = ''
-                        if (len(RecvDataPkt.PIDs) == 1):
+                        if (len(RecvDataPkt.PIDs) <= 1):
                             # 域内请求
                             if (RecvDataPkt.nid_pro in PL.PeerProxys.keys()):
                                 ReturnIP = PL.PeerProxys[RecvDataPkt.nid_pro]

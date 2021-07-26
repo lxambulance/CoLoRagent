@@ -61,12 +61,12 @@ class CoLoRApp(QApplication):
 
         # 测试
         CM.PL.RegFlag=1
-        # time.sleep(2)
-        # CM.PL.AddCacheSidUnit('F:\\ProjectCloud\\test\\testfile1.txt',1,1,1,1)
+        # Video provider
+        # CM.PL.AddCacheSidUnit(1,1,1,1,1)
         # CM.PL.SidAnn()
-        # time.sleep(2)
-        # SID = hex(CM.PL.Nid).replace('0x', '').zfill(32) + CM.PL.Sha1Hash('F:\\ProjectCloud\\test\\testfile1.txt')
-        # CM.PL.Get(SID, 'F:\\ProjectCloud\\test.txt')
+        # Video customer
+        # SID = '1'.zfill(32) + '1'.zfill(40)
+        # CM.PL.Get(SID,1)
 
     def _setStyle(self):
         ''' docstring: 切换qss格式 '''
