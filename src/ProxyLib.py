@@ -200,14 +200,17 @@ class ControlPkt():
     L_sid = -1
     CusNid = -1  # tag = 17专用，非法DATA包的目标NID
     BRNid = -1  # tag = 18专用，告警BR的NID
-    Attacks = {}  # tag = 18专用，key：AS编号，value：攻击次数
-    Proxys = []  # 元组（NID, IP）列表
-    BRs = []  # 元组（PX, IP）列表
+    Attacks = None  # tag = 18专用，key：AS编号，value：攻击次数
+    Proxys = None  # 元组（NID, IP）列表
+    BRs = None  # 元组（PX, IP）列表
     # 负载信息及完整报文的二进制字符串
     data = b''
     Pkt = b''
 
     def __init__(self, flag, ttl=64, Pkt=b''):
+        self.Attacks = {}
+        self.Proxys = []
+        self.BRs = []
         if(flag == 0):
             # 解析控制包
             pointer = 1  # 当前解析字节指针，第0字节已在调用时验证
@@ -345,10 +348,12 @@ class SidUnit():
     L_sid = -0x1  # 所注册SID的前部, 160bits，用16进制数表示，可为-1（此时标志位L=1）
     nid = -0x1  # 注册该服务的节点的NID，128bits，用16进制数表示，可为-1（此时标志位I=1）
     # 策略单元，key为策略编号tag，格式int;value为策略具体内容，格式为16进制字符串(不含0x前缀)
-    Strategy_units = {}
-    Strategy_value_length = {}  # 存储策略内容字段长度信息
+    Strategy_units = None
+    Strategy_value_length = None  # 存储策略内容字段长度信息
 
     def __init__(self, path, AM, N_sid, L_sid, nid, Strategy_units):
+        self.Strategy_units = {}
+        self.Strategy_value_length = {}
         self.path = path
         self.AM = AM
         self.N_sid = N_sid
@@ -433,11 +438,12 @@ class DataPkt():
     QoS = ''  # 格式为16进制字符串(不含0x前缀)
     HMAC = 0  # 暂不使用，待完善 #
     SegID = -1
-    PIDs = []  # RES_PID包含其中
+    PIDs = None  # RES_PID包含其中
     load = b''
     Pkt = b''
 
     def __init__(self, flag, B=0, R=0, C=0, SID='', ttl=64, MinimalPidCp=-1, nid_cus=-1, nid_pro=-1, QoS='', SegID=-1, PIDs=[], load=b'', Pkt=b''):
+        self.PIDs = []
         if(flag == 0):
             # 解析Data包
             pointer = 1  # 当前解析字节指针，第0字节已在调用时验证
@@ -643,10 +649,11 @@ class GetPkt():
     PublicKey = ''  # PublicKey格式为16进制字符串(不含0x前缀)
     QoS = ''  # 同上
     SegID = -1
-    PIDs = []
+    PIDs = None
     Pkt = b''
 
     def __init__(self, flag, SID='', ttl=64, PublicKey='', QoS='', SegID=-1, A=1, Pkt=b''):
+        self.PIDs = []
         if (flag == 0):
             # 解析Get包
             pointer = 1  # 当前解析字节指针，第0字节已在调用时验证
