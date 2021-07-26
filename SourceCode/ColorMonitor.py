@@ -488,21 +488,35 @@ class ControlPktSender(threading.Thread):
                 break
 
 class video_customer(threading.Thread):
+    flag = 0 # 等待状态标记
+    
     def __init__(self):
         threading.Thread.__init__(self)
+        self.flag = 0
     
     def run(self):
         while 1:
-            frame = FrameCache.get()
-            sid = FrameSid.get()
-            cv2.imshow("img", frame)  # 显示图像
-            k = cv2.waitKey(10) & 0xff
-            if k == 27:
-                PL.Lock_gets.acquire()
-                if (sid in PL.gets.keys()):
-                    PL.gets.pop(sid)
-                    cv2.destroyAllWindows()
-                PL.Lock_gets.release()
+            if(self.flag == 0):
+                frame = FrameCache.get()
+                sid = FrameSid.get()
+                self.flag = 1
+                cv2.imshow("img", frame)  # 显示图像
+                k = cv2.waitKey(10) & 0xff
+            else:
+                try:
+                    frame = FrameCache.get(timeout=2)
+                    sid = FrameSid.get()
+                    cv2.imshow("img", frame)  # 显示图像
+                    k = cv2.waitKey(10) & 0xff
+                    if k == 27:
+                        PL.Lock_gets.acquire()
+                        if (sid in PL.gets.keys()):
+                            PL.gets.pop(sid)
+                            cv2.destroyAllWindows()
+                        PL.Lock_gets.release()
+                except:
+                    self.flag = 0
+                    break
 
 class Monitor(threading.Thread):
     ''' docstring: 自行实现的监听线程类，继承自线程类 '''
