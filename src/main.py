@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QApplication, QStyleFactory
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtCore import Qt
 
-# import time
+import time
 
 try:
     # Include in try/except block if you're also targeting Mac/Linux
@@ -60,12 +60,13 @@ class CoLoRApp(QApplication):
         thread_monitor.start()
 
         # 测试
-        CM.PL.RegFlag=1
+        # CM.PL.RegFlag=1
+        time.sleep(2)
         # Video provider
-        # CM.PL.AddCacheSidUnit(1,1,1,1,1)
-        # CM.PL.SidAnn()
+        CM.PL.AddCacheSidUnit(1,1,1,1,1)
+        CM.PL.SidAnn()
         # Video customer
-        # SID = '1'.zfill(32) + '1'.zfill(40)
+        # SID = '1'*30+'00' + '1'.zfill(40)
         # CM.PL.Get(SID,1)
 
     def _setStyle(self):

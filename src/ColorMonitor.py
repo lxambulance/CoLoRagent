@@ -55,7 +55,7 @@ class PktHandler(threading.Thread):
         capture = cv2.VideoCapture(0)
         ret, frame = capture.read()
         # 压缩参数，15代表图像质量，越高代表图像质量越好为 0-100，默认95
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 10]
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 20]
         while ret:
             # 避免发送过快
             # time.sleep(0.01)
@@ -104,7 +104,7 @@ class PktHandler(threading.Thread):
                 capture.release()
                 break
             Lock_WaitingACK.acquire()
-            if (NidCus in WaitingACK.keys()) and (WaitingACK[NidCus] > 2):
+            if (NidCus in WaitingACK.keys()) and (WaitingACK[NidCus] > 5):
                 # 视频接收者退出后，视频提供者退出
                 WaitingACK.pop(NidCus)
                 Lock_WaitingACK.release()
@@ -542,5 +542,5 @@ class Monitor(threading.Thread):
         AnnSender.start()
         VideoCus = video_customer()
         VideoCus.start()
-        # sniff(filter="ip", iface = "Realtek PCIe GBE Family Controller", prn=self.parser, count=0)
-        sniff(filter="ip", prn=self.parser, count=0)
+        sniff(filter="ip", iface = "Realtek USB GbE Family Controller", prn=self.parser, count=0)
+        # sniff(filter="ip", prn=self.parser, count=0)

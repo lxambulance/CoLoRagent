@@ -88,7 +88,7 @@ def DeleteCacheSidUnit(path):
     Lock_CacheSidUnits.release()
 
 
-def SidAnn(ttl=64, PublicKey='', P=1):
+def SidAnn(ttl=64, PublicKey='', P=0):
     ''' docstring: 整合已生成的SID策略单元，发送ANN报文 '''
     # PublicKey格式为16进制字符串(不含0x前缀)
     if(RegFlag == 1):
@@ -799,13 +799,15 @@ def CalculateCS(tar):
     pointer = 0
     sum = 0
     while (length - pointer > 1):
+        # print(tar[pointer], tar[pointer+1])
         # 两字节相加
         temp = tar[pointer] << 8
         temp += tar[pointer+1]
         pointer += 2
         sum += temp
     if (length - pointer > 0):
-        sum += tar[pointer]
+        sum += tar[pointer]<<8
+        print()
     sum = (sum >> 16) + (sum & 0xffff)
     sum = (sum >> 16) + (sum & 0xffff)  # 防止上一步相加后结果大于16位
     return (sum ^ 0xffff)  # 按位取反后返回
