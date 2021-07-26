@@ -8,7 +8,7 @@ import sys
 import json
 BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))).replace('\\', '/')
-DATA_PATH = BASE_DIR + '/data.db'
+DATA_PATH = BASE_DIR + '/data.json'
 HOME_DIR = BASE_DIR + '/.tmp'
 sys.path.append(BASE_DIR)
 
@@ -62,7 +62,7 @@ class logInWindow(QDialog, Ui_Dialog):
                 json.dump(__raw_data, f)
 
     def autoFillForm(self, path):
-        ''' docstring: 根据*.db文件内容填写表单剩余项 '''
+        ''' docstring: 根据*.json文件内容填写表单剩余项 '''
         self.configpath = path
         self.showpath_config.setText(self.configpath)
         with open(self.configpath, 'r') as f:
@@ -78,7 +78,7 @@ class logInWindow(QDialog, Ui_Dialog):
 
     def getConfigPath(self):
         configpath = QFileDialog.getOpenFileName(self, '请选择配置文件', BASE_DIR)
-        if configpath[0] and configpath[0][-3:] == '.db':
+        if configpath[0] and configpath[0][-3:] == '.json':
             self.autoFillForm(configpath[0])
 
     def getFiletmpPath(self):

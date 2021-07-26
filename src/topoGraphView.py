@@ -122,7 +122,7 @@ class topoGraphView(QGraphicsView):
                     self.signal_to_mainwindow.emit(2, message)
                     if item.myType == 0 and self.parent().chooseASenable:
                         item.addClickTimes()
-                elif isinstance(item, Edge):
+                elif isinstance(item, Edge) and item.myType < 2:
                     self.parent().chooseItem = item
                     n1 = f"{item.node1.name}"
                     n2 = f"{item.node2.name}"

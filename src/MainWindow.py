@@ -33,7 +33,7 @@ __BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
-DATA_PATH = __BASE_DIR + '/data.db'
+DATA_PATH = __BASE_DIR + '/data.json'
 starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
 LOG_PATH = HOME_DIR + f'/{starttime}.log'
 
@@ -274,12 +274,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
         if (type&0xff) == 0x72:
             item.addChild(QTreeWidgetItem([f"来源nid={nid:032x}", str(size), "PIDs="+path_str]))
-            # self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
+            self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False, size=size)
             self.totalsize += size # 统计总收包大小，speedline需要使用
         elif (type&0xff) == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"包片段{num+1}", str(size), "PIDs="+path_str]))
-            # self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
+            self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False, pkttype=1, size=size)
             totsize = int(item.text(1))
             item.setText(1, str(totsize+size))
             self.totalsize += size # 统计总收包大小，speedline需要使用
@@ -289,7 +289,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def showMatchedPIDs(self, item, column):
         ''' docstring: 选中物体，显示匹配 '''
-        #print(item.text(column))
+        # print(item.text(column))
         pitem = item.parent()
         if not pitem or 'Control' in pitem.text(0):
             self.setStatus('选择正确的包可显示匹配')
@@ -303,13 +303,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 显示后端发送的信息，添加log记录 '''
         if messageType == 0:
             # 收到hint
-            self.logWidget.addLog("<消息> 后端提示", f"消息码={messageType}\n\n消息内容\n\n{message}\n\n", True)
+            self.logWidget.addLog("<消息> 后端提示", f"消息码={messageType}\n消息内容\n{message}\n", True)
         elif messageType == 1:
             # 收到warning
-            self.logWidget.addLog("<警告> 后端警告", f"消息码={messageType}\n\n消息内容\n\n{message}\n\n", True)
+            self.logWidget.addLog("<警告> 后端警告", f"消息码={messageType}\n消息内容\n{message}\n", True)
         elif messageType == 2:
             # 收到攻击警告
-            self.logWidget.addLog("<警告> 收到攻击警告", f"消息码={messageType}\n\n消息内容\n\n{message}\n\n", True)
+            self.logWidget.addLog("<警告> 收到攻击警告", f"消息码={messageType}\n消息内容\n{message}\n", True)
             if not self.messagebox:
                 self.messagebox = QMessageBox(self)
                 self.messagebox.setWindowTitle('<Attacking>')
@@ -711,13 +711,13 @@ if __name__ == '__main__':
     window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
     window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
     window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
-    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x55661234], 1000, 0)
     window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
     window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
     window.getPathFromPkt(0x74, '', [], 20, 0)
     # 测试告警信息显示功能
-    window.handleMessageFromPkt(2, 'test1\n\ncontent1\n\n')
-    window.handleMessageFromPkt(2, 'test2\n\ncontent2\n\n')
+    window.handleMessageFromPkt(2, 'test1\ncontent1\n')
+    window.handleMessageFromPkt(2, 'test2\ncontent2\n')
     # log添加测试
     for i in range(3):
         window.logWidget.addLog("Hello", f"world{i}", randint(1,5)==1)

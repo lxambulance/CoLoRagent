@@ -2,7 +2,7 @@
 ''' docstring: scene/view模型框架 '''
 
 from math import floor
-from GraphicsItem import Node, Edge
+from GraphicsItem import Node, Edge, Text
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from PyQt5.QtGui import QColor, QStandardItemModel
 from PyQt5.QtCore import (QEasingCurve, QPointF, QPropertyAnimation, QSequentialAnimationGroup, qsrand,
@@ -25,6 +25,7 @@ class GraphicWidget(QWidget):
         self.addedgeenable = False
         self.findpathenable = False
         self.labelenable = True
+        self.throughputenable = False
         self.chooseASenable = False
         self.chooseItem = None # 记录当前鼠标点击物体
         self.poslist = None
@@ -48,7 +49,7 @@ class GraphicWidget(QWidget):
         self.animation.setEndValue(0)
         self.animation.setEasingCurve(QEasingCurve.InOutCubic)
         self.animation.finished.connect(self.setnowpos)
-    
+
     def setnowpos(self):
         ''' docstring: 循环次数减一，为0时结束 '''
         self.loop_num -= 1
@@ -123,6 +124,9 @@ class GraphicWidget(QWidget):
                 self.node_me = node
             pos = self.view.mapToScene(event.pos())
             item = self.view.getItemAtClick(event)
+            if isinstance(item, Text):
+                if item.parent:
+                    item = item.parent
             if item and not item.myType:
                 # print(item.myType, item.name)
                 self.scene.belongAS[node.id] = item
@@ -229,7 +233,7 @@ class GraphicWidget(QWidget):
         tmpASlist.sort()
         return ",".join(list(map(str, tmpASlist))) # 最后返回所选结果字符串
 
-    def setMatchedPIDs(self, PIDs, flag=True):
+    def setMatchedPIDs(self, PIDs, flag=True, pkttype=0, size=0):
         ''' docstring: 显示一次PID匹配 '''
         if self.poslist or not self.scene.node_me:
             # 匹配过快或node_me没有设置
@@ -257,8 +261,12 @@ class GraphicWidget(QWidget):
             j = (num-1-i)*2
             # print(self.scene.belongAS[tmpnode[j].id].id,
             #     self.scene.belongAS[tmpnode[j+1].id].id)
-            if self.scene.belongAS[tmpnode[j+1].id].id != lastnode: # 通过与当前列表中最后一个点比较，判断这条边上点的顺序
+            if self.scene.belongAS[tmpnode[j+1].id].id != lastnode:
+                # 通过与当前列表中最后一个点比较，判断这条边上点的顺序
                 tmpnode[j], tmpnode[j+1] = tmpnode[j+1], tmpnode[j]
+            if self.scene.belongAS[tmpnode[j+1].id].id != lastnode:
+                # 路径顺序与拓扑图不符
+                return False
             lastnode = self.scene.belongAS[tmpnode[j].id].id
         poslist = [] # 获取节点位置序列
         for i, node in enumerate(tmpnode):
@@ -266,6 +274,11 @@ class GraphicWidget(QWidget):
                 poslist.append(node.scenePos())
         poslist.append(self.scene.node_me.scenePos())
         self.showAnimation(poslist)
+        ASnode = self.scene.belongAS[tmpnode[0].id]
+        if pkttype:
+            ASnode.updateLabel(datasize=size)
+        else:
+            ASnode.updateLabel(getsize=size)
         return True
 
     def showAnimation(self, poslist):
@@ -332,3 +345,17 @@ class GraphicWidget(QWidget):
         self.signal_to_mainwindow = signal
         self.view.signal_to_mainwindow = signal
         self.scene.signal_to_mainwindow = signal
+
+    def resizeEvent(self, a0):
+        self.signal_to_mainwindow.emit(2, "信息显示框")
+        return super().resizeEvent(a0)
+
+    def showThroughput(self, flag):
+        self.throughputenable = self.throughputenable ^ 1
+        for item in self.scene.items():
+            if isinstance(item, Node) and not item.myType and \
+                item.id != self.scene.belongAS[self.scene.node_me.id].id:
+                if self.throughputenable:
+                    item.throughputlabel.show()
+                else:
+                    item.throughputlabel.hide()

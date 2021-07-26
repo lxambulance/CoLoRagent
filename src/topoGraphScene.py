@@ -25,8 +25,8 @@ class topoGraphScene(QGraphicsScene):
         # 添加特殊节点用于收包动画显示
         # TODO: 建立新的点类
         self.node_file = QGraphicsEllipseItem(-12,-12,24,24)
-        self.node_file_img = QGraphicsPixmapItem(QPixmap(':/file/document').scaled(50, 50), self.node_file)
-        self.node_file_img.setOffset(-25, -62)
+        self.node_file_img = QGraphicsPixmapItem(QPixmap(':/file/document').scaled(80, 72), self.node_file)
+        self.node_file_img.setOffset(-40, -90)
         self.node_file.setPen(QPen(QColor('#ffff80'),2))
         self.node_file.setBrush(Qt.red)
         self.node_file.setZValue(20)
@@ -200,10 +200,15 @@ class topoGraphScene(QGraphicsScene):
         for item in self.topo['edges']:
             x = item[0]
             y = item[1]
-            if len(item)==5:
-                font = QFont()
-                font.fromString(item[3])
-                edgeitem = Edge(tmpnodes[x], tmpnodes[y], 0, item[2], font, item[4])
+            if len(item) > 2:
+                font = None
+                if len(item) > 3:
+                    font = QFont()
+                    font.fromString(item[3])
+                color = None
+                if len(item) > 4:
+                    color = item[4]
+                edgeitem = Edge(tmpnodes[x], tmpnodes[y], 0, item[2], font, color)
             else:
                 edgeitem = Edge(tmpnodes[x], tmpnodes[y], linetype = 1)
             self.addItem(edgeitem)
@@ -214,6 +219,12 @@ class topoGraphScene(QGraphicsScene):
             for item in self.items():
                 if isinstance(item, Node) or isinstance(item, Edge):
                     item.label.show()
+        if self.parent().throughputenable:
+            for item in self.items():
+                if isinstance(item, Node) and not item.myType:
+                    if item.id == self.belongAS[self.node_me.id].id:
+                        continue
+                    item.throughputlabel.show()
 
     def saveTopo(self, path):
         ''' docstring: 存储拓扑图 '''

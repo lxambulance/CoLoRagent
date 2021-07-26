@@ -23,7 +23,7 @@ class Node(QGraphicsPixmapItem):
     ]
     NodeZValue = [1, 10, 10, 10, 10, 10]
     NodeName = ['cloud', 'RM', 'BR', 'router', 'switch', 'agent']
-    NodeSize = [256, 64, 64, 64, 64, 64]
+    NodeSize = [256, 96, 96, 96, 96, 96]
     NodeNum = 0
 
     def __init__(self, nodetype=0, nodename=None, nodesize=0, nodenid=None, font=None, color=None):
@@ -39,10 +39,12 @@ class Node(QGraphicsPixmapItem):
         self.id = Node.NodeNum
         Node.NodeNum += 1
         # AS收发包数据统计量
-        self.getnum = 0
-        self.getsize = 0
-        self.datanum = 0
-        self.datasize = 0
+        if not self.myType:
+            self.getnum = 0
+            self.getsize = 0
+            self.datanum = 0
+            self.datasize = 0
+            self.setThroughputLabel()
         
         # 设置图像大小和偏移量
         self.setPixmap(QPixmap(Node.NodeImageStr[self.myType]).scaled(self.size, self.size))
@@ -94,11 +96,9 @@ class Node(QGraphicsPixmapItem):
         ''' docstring: 更新标签 '''
         if name:
             self.name = name
+            self.label.changeText(self.name)
         if nid:
             self.nid = nid
-        tmps = f"{self.name}"
-        if not self.myType:
-            tmps = '\t' + tmps + '\n'
         if getsize:
             self.getnum += 1
             self.getsize += getsize
@@ -106,11 +106,21 @@ class Node(QGraphicsPixmapItem):
             self.datanum += 1
             self.datasize += datasize
         if self.getsize or self.datasize:
-            tmps = tmps + \
-                f"Send: get<{self.getnum}, {self.getsize}B>" + '\n' + \
-                f"data<{self.datanum}, {self.datasize}B>"
-        self.label.setText(tmps)
+            tmps = f"<div><p>发送数据包统计<br/>(数量，大小[字节]):</p>" + \
+                   f"<p>get包 ({self.getnum},{self.getsize})</p>" + \
+                   f"<p>data包 ({self.datanum},{self.datasize})</p></div>"
+            self.throughputlabel.changeText(tmps)
         self.update()
+
+    def setThroughputLabel(self):
+        tmps = f"<div><p>发送数据包统计<br/>(数量，大小[字节]):</p>" + \
+               f"<p>get包 ({self.getnum},{self.getsize})</p>" + \
+               f"<p>data包 ({self.datanum},{self.datasize})</p></div>"
+        self.throughputlabel = Text(tmps, self, color=QColor("#0f0f0f"))
+        self.throughputlabel.hide()
+        self.setZValue(Node.NodeZValue[self.myType]+1)
+        self.throughputlabel.setTextWidth(self.size)
+        self.throughputlabel.setPos(-self.size/2, self.size/2)
 
     def modifyCount(self, value):
         ''' docstring: 用于云动态改变大小 '''
@@ -164,7 +174,7 @@ class Node(QGraphicsPixmapItem):
                 p = painter
                 # 决定星标记颜色 
                 p.setPen(QPen(QColor("#ff8000"), 4))
-                p.setBrush(QColor(Qt.yellow))
+                p.setBrush(QColor("#ff8000"))
                 p.drawPolygon(self.polygon)
         option.state = QStyle.State_None
         super().paint(painter, option, widget)

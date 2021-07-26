@@ -43,6 +43,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonModifyTopo.clicked.connect(self.showModifyButton)
         self.pushButtonAdvancedReg.clicked.connect(self.showAdvancedReg)
         self.pushButtonShowBaseinfo.clicked.connect(self.showInfoText)
+        self.pushButtonShowASThroughput.clicked.connect(self.graphics_global.showThroughput)
         self.actionModifyTopo.triggered.connect(self.pushButtonModifyTopo.click) # 将动作与对应按钮绑定
         self.actionAdvancedReg.triggered.connect(self.pushButtonAdvancedReg.click)
         self.actionShowBaseinfo.triggered.connect(self.pushButtonShowBaseinfo.click)
@@ -67,6 +68,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 显示基础信息框 '''
         if flag:
             self.graphics_global.scene.baseinfo.show()
+            self.graphics_global.view.resetNodeInfoPos()
         else:
             self.graphics_global.scene.baseinfo.hide()
 
@@ -210,12 +212,13 @@ if __name__ == "__main__":
     fd = FileData()
     window = GraphicWindow(fd)
     window.show()
-    DATAPATH = "D:/CodeHub/CoLoRagent/data.db"
+    DATAPATH = "D:/CodeHub/CoLoRagent/data.json"
     window.loadTopo(DATAPATH)
     
     window.actionReopenToolbar.trigger()
     window.pushButtonAdvancedReg.click()
     window.pushButtonShowBaseinfo.click()
+    window.pushButtonShowASThroughput.click()
     from PyQt5.QtCore import QCoreApplication
     from PyQt5.QtGui import QGuiApplication, QKeyEvent, QFont, QColor
     QCoreApplication.postEvent(window,
