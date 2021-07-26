@@ -7,7 +7,7 @@ import ColorMonitor as CM
 import MainWindow as mw
 from logInWindow import logInWindow
 from PyQt5.QtWidgets import QApplication, QStyleFactory
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtCore import Qt
 
 # import time
@@ -73,21 +73,26 @@ class CoLoRApp(QApplication):
         # 取消qss格式
         self.setStyleSheet('')
         self.window.graphicwindow.setStyleSheet('')
-        self.window.graphicwindow.graphics_global.setBackground('#eee5ff')
-        self.window.speedGraph.setBackground(QColor(Qt.white))
         # 获取信号发起者名称，前6位为action，后面是相应主题名
         tmp = self.sender().objectName()[6:]
-        # print(tmp)
         if tmp in QStyleFactory.keys():
             self.setStyle(tmp)
         elif tmp == 'Qdarkstyle':
             self.setStyleSheet(qds.load_stylesheet_pyqt5())
             self.window.graphicwindow.setStyleSheet(qds.load_stylesheet_pyqt5())
-            self.window.graphicwindow.graphics_global.setBackground('#4d4d4d')
-            self.window.speedGraph.setBackground(QColor(Qt.black))
         else:
             self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
+        color = self.window.palette().color(QPalette.Background).name()
+        color = '#ffffff' if color == '#f0f0f0' else color
+        self.window.graphicwindow.graphics_global.setBackground(
+            "#4d4d4d" if tmp == 'Qdarkstyle' else color) #455364
+        self.window.speedGraph.setBackground(color)
+
 
 if __name__ == '__main__':
+    import os
+    os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+    os.environ['QT_API'] = 'pyqt5'
+
     app = CoLoRApp(sys.argv)
     sys.exit(app.exec_())

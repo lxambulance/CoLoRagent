@@ -1,7 +1,6 @@
 # coding=utf-8
 ''' docstring: CoLoR Pan主页 '''
 
-# 添加文件路径 ../
 import time
 import json
 import ProxyLib as PL
@@ -20,7 +19,7 @@ from cmdWindow import cmdWindow
 from mainPage import Ui_MainWindow
 import pyqtgraph as pg
 
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QPalette
 from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, 
     QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog,
@@ -28,16 +27,15 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction,
 
 import os
 import sys
-import math
 import time
 
 __BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
-DATA_PATH = __BASE_DIR + '/data.db'
+DATA_PATH = __BASE_DIR + '/data.json'
 starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
-LOG_PATH = __BASE_DIR + f'/{starttime}.log'
+LOG_PATH = HOME_DIR + f'/{starttime}.log'
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -83,7 +81,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.speed_y = [0]*20
         self.totalsize = 0
         speedpen = pg.mkPen(color=(255,0,0))
-        self.speedGraph.setBackground('w')
+        color = self.palette().color(QPalette.Background).name()
+        color = '#ffffff' if color == '#f0f0f0' else color
+        self.speedGraph.setBackground(color)
         self.speed_line = self.speedGraph.plot(self.speed_x, self.speed_y, pen=speedpen)
 
         # 添加右键菜单
@@ -115,10 +115,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.toolBar.addAction(self.button_showtopo)
         self.button_showtopo.setCheckable(True)
 
-        # 设置网络拓扑窗口
-        self.graphicwindow = GraphicWindow()
-        self.graphicwindow.graphics_global.loadTopo(DATA_PATH)
-        self.graphicwindow.hide()
         # 设置其他窗口为空
         self.videowindow = None
         self.cmdwindow = None
@@ -138,11 +134,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressbardelegate = progressBarDelegate(self)
         self.progressbarpool = {}
 
-        # 设置tab control页
+        # 设置网络拓扑窗口
+        self.graphicwindow = GraphicWindow(self.fd)
+        self.graphicwindow.loadTopo(DATA_PATH)
+        self.graphicwindow.hide()
+
+        # 设置日志记录
         for i in range(self.fd.rowCount()):
             filename = self.fd.getData(i)
+            self.graphicwindow.chooseFile.addItem(filename)
             # 添加log记录
-            # self.logText.append(f'<head style="-qt-paragraph-type:empty"> file {filename} </head>')
+            self.logWidget.addLog("<导入> 文件或服务", filename, True)
 
         # 设置模型对应的view
         self.listView.setModel(self.listmodel)
@@ -166,8 +168,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.listView.signal_add.connect(self.addItems)
         self.tableView.doubleClicked.connect(self.viewInfo)
         self.listView.doubleClicked.connect(self.viewInfo)
-        # 拓扑图信号槽连接
+        # 拓扑图信号连接
         self.graphicwindow.GS.hide_window_signal.connect(self.showTopo)
+        self.graphicwindow.GS.advencedRegrow_signal.connect(self.advancedRegItem)
         # 动作信号
         self.action_add.triggered.connect(self.addItem)
         self.action_del.triggered.connect(self.delItem)
@@ -182,6 +185,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_reset.triggered.connect(self.resetView)
         self.action_video.triggered.connect(self.openVideoWindow)
         self.action_cmdline.triggered.connect(self.openCmdWindow)
+        self.action_advancedreg.triggered.connect(self.showAdvancedReg)
         # 按钮信号
         self.button_swi.triggered.connect(self.switchView)
         self.button_openfolder.triggered.connect(self.openFolder)
@@ -218,7 +222,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 显示(status==True)/隐藏(False) 拓扑图函数 '''
         if status:
             geo = self.graphicwindow.geometry()
-            # print(geo)
             if geo.left() or geo.top():
                 self.graphicwindow.setGeometry(geo)
             self.graphicwindow.show()
@@ -242,35 +245,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 测试拖动条效果
         # bar = self.logWidget.scrollarea.verticalScrollBar()
         # print(bar.value(), bar.maximum())
-
-    # def chooseASs(self, flag):
-    # '''docstring: 高级通告选择 '''
-    #     if flag:
-    #         if row == -1:
-    #             self.setStatus('请选择高级通告条目')
-    #             self.whitelist_button.setChecked(False)
-    #             return
-    #         self.whitelist_button.setText('选择完毕')
-    #         self.graphicwindow.graphics_global.startChooseAS(self.whitelist.text())
-    #     else:
-    #         self.whitelist_button.setText('图中选择')
-    #         ret = self.graphicwindow.graphics_global.endChooseAS()
-    #         self.whitelist.setText(ret)
-
-    # def showItem(self, name, nid, AS):
-    # '''docstring: 显示图形元素 '''
-    #     self.itemname.setText(name)
-    #     self.itemnid.setText(nid)
-    #     self.itemas.setText(AS)
-
-    # def setTopoLineType(self, index):
-    #     ''' docstring: 设置拓扑图添加连线的类型 '''
-    #     self.graphicwindow.graphics_global.addedgetype = index
-
-    # def topoAddLine(self):
-    #     ''' docstring: 拓扑图添加连线 '''
-    #     self.graphicwindow.graphics_global.addedgeenable = True
-    #     # self.graphicwindow.graphics_global.addedgetype = self.lineType.currentIndex()
 
     def getPathFromPkt(self, type, SID, paths, size, nid):
         ''' docstring: 收包信息分类显示 '''
@@ -300,12 +274,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path_str = '-'.join(map(lambda x:f"<{x:08x}>",paths))
         if (type&0xff) == 0x72:
             item.addChild(QTreeWidgetItem([f"来源nid={nid:032x}", str(size), "PIDs="+path_str]))
-            # self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
+            self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False, size=size)
             self.totalsize += size # 统计总收包大小，speedline需要使用
         elif (type&0xff) == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"包片段{num+1}", str(size), "PIDs="+path_str]))
-            # self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False)
+            self.graphicwindow.graphics_global.setMatchedPIDs(path_str, flag=False, pkttype=1, size=size)
             totsize = int(item.text(1))
             item.setText(1, str(totsize+size))
             self.totalsize += size # 统计总收包大小，speedline需要使用
@@ -315,7 +289,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def showMatchedPIDs(self, item, column):
         ''' docstring: 选中物体，显示匹配 '''
-        #print(item.text(column))
+        # print(item.text(column))
         pitem = item.parent()
         if not pitem or 'Control' in pitem.text(0):
             self.setStatus('选择正确的包可显示匹配')
@@ -329,13 +303,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 显示后端发送的信息，添加log记录 '''
         if messageType == 0:
             # 收到hint
-            self.logWidget.addLog("<消息> 后端提示", f"消息码={messageType}\n\n消息内容\n\n{message}\n\n", True)
+            self.logWidget.addLog("<消息> 后端提示", f"消息码={messageType}\n消息内容\n{message}\n", True)
         elif messageType == 1:
             # 收到warning
-            self.logWidget.addLog("<警告> 后端警告", f"消息码={messageType}\n\n消息内容\n\n{message}\n\n", True)
+            self.logWidget.addLog("<警告> 后端警告", f"消息码={messageType}\n消息内容\n{message}\n", True)
         elif messageType == 2:
             # 收到攻击警告
-            self.logWidget.addLog("<警告> 收到攻击警告", f"消息码={messageType}\n\n消息内容\n\n{message}\n\n", True)
+            self.logWidget.addLog("<警告> 收到攻击警告", f"消息码={messageType}\n消息内容\n{message}\n", True)
             if not self.messagebox:
                 self.messagebox = QMessageBox(self)
                 self.messagebox.setWindowTitle('<Attacking>')
@@ -366,7 +340,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def setStatus(self, s):
         ''' docstring: 状态栏信息显示 '''
-        self.statusBar().showMessage(s)
+        self.statusbar.showMessage(s)
 
     def addItem(self):
         ''' docstring: 添加条目（仅支持单体添加） '''
@@ -378,8 +352,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if (ret) and (row != None):
             self.modelViewUpdate()
             filename = self.fd.getData(row, 0)
+            self.graphicwindow.chooseFile.addItem(filename)
             # 添加log记录
-            # self.logText.append(f'<add> file {filename}\n')
+            self.logWidget.addLog("<添加> 文件或服务", filename, True)
             # 计算hash值
             if not self.fd.getData(row, 2):
                 filepath = self.fd.getData(row, 1)
@@ -403,8 +378,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     item = item_str.replace('\\', '/')
                     pos = item.rfind('/')
                     self.fd.addItem(filename=item[pos+1:], filepath=item)
+                    self.graphicwindow.chooseFile.addItem(item[pos+1:])
                     # 添加log记录
-                    # self.logText.append(f'<add> file {item[pos+1:]}\n')
+                    self.logWidget.addLog("<添加> 文件或服务", item[pos+1:], True)
                 elif os.path.isdir(item_str):
                     # TODO: 支持文件夹
                     pass
@@ -435,7 +411,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             delitemworker = worker(1, self.delItem_multi, nowSelectItems)
             delitemworker.signals.finished.connect(lambda: self.modelViewUpdate())
             delitemworker.signals.finished.connect(lambda: self.setStatus('条目已删除'))
-            # delitemworker.signals.message.connect(self.logText.append)
+            delitemworker.signals.message.connect(self.logWidget.addLog)
             self.threadpool.start(delitemworker)
 
     def delItem_multi(self, items, message_callback, **kwargs):
@@ -445,8 +421,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if not self.fd.getData(item, 0):
                 continue
             # 添加log记录
-            message_callback.emit(f'<delete> file {self.fd.getData(item, 0)}\n')
+            message_callback.emit('<删除> 文件或服务', f'file {self.fd.getData(item, 0)}')
             self.fd.removeItem(item)
+            self.graphicwindow.chooseFile.removeItem(item)
             self.selectItems.remove(item)
 
     def dowItem(self):
@@ -461,7 +438,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.updateProgress(item, 4))
             dowitemworker.signals.finished.connect(
                 lambda: self.setStatus('条目已下载'))
-            # dowitemworker.signals.message.connect(self.logText.append)
+            dowitemworker.signals.message.connect(self.logWidget.addLog)
             self.threadpool.start(dowitemworker)
 
     def dowItem_multi(self, items, progress_callback, message_callback):
@@ -482,7 +459,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             Get(SID, filepath)
             progress_callback.emit(round(now*100/total))
             # 添加log记录
-            message_callback.emit(f'<download> file {self.fd.getData(item, 0)}\n')
+            message_callback.emit('<下载> 文件或服务', f'file {self.fd.getData(item, 0)}\n')
         # TODO：涉及进度条完成状态需要通过color monitor精确判断
 
     def regItem(self):
@@ -497,7 +474,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.updateProgress(item, 3))
             regitemworker.signals.finished.connect(
                 lambda: self.setStatus('条目已通告'))
-            # regitemworker.signals.message.connect(self.logText.append)
+            regitemworker.signals.message.connect(self.logWidget.addLog)
             self.threadpool.start(regitemworker)
 
     def showAdvancedReg(self):
@@ -508,42 +485,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.setStatus('选中要素过多')
         else:
             nowSelectItem = self.selectItems[0]
-            # print("choose", nowSelectItem)
-            self.tabWidget.setCurrentIndex(2)
-            self.showAdvancedRegArgs(nowSelectItem)
-    
-    def showAdvancedRegArgs(self, row):
-        ''' docstring: 高级通告条目切换 '''
-        level = self.fd.getData(row, 5)
-        # if level:
-        #     self.setlevel.setText(level)
-        # else:
-        #     self.setlevel.setText('')
-        whitelist = self.fd.getData(row, 6)
-        if whitelist:
-            self.whitelist.setText(whitelist)
-        else:
-            self.whitelist.setText('')
-        # print(row, level, whitelist)
+            if not self.button_showtopo.isChecked():
+                self.button_showtopo.trigger()
+            self.graphicwindow.chooseFile.setCurrentIndex(nowSelectItem)
+            self.graphicwindow.showAdvancedRegrow(nowSelectItem)
+            if not self.graphicwindow.Toolbar.isVisible():
+                self.graphicwindow.actionReopenToolbar.trigger()
+            if not self.graphicwindow.pushButtonAdvancedReg.isChecked():
+                self.graphicwindow.pushButtonAdvancedReg.click()
 
-    def changeAdvancedReg(self, level=None, whitelist=None):
-        ''' docstring: 修改高级通告策略 '''
-        nowSelectItem = -1
-        if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
-            return
-        newItem = self.fd.getItem(nowSelectItem)
-        while len(newItem)<7:
-            newItem.append(None)
-        if level != None:
-            newItem[5] = level
-            self.fd.setItem(nowSelectItem, newItem)
-        if whitelist != None:
-            newItem[6] = whitelist
-            self.fd.setItem(nowSelectItem, newItem)
-
-    def advancedRegItem(self):
+    def advancedRegItem(self, nowSelectItem):
         ''' docstring: 高级通告（拉起额外线程处理，单体） '''
-        nowSelectItem = -1
         if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
             return
         filepath = self.fd.getData(nowSelectItem, 1)
@@ -575,7 +527,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             AddCacheSidUnit(filepath, 1, 1, 1, 1)
             progress_callback.emit(round(now*20/total))
             # 添加log记录
-            message_callback.emit(f'<register> file {self.fd.getData(item, 0)}\n')
+            message_callback.emit('<注册> 文件或服务', f'file {self.fd.getData(item, 0)}\n')
         SidAnn()
         progress_callback.emit(100)
 
@@ -591,7 +543,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.updateProgress(item, 3))
             undoregworker.signals.finished.connect(
                 lambda: self.setStatus('条目已取消通告'))
-            # undoregworker.signals.message.connect(self.logText.append)
+            undoregworker.signals.message.connect(self.logWidget.addLog)
             self.threadpool.start(undoregworker)
 
     def undoRegItem_multi(self, items, progress_callback, message_callback):
@@ -609,7 +561,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             AddCacheSidUnit(filepath, 3, 1, 1, 1)
             progress_callback.emit(round(now*20/total + 80))
             # 添加log记录
-            message_callback.emit(f'<undo register> file {self.fd.getData(item, 0)}\n')
+            message_callback.emit('<取消注册> 文件或服务', f'file {self.fd.getData(item, 0)}\n')
         SidAnn()
         progress_callback.emit(0)
 
@@ -688,14 +640,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if reply == QMessageBox.Yes:
             # 做出保存操作
             self.fd.save()
-            self.graphicwindow.graphics_global.saveTopo(DATA_PATH)
-            self.graphicwindow = None
+            self.graphicwindow.saveTopo(DATA_PATH)
+            self.graphicwindow.close()
             self.cmdwindow = None
             self.videowindow = None
             self.saveLog()
             event.accept()
         elif reply == QMessageBox.No:
-            self.graphicwindow = None
+            self.graphicwindow.close()
             self.cmdwindow = None
             self.videowindow = None
             event.accept()
@@ -706,7 +658,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' docstring: 保存日志文件 '''
         with open(LOG_PATH, 'w', encoding='utf-8') as f:
             # s = self.logText.toPlainText()
-            f.write(s)
+            # f.write(s)
+            pass
 
     def viewInfo(self, index):
         ''' docstring: 双击条目显示文件内容 '''
@@ -747,8 +700,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     from random import randint
+    import qdarkstyle as qds
 
     app = QApplication(sys.argv)
+    # app.setStyleSheet(qds.load_stylesheet_pyqt5())
     window = MainWindow()
     window.show()
 
@@ -756,13 +711,13 @@ if __name__ == '__main__':
     window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
     window.getPathFromPkt(0x72, '123', [0x33446217,0x11222695], 1500, 0x23)
     window.getPathFromPkt(0x73, 'abc', [0x11222695,0x11221211,0x33446217,0x55661234], 1000, 0)
-    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x33446217,0x55661234], 1000, 0)
+    window.getPathFromPkt(0x173, 'abc', [0x11222695,0x55661234], 1000, 0)
     window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
     window.getPathFromPkt(0x73, 'abc', [0x11227788,0x11227788,0x33441234,0x77880000], 100, 0)
     window.getPathFromPkt(0x74, '', [], 20, 0)
     # 测试告警信息显示功能
-    window.handleMessageFromPkt(2, 'test1\n\ncontent1\n\n')
-    window.handleMessageFromPkt(2, 'test2\n\ncontent2\n\n')
+    window.handleMessageFromPkt(2, 'test1\ncontent1\n')
+    window.handleMessageFromPkt(2, 'test2\ncontent2\n')
     # log添加测试
     for i in range(3):
         window.logWidget.addLog("Hello", f"world{i}", randint(1,5)==1)

@@ -1,10 +1,9 @@
 # coding=utf-8
 ''' docstring: scene/view模型框架 '''
 
-from NodeEdge import Node, Edge
+from GraphicsItem import Node, Edge, Text
 from PyQt5.QtWidgets import QGraphicsView
-from PyQt5.QtCore import (QParallelAnimationGroup, Qt, qrand, QRectF, QPointF, 
-    QEasingCurve, QPropertyAnimation, pyqtProperty)
+from PyQt5.QtCore import (Qt, QRectF, QPointF, QPoint)
 from PyQt5.QtGui import QPainter, QColor
 
 
@@ -13,19 +12,21 @@ class topoGraphView(QGraphicsView):
 
     def __init__(self, scene, parent=None):
         super().__init__(parent)
+        self.signal_to_mainwindow = None
         self.allmove = False
         self.tmppos = None
 
         # 设置场景坐标
         self.setScene(scene)
         self.scene().setSceneRect(-5000, -5000, 10000, 10000)
-        # 设置视图更新模式，可以只更新矩形框，也可以全部更新 TODO: 更新效率
+        # 设置视图更新模式，可以只更新矩形框，也可以全部更新
+        # TODO: 更新效率
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
         # 设置渲染属性
         self.setRenderHints(
-            QPainter.Antialiasing |
-            QPainter.HighQualityAntialiasing |
-            QPainter.TextAntialiasing |
+            # QPainter.Antialiasing |
+            # QPainter.HighQualityAntialiasing |
+            # QPainter.TextAntialiasing |
             QPainter.SmoothPixmapTransform |
             QPainter.LosslessImageRendering)
         # 设置缩放锚定点
@@ -37,22 +38,24 @@ class topoGraphView(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setDragMode(self.RubberBandDrag)
         # 设置背景色
-        self._color_background = QColor('#eee5ff')
+        self._color_background = QColor('#ffffff')
         self.setBackgroundBrush(self._color_background)
 
     def getItemAtClick(self, event):
         ''' docstring: 返回点击的物体 '''
         pos = event.pos()
         item = self.itemAt(pos)
+        tmppos = self.mapToScene(pos)
+        self.signal_to_mainwindow.emit(1, f"点击位置<{tmppos.x():.1f},{tmppos.y():.1f}>")
         return item
 
     def removeNode(self, item):
-        ''' docstring: 删除节点 '''
+        ''' docstring: 删除节点，步骤较繁琐，主要要考虑对所有参数的影响 '''
         # print(item.name, item.id)
-        if item.type == 0 and len(self.scene().ASinfo[item.id]) > 1:
+        if item.myType == 0 and len(self.scene().ASinfo[item.id]) > 1: # 内部含有东西的AS不能直接删除
             # print([x.id for x in self.scene().ASinfo[item.id]])
             return
-        tmpas = self.scene().belongAS.pop(item.id, None)
+        tmpas = self.scene().belongAS.pop(item.id, None) # 获取所属AS节点列表，修改belongAS
         if tmpas:
             tmpas.modifyCount(-1)
             tmpnodelist = self.scene().ASinfo[tmpas.id]
@@ -60,19 +63,22 @@ class topoGraphView(QGraphicsView):
             tmpnodelist.remove(item)
             if len(tmpnodelist) == 0:
                 self.scene().ASinfo.pop(tmpas.id)
-        tmplist = self.scene().nextedges.pop(item.id, [])
+        tmplist = self.scene().nextedges.pop(item.id, []) # 获取所在边表，修改nextedges
         for nextnode, nextedge in tmplist:
             self.scene().nextedges[nextnode.id].remove((item, nextedge))
             self.scene().removeItem(nextedge)
-        if item in self.scene().waitlist:
+        if item in self.scene().waitlist: # 查看是否在等待列表中
             self.scene().waitlist.remove(item)
         self.scene().removeItem(item)
 
     def mousePressEvent(self, event):
-        ''' docstring: 鼠标按压事件 '''
+        ''' docstring: 鼠标按下事件 '''
         item = self.getItemAtClick(event)
+        # 设置点到文字等于点到对应物体
+        if isinstance(item, Text):
+            if item.parent:
+                item = item.parent
         if event.button() == Qt.RightButton:
-            # print(item.name, item.id)
             if isinstance(item, Node):
                 if item is self.scene().node_me:
                     self.scene().node_me = None
@@ -86,7 +92,7 @@ class topoGraphView(QGraphicsView):
         elif self.parent().addedgeenable:
             if event.button() == Qt.LeftButton and isinstance(item, Node) \
                     and item not in self.scene().waitlist \
-                    and (self.parent().addedgetype!=0 or item.type == 2 or item.type == 0):
+                    and (self.parent().addedgetype!=0 or item.myType == 2 or item.myType == 0):
                 self.scene().tmpnode = item
                 self.tmppos = item.scenePos()
                 # 增加一个虚拟点用于建边的时候移动
@@ -97,29 +103,37 @@ class topoGraphView(QGraphicsView):
                 self.scene().addItem(self.scene().tmpnode_transparent)
                 self.scene().addItem(self.scene().tmpedge)
         elif self.parent().findpathenable:
-            if event.button() == Qt.LeftButton and isinstance(item, Node) and item.type:
+            if event.button() == Qt.LeftButton and isinstance(item, Node) and item.myType:
                 # TODO: 多线程处理
                 nidlist = self.scene().findPath(item)
                 print(nidlist)
         else:
             if event.button() == Qt.LeftButton:
                 if isinstance(item, Node):
+                    self.parent().chooseItem = item
                     asitem = self.scene().belongAS.get(item.id, None)
-                    if not asitem:
-                        asstr = '???<???>(???)'
+                    asstr = f"{asitem.name}" if asitem else ""
+                    if item.myType:
+                        message = "节点名称:"+item.name+"<br/>" \
+                            + "nid:"+item.nid+"<br/>" \
+                            + "所属AS:"+asstr
                     else:
-                        asstr = f"{asitem.name}<{asitem.nid}>({asitem.id})"
-                    self.parent().chooseItem = item
-                    self.parent().signal_ret.chooseitem.emit(item.name, item.nid, asstr)
-                    if item.type == 0 and self.parent().chooseASenable:
+                        message = "名称:"+item.name
+                    self.signal_to_mainwindow.emit(2, message)
+                    if item.myType == 0 and self.parent().chooseASenable:
                         item.addClickTimes()
-                elif isinstance(item, Edge):
-                    n1 = f"{item.node1.name}<{item.node1.nid}>"
-                    n2 = f"{item.node2.name}<{item.node2.nid}>"
-                    linename = f"Edge<{item.type}>({n1},{n2})"
-                    linePX = f"PX:{item.PX}"
+                elif isinstance(item, Edge) and item.myType < 2:
                     self.parent().chooseItem = item
-                    self.parent().signal_ret.chooseitem.emit(linename, linePX, "")
+                    n1 = f"{item.node1.name}"
+                    n2 = f"{item.node2.name}"
+                    message = "边类型:"+('域内' if item.myType else '跨域')+"<br/>" \
+                        + "端点:"+f"{n1}-{n2}"
+                    if item.PX:
+                        message = message + "<br/>PX: " + item.PX
+                    self.signal_to_mainwindow.emit(2, message)
+                else:
+                    self.parent().chooseItem = None
+                    self.signal_to_mainwindow.emit(2, "信息显示框")
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -143,19 +157,19 @@ class topoGraphView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        ''' docstring: 鼠标回弹事件 '''
+        ''' docstring: 鼠标释放事件 '''
         if self.parent().addedgeenable:
             self.parent().addedgeenable = False
             item = self.getItemAtClick(event)
-            # print('check', item.type, self.scene().tmpnode.type)
+            # print('check', item.myType, self.scene().tmpnode.myType)
             if self.scene().tmpedge:
                 if isinstance(item, Node) and item is not self.scene().tmpnode \
                         and item not in self.scene().waitlist \
-                        and (self.parent().addedgetype!=0 or item.type == 2 or \
-                            (item.type == 0 and self.scene().tmpnode.type == 0)) \
+                        and (self.parent().addedgetype!=0 or item.myType == 2 or \
+                            (item.myType == 0 and self.scene().tmpnode.myType == 0)) \
                         and (self.parent().addedgetype!=1 or self.scene().belongAS[item.id] \
                         ==self.scene().belongAS[self.scene().tmpnode.id]):
-                    if item.type == 0:
+                    if item.myType == 0:
                         # 连边对象是两个AS，需要新建两个BR
                         node1 = Node(2)
                         node2 = Node(2)
@@ -181,7 +195,7 @@ class topoGraphView(QGraphicsView):
                         self.scene().tmpedge.updateEdge()
                     else:
                         # 正常连边，虚实都有
-                        if self.scene().tmpedge.type == 0:
+                        if self.scene().tmpedge.myType == 0:
                             self.scene().waitlist.append(self.scene().tmpedge)
                         self.scene().addEdge(self.scene().tmpnode, item, self.scene().tmpedge)
                         self.scene().tmpedge.updateEdge()
@@ -198,31 +212,17 @@ class topoGraphView(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event):
-        ''' docstring: 键盘按事件 '''
+        ''' docstring: 键盘按下事件 '''
         key = event.key()
-        if key == Qt.Key_Plus:
+        if key == Qt.Key_Plus: # 键盘加，作用同鼠标滚轮
             self.scaleView(1.2)
-        elif key == Qt.Key_Minus:
+        elif key == Qt.Key_Minus: # 键盘减，作用同鼠标滚轮
             self.scaleView(1/1.2)
-        elif key == Qt.Key_Space:
-            # 按到空格或回车时随机排布场景中物体
-            for item in self.scene().items():
-                if isinstance(item, Node):
-                    item.setPos(-1000 + qrand() % 2000, -1000 + qrand() % 2000)
-        # elif key == Qt.Key_N:
-        #     s = ''
-        #     for i in range(6):
-        #         s += f'{qrand()%16:x}'
-        #     newnode = Node(nodetype=qrand() %
-        #                    6, nodename='test-only', nodenid=s)
-        #     if self.parent().labelenable:
-        #         newnode.label.show()
-        #     self.scene().addItem(newnode)
-        elif key == Qt.Key_E:
+        elif key == Qt.Key_E: # 加边快捷键
             self.parent().addedgeenable = True
-        elif key == Qt.Key_F:
+        elif key == Qt.Key_F: # 寻路快捷键
             self.parent().findpathenable = True
-        elif key == Qt.Key_S:
+        elif key == Qt.Key_S: # 隐藏所有文字快捷键
             self.parent().labelenable = not self.parent().labelenable
             for item in self.items():
                 if isinstance(item, Node) or isinstance(item, Edge):
@@ -230,18 +230,38 @@ class topoGraphView(QGraphicsView):
                         item.label.show()
                     else:
                         item.label.hide()
-        else:
+        else: # 非上述事件由基类负责响应
             super().keyPressEvent(event)
 
     def wheelEvent(self, event):
-        ''' docstring: 鼠标滚轮事件 '''
+        ''' docstring: 鼠标滚轮事件，缩放 '''
         self.scaleView(pow(2.0, event.angleDelta().y() / 240.0))
 
     def scaleView(self, scaleFactor):
-        ''' docstring: 调整视图大小 '''
-        factor = self.transform().scale(
-            scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
-        # 对于单位矩阵宽度超出阈值的行为不与响应
-        if factor < 0.05 or factor > 20:
-            return
-        self.scale(scaleFactor, scaleFactor)
+        ''' docstring: 按比例调整视图大小 '''
+        factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
+        # 对于单位矩阵宽度超出阈值的缩放行为不与响应
+        if factor > 0.05 and factor < 20:
+            if factor > 4:
+                keynum = 1
+            elif factor > 1:
+                keynum = 2
+            elif factor > 0.5:
+                keynum = 4
+            elif factor > 0.17:
+                keynum = 8
+            else:
+                keynum = 16
+            for i, line in enumerate(self.scene().backgroundLines):
+                if i % (keynum * 2) < 2:
+                    line.show()
+                else:
+                    line.hide()
+            self.scale(scaleFactor, scaleFactor)
+            self.resetNodeInfoPos()
+
+    def resetNodeInfoPos(self):
+        h = self.viewport().height()
+        h0 = self.scene().baseinfo.document().size().height()
+        pos = self.mapToScene(QPoint(0, h-h0))
+        self.scene().baseinfo.setPos(pos)

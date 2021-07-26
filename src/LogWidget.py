@@ -2,11 +2,11 @@
 
 
 from typing import Tuple
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtCore import (
     Qt, QParallelAnimationGroup, QPropertyAnimation, pyqtSlot, QAbstractAnimation)
 from PyQt5.QtWidgets import (
-    QTextEdit, QToolButton, QWidget, QScrollArea, QSizePolicy, QFrame, QVBoxLayout, QLabel)
+    QToolButton, QWidget, QScrollArea, QSizePolicy, QFrame, QVBoxLayout, QLabel)
 
 
 class CollapsibleMessageBox(QWidget):
@@ -40,13 +40,18 @@ class CollapsibleMessageBox(QWidget):
         if defaultLayout:
             lay = QVBoxLayout()
             self.text = QLabel()
+            pa = QPalette()
+            pa.setColor(pa.Background, Qt.white)
+            pa.setColor(pa.Foreground, Qt.black)
+            self.text.setAutoFillBackground(True)
+            self.text.setPalette(pa)
             self.text.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            self.text.setTextFormat(Qt.MarkdownText)
+            # self.text.setTextFormat(Qt.MarkdownText)
             self.text.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
             self.text.setWordWrap(True)
             if not Message:
                 Message = '空'
-            self.text.setText(Message)
+            self.text.setText(Message+'\n')
             lay.addWidget(self.text)
             self.setContentLayout(lay)
 
@@ -116,8 +121,10 @@ if __name__ == "__main__":
     import random
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QApplication, QMainWindow, QDockWidget
+    import qdarkstyle as qds
 
     app = QApplication(sys.argv)
+    app.setStyleSheet(qds.load_stylesheet_pyqt5())
     w = QMainWindow()
     lx = LogWidget()
     w.setCentralWidget(lx)

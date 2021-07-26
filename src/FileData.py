@@ -10,7 +10,7 @@ HOME_DIR = __BASE_DIR + '/.tmp'
 
 import json
 
-DATA_PATH = __BASE_DIR + '/data.db'
+DATA_PATH = __BASE_DIR + '/data.json'
 
 class FileData:
     ''' docstring: class FileData '''
@@ -66,9 +66,9 @@ class FileData:
         last = self.rowCount()
         if Path == None:
             Path = DATA_PATH
-        pos = Path.find('db')
+        pos = Path.find('json')
         if pos == -1:
-            return('这不是一个合法的data类型文件')
+            return('这不是一个合法的json类型文件')
         with open(Path, 'r') as f:
             try:
                 self.__raw_data = json.load(f)
