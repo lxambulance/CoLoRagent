@@ -2,4 +2,5 @@ src/__pycache__
 test/__pycache__
 .*
 *.db
+*.json
 *.log
