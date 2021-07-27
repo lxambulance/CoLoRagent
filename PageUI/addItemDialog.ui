@@ -24,17 +24,17 @@
        <string>从网络添加</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout_2">
-       <item row="1" column="0">
+       <item row="2" column="0">
         <widget class="QLabel" name="label_6">
          <property name="text">
           <string>文件名</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
+       <item row="2" column="1">
         <widget class="QLineEdit" name="inputFileName"/>
        </item>
-       <item row="2" column="0">
+       <item row="3" column="0">
         <widget class="QLabel" name="label_7">
          <property name="text">
           <string>SID</string>
@@ -44,7 +44,7 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
+       <item row="3" column="1">
         <widget class="QLineEdit" name="inputSID"/>
        </item>
        <item row="0" column="0">
@@ -60,7 +60,7 @@
          </property>
         </spacer>
        </item>
-       <item row="3" column="0">
+       <item row="4" column="0">
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -72,6 +72,27 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>类型</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QComboBox" name="filetypeChoose">
+         <item>
+          <property name="text">
+           <string>普通文件</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>视频流服务</string>
+          </property>
+         </item>
+        </widget>
        </item>
       </layout>
      </widget>

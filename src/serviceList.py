@@ -27,7 +27,9 @@ class serviceListModel(QAbstractListModel):
 
         if role == Qt.DecorationRole:
             value = self.services.getData(index.row(), 0)
-            if value.find('.') == -1:
+            if value == "video server":
+                return QIcon(':/file/video-server')
+            elif value.find('.') == -1:
                 return QIcon(':/file/rar')
             else:
                 return QIcon(':/file/document')

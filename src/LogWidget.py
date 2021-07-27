@@ -46,7 +46,7 @@ class CollapsibleMessageBox(QWidget):
             self.text.setAutoFillBackground(True)
             self.text.setPalette(pa)
             self.text.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            # self.text.setTextFormat(Qt.MarkdownText)
+            self.text.setTextFormat(Qt.MarkdownText)
             self.text.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
             self.text.setWordWrap(True)
             if not Message:

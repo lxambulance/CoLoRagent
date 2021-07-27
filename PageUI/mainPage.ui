@@ -197,7 +197,10 @@
   </action>
   <action name="action_dow">
    <property name="text">
-    <string>下载</string>
+    <string>下载或获取</string>
+   </property>
+   <property name="toolTip">
+    <string>下载或获取</string>
    </property>
   </action>
   <action name="action_del">

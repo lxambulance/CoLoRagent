@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\codehub\CoLoRagent\PageUI\mainPage.ui'
+# Form implementation generated from reading ui file 'd:\CodeHub\CoLoRagent\PageUI\mainPage.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -171,7 +171,8 @@ class Ui_MainWindow(object):
         self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
         self.action_reg.setText(_translate("MainWindow", "通告"))
         self.action_undoReg.setText(_translate("MainWindow", "取消通告"))
-        self.action_dow.setText(_translate("MainWindow", "下载"))
+        self.action_dow.setText(_translate("MainWindow", "下载或获取"))
+        self.action_dow.setToolTip(_translate("MainWindow", "下载或获取"))
         self.action_del.setText(_translate("MainWindow", "删除"))
         self.action_hub.setText(_translate("MainWindow", "仓库目录"))
         self.action_add.setText(_translate("MainWindow", "添加"))

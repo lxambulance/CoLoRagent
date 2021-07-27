@@ -29,12 +29,24 @@ class AddItemWindow(QDialog, Ui_Dialog):
         self.needReg = None
         self.addtionText.setText('(请输入附加说明文字)')
         self.addtext = None
+        self.currentfiletype = 0
 
         # 设置信号槽与信号的连接
         self.choosePath.clicked.connect(self.chooseFilePath)
         self.buttonBox.accepted.connect(self.addItem)
         self.addtionText.textChanged.connect(self.getText)
+        self.filetypeChoose.currentIndexChanged[int].connect(self.changeFiletype)
     
+    def changeFiletype(self, index):
+        self.currentfiletype = index
+        print(index)
+        if index==1:
+            self.inputFileName.setText("video server")
+            self.inputFileName.setEnabled(False)
+        else:
+            self.inputFileName.setText("")
+            self.inputFileName.setEnabled(True)
+
     def getText(self):
         self.addtext = self.addtionText.toPlainText()
         # print('text changed', self.addtext)
@@ -79,7 +91,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
             self.needReg = int(self.needRegister.checkState() > 0)
         else:
             a = self.inputFileName.text()
-            print(a)
+            # print(a)
             b = HOME_DIR + '/' + a
             d = self.inputSID.text()
             # TODO: 更详细的检查SID合法性

@@ -8,11 +8,14 @@
     <file alias="addFile">addFile.png</file>
     <file alias="openFolder">openFolder.png</file>
     <file alias="openMap">openmap.png</file>
+    <file alias="server-multi">variety.png</file>
+    <file alias="server-multi-button">server-multi.png</file>
   </qresource>
   <qresource prefix="file">
     <file alias="document">paper.png</file>
     <file alias="folder">folder.png</file>
     <file alias="rar">rar.png</file>
+    <file alias="video-server">server.png</file>
   </qresource>
   <qresource prefix="topo">
     <file alias="RM">resourceManagement.png</file>

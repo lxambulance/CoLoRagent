@@ -4,6 +4,7 @@
 import time
 import json
 import ProxyLib as PL
+import ColorMonitor as CM
 from ProxyLib import (
     Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
     SidAnn, Get, CacheSidUnits)
@@ -114,6 +115,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_showtopo.setStatusTip("显示网络拓扑")
         self.toolBar.addAction(self.button_showtopo)
         self.button_showtopo.setCheckable(True)
+        self.button_startvideoserver = QAction(QIcon(":/icon/server-multi-button"), "启动视频服务", self)
+        self.button_startvideoserver.setStatusTip("启动视频服务")
+        self.toolBar.addAction(self.button_startvideoserver)
 
         # 设置其他窗口为空
         self.videowindow = None
@@ -193,14 +197,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_openfolder.triggered.connect(self.openFolder)
         self.button_addfile.triggered.connect(self.addItem)
         self.button_showtopo.triggered.connect(self.showTopo)
+        self.button_startvideoserver.triggered.connect(self.startVideoServer)
         # 收包信号
         self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
         # 计时信号
         self.timer.timeout.connect(self.updateSpeedLine)
         self.timer_message.timeout.connect(self.timerMessageClear)
-        
+
         # 计时器开始
         self.timer.start()
+
+    def startVideoServer(self):
+        status = QMessageBox.Yes | QMessageBox.No
+        reply = QMessageBox.question(self, '通知', '是否开启摄像头服务？', status)
+        if reply == QMessageBox.No:
+            return
+        CM.PL.AddCacheSidUnit(1,1,1,1,1)
+        CM.PL.SidAnn()
 
     def openCmdWindow(self):
         ''' docstring: 打开命令行窗口 '''
@@ -439,7 +452,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 dowitemworker.signals.progress.connect(
                     self.updateProgress(item, 4))
             dowitemworker.signals.finished.connect(
-                lambda: self.setStatus('条目已下载'))
+                lambda: self.setStatus('条目已下载或服务已开始获取'))
             dowitemworker.signals.message.connect(self.logWidget.addLog)
             self.threadpool.start(dowitemworker)
 
@@ -451,6 +464,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for item in items:
             if not self.fd.getData(item, 0):
                 continue
+            if self.fd.getData(item, 0) == 'video server':
+                SID = self.fd.getData(item, 2)
+                CM.PL.Get(SID,1)
+                message_callback.emit('<获取> 服务', f'{self.fd.getData(item, 0)}\n')
+                continue
             now += 1
             isDow = self.fd.getData(item, 4)
             if isDow:
@@ -461,7 +479,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             Get(SID, filepath)
             progress_callback.emit(round(now*100/total))
             # 添加log记录
-            message_callback.emit('<下载> 文件或服务', f'file {self.fd.getData(item, 0)}\n')
+            message_callback.emit('<下载> 文件', f'file {self.fd.getData(item, 0)}\n')
         # TODO：涉及进度条完成状态需要通过color monitor精确判断
 
     def regItem(self):
