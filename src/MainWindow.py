@@ -137,6 +137,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 设置网络拓扑窗口
         self.graphicwindow = GraphicWindow(self.fd)
         self.graphicwindow.loadTopo(DATA_PATH)
+        self.graphicwindow.pushButtonShowBaseinfo.click()
+        self.graphicwindow.pushButtonShowASThroughput.click()
         self.graphicwindow.hide()
 
         # 设置日志记录

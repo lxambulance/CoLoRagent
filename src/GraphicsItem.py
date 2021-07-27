@@ -26,7 +26,7 @@ class Node(QGraphicsPixmapItem):
     NodeSize = [256, 96, 96, 96, 96, 96]
     NodeNum = 0
 
-    def __init__(self, nodetype=0, nodename=None, nodesize=0, nodenid=None, font=None, color=None):
+    def __init__(self, nodetype=0, nodename=None, nodesize=0, nodenid=None, font=None, color=None, tfont=None, tcolor = None):
         super().__init__()
         self.myType = nodetype
         if not self.myType:
@@ -44,7 +44,7 @@ class Node(QGraphicsPixmapItem):
             self.getsize = 0
             self.datanum = 0
             self.datasize = 0
-            self.setThroughputLabel()
+            self.setThroughputLabel(tfont, tcolor)
         
         # 设置图像大小和偏移量
         self.setPixmap(QPixmap(Node.NodeImageStr[self.myType]).scaled(self.size, self.size))
@@ -112,11 +112,11 @@ class Node(QGraphicsPixmapItem):
             self.throughputlabel.changeText(tmps)
         self.update()
 
-    def setThroughputLabel(self):
+    def setThroughputLabel(self, tfont, tcolor):
         tmps = f"<div><p>发送数据包统计<br/>(数量，大小[字节]):</p>" + \
                f"<p>get包 ({self.getnum},{self.getsize})</p>" + \
                f"<p>data包 ({self.datanum},{self.datasize})</p></div>"
-        self.throughputlabel = Text(tmps, self, color=QColor("#0f0f0f"))
+        self.throughputlabel = Text(tmps, self, font=tfont, color=QColor("#0f0f0f" if not tcolor else tcolor))
         self.throughputlabel.hide()
         self.setZValue(Node.NodeZValue[self.myType]+1)
         self.throughputlabel.setTextWidth(self.size)
@@ -265,7 +265,7 @@ class Text(QGraphicsTextItem):
     def __init__(self, content, parent = None, font = None, color = None, setAutoResize = False):
         super().__init__(parent=parent)
         self.parent = parent
-        self.currentfont = font or QFont("Times New Roman", 15, QFont.Normal)
+        self.currentfont = font or QFont("Times New Roman", 25, QFont.Normal)
         self.currentcolor = color or QColor("#000000")
         self.setFont(self.currentfont)
 
@@ -273,7 +273,8 @@ class Text(QGraphicsTextItem):
         self.setHtml(f'''<font color="{self.currentcolor.name()}">{self.content}</font>''')
         if setAutoResize:
             self.adjustSize()
-
+        
+        # self.setFlag(self.ItemIgnoresTransformations) # 设置文字忽略缩放
         # self.setFlags(self.ItemIsMovable | self.ItemIsSelectable) # 设置文字对象可移动和选中
         # self.setTextInteractionFlags(Qt.TextEditorInteraction) # 设置可交互
 

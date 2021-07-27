@@ -61,10 +61,10 @@ class CoLoRApp(QApplication):
 
         # 测试
         # CM.PL.RegFlag=1
-        time.sleep(2)
+        # time.sleep(2)
         # Video provider
-        CM.PL.AddCacheSidUnit(1,1,1,1,1)
-        CM.PL.SidAnn()
+        # CM.PL.AddCacheSidUnit(1,1,1,1,1)
+        # CM.PL.SidAnn()
         # Video customer
         # SID = '1'*30+'00' + '1'.zfill(40)
         # CM.PL.Get(SID,1)
@@ -86,7 +86,7 @@ class CoLoRApp(QApplication):
         color = self.window.palette().color(QPalette.Background).name()
         color = '#ffffff' if color == '#f0f0f0' else color
         self.window.graphicwindow.graphics_global.setBackground(
-            "#4d4d4d" if tmp == 'Qdarkstyle' else color) #455364
+            "#6d6d6d" if tmp == 'Qdarkstyle' else color) #455364
         self.window.speedGraph.setBackground(color)
 
 

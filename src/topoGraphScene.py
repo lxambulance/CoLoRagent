@@ -35,7 +35,7 @@ class topoGraphScene(QGraphicsScene):
 
         # 设置特殊文本类显示信息
         self.baseinfo = Text("信息显示框",
-            font =QFont("SimHei", 10, QFont.Normal),
+            font =QFont("SimHei", 12, QFont.Normal),
             color=QColor("#ff8000"))
         self.addItem(self.baseinfo)
         self.baseinfo.setFlag(self.baseinfo.ItemIgnoresTransformations)
@@ -177,7 +177,13 @@ class topoGraphScene(QGraphicsScene):
             else:
                 nft = None
             ncr = node.get('color', None)
-            item = Node(ntp, nnm, nsz, nid, nft, ncr)
+            tfont = node.get('tfont', None)
+            if tfont:
+                tmp = QFont()
+                tmp.fromString(tfont)
+                tfont = tmp
+            tcolor = node.get('tcolor', None)
+            item = Node(ntp, nnm, nsz, nid, nft, ncr, tfont, tcolor)
             self.addItem(item)
             pos = node['pos']
             item.setPos(pos[0], pos[1])
@@ -248,6 +254,8 @@ class topoGraphScene(QGraphicsScene):
                 node['type'] = item.myType
                 if item.myType == 0:
                     node['size'] = item.size
+                    node['tfont'] = item.throughputlabel.currentfont.toString()
+                    node['tcolor'] = item.throughputlabel.currentcolor.name()
                 elif item.myType == 1 or item.myType == 2 or item.myType==5:
                     node['nid'] = item.nid
                 node['pos'] = [item.scenePos().x(), item.scenePos().y()]

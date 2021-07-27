@@ -15,6 +15,7 @@ class topoGraphView(QGraphicsView):
         self.signal_to_mainwindow = None
         self.allmove = False
         self.tmppos = None
+        self.choose_text = None
 
         # 设置场景坐标
         self.setScene(scene)
@@ -75,8 +76,11 @@ class topoGraphView(QGraphicsView):
         ''' docstring: 鼠标按下事件 '''
         item = self.getItemAtClick(event)
         # 设置点到文字等于点到对应物体
+        flag = False
         if isinstance(item, Text):
+            flag = True
             if item.parent:
+                self.choose_text = item
                 item = item.parent
         if event.button() == Qt.RightButton:
             if isinstance(item, Node):
@@ -110,6 +114,10 @@ class topoGraphView(QGraphicsView):
         else:
             if event.button() == Qt.LeftButton:
                 if isinstance(item, Node):
+                    if flag:
+                        tmppos = self.mapToScene(event.pos())
+                        self.signal_to_mainwindow.emit(1, f"点击位置<{tmppos.x():.1f},{tmppos.y():.1f}> 已选中Text")
+                        flag = False
                     self.parent().chooseItem = item
                     asitem = self.scene().belongAS.get(item.id, None)
                     asstr = f"{asitem.name}" if asitem else ""
@@ -123,11 +131,15 @@ class topoGraphView(QGraphicsView):
                     if item.myType == 0 and self.parent().chooseASenable:
                         item.addClickTimes()
                 elif isinstance(item, Edge) and item.myType < 2:
+                    if flag:
+                        tmppos = self.mapToScene(event.pos())
+                        self.signal_to_mainwindow.emit(1, f"点击位置<{tmppos.x():.1f},{tmppos.y():.1f}> 已选中Text")
+                        flag = False
                     self.parent().chooseItem = item
                     n1 = f"{item.node1.name}"
                     n2 = f"{item.node2.name}"
                     message = "边类型:"+('域内' if item.myType else '跨域')+"<br/>" \
-                        + "端点:"+f"{n1}-{n2}"
+                        + "端点:"+f"{n1}-----{n2}"
                     if item.PX:
                         message = message + "<br/>PX: " + item.PX
                     self.signal_to_mainwindow.emit(2, message)
@@ -135,6 +147,8 @@ class topoGraphView(QGraphicsView):
                     self.parent().chooseItem = None
                     self.signal_to_mainwindow.emit(2, "信息显示框")
             super().mousePressEvent(event)
+        if flag:
+            self.choose_text = None
 
     def mouseMoveEvent(self, event):
         ''' docstring: 鼠标移动事件 '''

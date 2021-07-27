@@ -32,8 +32,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.showModifyButton(False)
         self.showAdvancedReg(False)
         # 初始化不开启工具栏
-        if self.Toolbar.isVisible():
-            self.Toolbar.setVisible(False)
+        self.Toolbar.setVisible(False)
 
         # 设置禁止自添加
         self.nodelist.setAcceptDrops(False)
@@ -63,6 +62,19 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         )
         # 自定义内部信号
         self.GS.message_signal.connect(self.messageTest)
+        # 拓扑修改信号
+        self.pushButtonSetColor.clicked.connect(self.textSetColor)
+        self.pushButtonSetFont.clicked.connect(self.textSetFont)
+
+    def textSetColor(self, flag):
+        if not self.graphics_global.view.choose_text:
+            return
+        self.graphics_global.view.choose_text.changeColor()
+    
+    def textSetFont(self, flag):
+        if not self.graphics_global.view.choose_text:
+            return
+        self.graphics_global.view.choose_text.changeFont()
 
     def showInfoText(self, flag):
         ''' docstring: 显示基础信息框 '''
