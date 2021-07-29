@@ -7,7 +7,7 @@ from generateECCkey import loadKey, MyEncoder
 
 if __name__=='__main__':
     data = {}
-    with open("./test/testKey.db", "r") as f:
+    with open("./test/testKey.json", "r") as f:
         data = json.load(f)
     # 载入公私钥，后续做验证
     private_key, public_key, nid = loadKey(data['server'])

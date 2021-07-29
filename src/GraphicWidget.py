@@ -239,6 +239,8 @@ class GraphicWidget(QWidget):
             # 匹配过快或node_me没有设置
             return False
         num = PIDs.count('<')
+        if not num:
+            return False
         # print(PIDs, num)
         tmpnode = [None]*num*2
         # poslist生成基于PID从后往前有序，否则可能出错

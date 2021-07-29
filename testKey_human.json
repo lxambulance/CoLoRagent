@@ -1,0 +1,12 @@
+{
+    "client":{
+        "nid":"3be9101f9c7acc58f789ebc33635ac46",
+        "private":"72d209b9bcf7d2aa35e88835eb11737c880d2b27c6edeedc07708caae0eb0b3d",
+        "public":"d8292922d0174d3a56e713e145ae7bcbd88fb92fb21689c127f80e606b3f8f17"
+    },
+    "server":{
+        "nid":"3e3537aea6f9447d3bf736c52cf766fa",
+        "private":"902f0f9a98a6c4113b04157c5251646c69af821370c069ac1c4d35deb7bfc851",
+        "public":"926d52498b870288d0214312a5f8b8ecf08d25a6f7cb9f875037fbfcb3e2d991"
+    }
+}

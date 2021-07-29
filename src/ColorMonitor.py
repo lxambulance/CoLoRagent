@@ -115,7 +115,8 @@ class PktHandler(threading.Thread):
             Lock_WaitingACK.release()
 
     def run(self):
-        if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4):
+        if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
+            self.packet.show()
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
             if(PL.RegFlag == 0):
@@ -542,5 +543,5 @@ class Monitor(threading.Thread):
         AnnSender.start()
         VideoCus = video_customer()
         VideoCus.start()
-        sniff(filter="ip", iface = "Realtek USB GbE Family Controller", prn=self.parser, count=0)
+        sniff(filter="ip", iface = "VirtualBox Host-Only Network", prn=self.parser, count=0)
         # sniff(filter="ip", prn=self.parser, count=0)
