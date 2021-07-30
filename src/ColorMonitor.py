@@ -13,6 +13,7 @@ import zlib
 import queue
 
 from PyQt5.QtCore import QObject, pyqtSignal
+import establishSecureSession as ESS
 
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
@@ -166,6 +167,7 @@ class PktHandler(threading.Thread):
                         PL.Lock_AnnSidUnits.release()
                         return
                     # 返回数据
+                    SidUnitLevel = PL.AnnSidUnits[NewSid].Strategy_units.get(1, 0) #获取密级以备后续使用，没有默认为0
                     SidPath = PL.AnnSidUnits[NewSid].path
                     PL.Lock_AnnSidUnits.release()
                     NidCus = NewGetPkt.nid
@@ -195,6 +197,10 @@ class PktHandler(threading.Thread):
                         self.video_provider(
                             NewSid, NidCus, PIDs, SidLoadLength, ReturnIP)
                         return
+                    if SidUnitLevel>5:
+                        ESS.newSession(NidCus, NewSid, PIDs)
+                        return
+                    # 获取数据，分片或直接传输
                     DataLength = len(PL.ConvertFile(SidPath))
                     if (DataLength <= SidLoadLength):
                         ChipNum = 1

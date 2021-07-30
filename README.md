@@ -186,15 +186,15 @@ level：可选策略字段，标注当前SidUnit等级。int类型，可为1~10�
 
 ttl：可选字段，含义同通告包的ttl字段。int类型，可为0~255。
 
-PublicKey：可选字段，含义同通告包的Public_key字段。String类型，规定内含字符为16进制字符（0~9，a~f），字符串长度为2的倍数，最短长度为2。
+PublicKey：可选字段，含义同通告包的Public_key字段。String类型，规定内含字符为16进制字符（0\~9，a\~f），字符串长度为2的倍数，最短长度为2。
 
-P：可选字段，含义同通告包的P字段。int类型，可为0~1。
+P：可选字段，含义同通告包的P字段。int类型，可为0\~1。
 
 ### Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1)详细说明
 
 功能：发送Get报文，从网络中获取特定SID对应的内容，存储到规定位置。
 
-SID：希望从网络中获取内容的SID。String类型，规定内含字符为16进制字符（0~9，a~f），长度为32（仅N_sid）、40（仅L_sid）或72（完整SID）。
+SID：希望从网络中获取内容的SID。String类型，规定内含字符为16进制字符（0\~9，a\~f），长度为32（仅N_sid）、40（仅L_sid）或72（完整SID）。
 
 path：从网络获取内容后期望存储的位置（含文件名！）。格式同此前path。
 
@@ -204,7 +204,7 @@ PublicKey：可选字段，含义同get包的Public_key字段。格式同此前P
 
 QoS：可选字段，含义同get包的QoS_requirements字段。格式同PublicKey。
 
-SegID：可选字段，含义同get包的Seg_ID字段。int类型，可选范围为0~0xffffffff。
+SegID：可选字段，含义同get包的Seg_ID字段。int类型，可选范围为0\~0xffffffff。
 
 A：可选字段，含义同get包的A字段。int类型，可为0~1。
 
@@ -222,7 +222,7 @@ Value：通过AddCacheSidUnit生成的通告单元类（class SidUnit，记录�
 
 功能：记录已向网络中通告的SID，以及对应的通告策略。
 
-Key：SID。String类型，规定内含字符为16进制字符（0~9，a~f），长度为32（仅N_sid）、40（仅L_sid）或72（完整SID）。
+Key：SID。String类型，规定内含字符为16进制字符（0\~9，a\~f），长度为32（仅N_sid）、40（仅L_sid）或72（完整SID）。
 
 Value：通告单元，格式同CacheSidUnits的Value。
 
