@@ -18,8 +18,8 @@
     <normalon>:/icon/color</normalon>
    </iconset>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QFormLayout" name="formLayout">
+   <item row="0" column="0">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -32,103 +32,129 @@
      </property>
     </spacer>
    </item>
-   <item>
-    <layout class="QFormLayout" name="formLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="configpath_label">
-       <property name="text">
-        <string>配置文件</string>
+   <item row="1" column="0">
+    <widget class="QLabel" name="configpath_label">
+     <property name="text">
+      <string>配置文件</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <layout class="QHBoxLayout" name="configpath_horizontalLayout">
+     <item>
+      <widget class="QLineEdit" name="showpath_config">
+       <property name="readOnly">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <layout class="QHBoxLayout" name="configpath_horizontalLayout">
-       <item>
-        <widget class="QLineEdit" name="showpath_config">
-         <property name="readOnly">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="choosepath_config">
-         <property name="maximumSize">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>...</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="agentNID_label">
+     <item>
+      <widget class="QPushButton" name="choosepath_config">
+       <property name="maximumSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>选择文件路径</string>
+       </property>
        <property name="text">
-        <string>代理NID</string>
+        <string>...</string>
        </property>
       </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="agentNID"/>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="filetmp_label">
-       <property name="text">
-        <string>文件存储目录</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <layout class="QHBoxLayout" name="filetmppath_horizontalLayout">
-       <item>
-        <widget class="QLineEdit" name="showpath_filetmp">
-         <property name="readOnly">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="choosepath_filetmp">
-         <property name="maximumSize">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>...</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="agentIPv4_label">
-       <property name="text">
-        <string>代理IPv4</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QLineEdit" name="agentIPv4"/>
-     </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="RMIPv4_label">
-       <property name="text">
-        <string>RM.IPv4</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="1">
-      <widget class="QLineEdit" name="RMIPv4"/>
      </item>
     </layout>
    </item>
-   <item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="agentNID_label">
+     <property name="text">
+      <string>代理NID</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <layout class="QHBoxLayout" name="generateNid_horizontalLayout">
+     <item>
+      <widget class="QLineEdit" name="agentNID">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="generateNid">
+       <property name="maximumSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>随机nid</string>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="agentIPv4_label">
+     <property name="text">
+      <string>代理IPv4</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLineEdit" name="agentIPv4"/>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="filetmp_label">
+     <property name="text">
+      <string>文件存储目录</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <layout class="QHBoxLayout" name="filetmppath_horizontalLayout">
+     <item>
+      <widget class="QLineEdit" name="showpath_filetmp">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="choosepath_filetmp">
+       <property name="maximumSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>选择存储目录</string>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="RMIPv4_label">
+     <property name="text">
+      <string>RM.IPv4</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QLineEdit" name="RMIPv4"/>
+   </item>
+   <item row="6" column="0">
     <spacer name="verticalSpacer_2">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -141,7 +167,7 @@
      </property>
     </spacer>
    </item>
-   <item>
+   <item row="7" column="0" colspan="2">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>

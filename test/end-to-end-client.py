@@ -7,7 +7,7 @@ from generateECCkey import loadKey, MyEncoder
 
 if __name__=='__main__':
     data = {}
-    with open("./test/testKey.db", "r") as f:
+    with open("./test/testKey.json", "r") as f:
         data = json.load(f)
     # 载入公私钥，后续做验证
     private_key, public_key, nid = loadKey(data['client'])
@@ -54,6 +54,13 @@ if __name__=='__main__':
         ec.ECDH(),
         ECDH_peer_public_key
     )
+    # test
+    # ECDH_private_key_bytes = ECDH_private_key.private_bytes(
+    #     encoding=serialization.Encoding.DER,
+    #     format=serialization.PrivateFormat.TraditionalOpenSSL,
+    #     encryption_algorithm=serialization.NoEncryption()
+    # )
+    # print("*"*20, ECDH_private_key_bytes)
 
 
     random_client = os.urandom(20)

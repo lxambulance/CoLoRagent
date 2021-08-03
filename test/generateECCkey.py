@@ -43,6 +43,11 @@ def keyGenerate():
     print("nid", nid.hex())
     return private_key, private_bytes, public_key, public_bytes, nid.hex()
 
+def publicKeyCheck(nid_hex, publick_key_hex):
+    tmpnid = hashlib.sha256()
+    public_bytes = bytes.fromhex(publick_key_hex)
+    tmpnid.update(public_bytes)
+
 def loadKey(data):
     private_bytes = data['private']
     private_key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(data['private']))
@@ -59,7 +64,7 @@ if __name__ == '__main__':
     data = {}
 
     private_key, private_bytes, public_key, public_bytes, nid = keyGenerate()
-    
+
     data['client']={
         "private":private_bytes,
         "public":public_bytes,
@@ -76,5 +81,5 @@ if __name__ == '__main__':
 
     print(json.dumps(data, cls=MyEncoder))
 
-    with open("./test/testKey.db","w") as f:
+    with open("./test/testKey.json","w") as f:
         json.dump(data, f, cls=MyEncoder)

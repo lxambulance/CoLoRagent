@@ -60,7 +60,9 @@ class CoLoRApp(QApplication):
         thread_monitor.start()
 
         # 测试
-        # CM.PL.RegFlag=1
+        CM.PL.RegFlag=1
+        nid = "11111111111111111111111111111100"
+        CM.PL.PeerProxys[int(nid, 16)]='192.168.56.101'
         # time.sleep(2)
         # Video provider
         # CM.PL.AddCacheSidUnit(1,1,1,1,1)
