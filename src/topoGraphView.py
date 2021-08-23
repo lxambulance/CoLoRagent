@@ -15,7 +15,8 @@ class topoGraphView(QGraphicsView):
         self.signal_to_mainwindow = None
         self.allmove = False
         self.tmppos = None
-        self.choose_text = None
+        self.selectedItem = None
+        self.selectedText = None
 
         # 设置场景坐标
         self.setScene(scene)
@@ -53,7 +54,7 @@ class topoGraphView(QGraphicsView):
     def removeNode(self, item):
         ''' docstring: 删除节点，步骤较繁琐，主要要考虑对所有参数的影响 '''
         # print(item.name, item.id)
-        if item.myType == 0 and len(self.scene().ASinfo[item.id]) > 1: # 内部含有东西的AS不能直接删除
+        if not isinstance(item, Node) or item.myType == 0 and len(self.scene().ASinfo[item.id]) > 1: # 内部含有东西的AS不能直接删除
             # print([x.id for x in self.scene().ASinfo[item.id]])
             return
         tmpas = self.scene().belongAS.pop(item.id, None) # 获取所属AS节点列表，修改belongAS
@@ -71,25 +72,25 @@ class topoGraphView(QGraphicsView):
         if item in self.scene().waitlist: # 查看是否在等待列表中
             self.scene().waitlist.remove(item)
         self.scene().removeItem(item)
+        if item is self.scene().node_me:
+            self.scene().node_me = None
+
+    def removeEdge(self, item):
+        if not isinstance(item, Edge):
+            return
+        self.scene().delEdge(item.node1, item.node2, item)
+        self.scene().removeItem(item)
 
     def mousePressEvent(self, event):
         ''' docstring: 鼠标按下事件 '''
         item = self.getItemAtClick(event)
-        # 设置点到文字等于点到对应物体
-        flag = False
-        if isinstance(item, Text):
-            flag = True
-            if item.parent:
-                self.choose_text = item
-                item = item.parent
         if event.button() == Qt.RightButton:
+            if isinstance(item, Text) and item.parent:
+                item = item.parent
             if isinstance(item, Node):
-                if item is self.scene().node_me:
-                    self.scene().node_me = None
                 self.removeNode(item)
             elif isinstance(item, Edge):
-                self.scene().delEdge(item.node1, item.node2, item)
-                self.scene().removeItem(item)
+                self.removeEdge(item)
             else:
                 self.tmppos = self.mapToScene(event.pos())
                 self.allmove = True
@@ -112,11 +113,18 @@ class topoGraphView(QGraphicsView):
                 nidlist = self.scene().findPath(item)
                 print(nidlist)
         else:
+            # 设置点到文字等于点到对应物体
+            flag = False
+            if isinstance(item, Text):
+                flag = True
+                if item.parent:
+                    self.selectedText = item
+                    item = item.parent
             if event.button() == Qt.LeftButton:
                 if isinstance(item, Node):
                     if flag:
                         tmppos = self.mapToScene(event.pos())
-                        self.signal_to_mainwindow.emit(1, f"点击位置<{tmppos.x():.1f},{tmppos.y():.1f}> 已选中Text")
+                        self.signal_to_mainwindow.emit(1, f"点击位置<{tmppos.x():.1f},{tmppos.y():.1f}> 已选中Node文本")
                         flag = False
                     self.parent().chooseItem = item
                     asitem = self.scene().belongAS.get(item.id, None)
@@ -128,12 +136,13 @@ class topoGraphView(QGraphicsView):
                     else:
                         message = "名称:"+item.name
                     self.signal_to_mainwindow.emit(2, message)
+                    self.selectedItem = item
                     if item.myType == 0 and self.parent().chooseASenable:
                         item.addClickTimes()
                 elif isinstance(item, Edge) and item.myType < 2:
                     if flag:
                         tmppos = self.mapToScene(event.pos())
-                        self.signal_to_mainwindow.emit(1, f"点击位置<{tmppos.x():.1f},{tmppos.y():.1f}> 已选中Text")
+                        self.signal_to_mainwindow.emit(1, f"点击位置<{tmppos.x():.1f},{tmppos.y():.1f}> 已选中Edge文本")
                         flag = False
                     self.parent().chooseItem = item
                     n1 = f"{item.node1.name}"
@@ -143,12 +152,14 @@ class topoGraphView(QGraphicsView):
                     if item.PX:
                         message = message + "<br/>PX: " + item.PX
                     self.signal_to_mainwindow.emit(2, message)
+                    self.selectedItem = item
                 else:
                     self.parent().chooseItem = None
                     self.signal_to_mainwindow.emit(2, "信息显示框")
+                    self.selectedItem = None
             super().mousePressEvent(event)
-        if flag:
-            self.choose_text = None
+            if flag:
+                self.selectedText = None
 
     def mouseMoveEvent(self, event):
         ''' docstring: 鼠标移动事件 '''

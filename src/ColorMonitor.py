@@ -566,5 +566,5 @@ class Monitor(threading.Thread):
         AnnSender.start()
         VideoCus = video_customer()
         VideoCus.start()
-        sniff(filter="ip", iface = "VirtualBox Host-Only Network", prn=self.parser, count=0)
-        # sniff(filter="ip", prn=self.parser, count=0)
+        # sniff(filter="ip", iface = "VirtualBox Host-Only Network", prn=self.parser, count=0)
+        sniff(filter="ip", prn=self.parser, count=0)

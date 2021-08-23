@@ -6,6 +6,7 @@ from PyQt5.QtCore import QObject, Qt, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow
 
 from GraphicPage import Ui_MainWindow
+from GraphicsItem import Node, Edge, Text
 
 
 class GraphicSignals(QObject):
@@ -43,6 +44,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonAdvancedReg.clicked.connect(self.showAdvancedReg)
         self.pushButtonShowBaseinfo.clicked.connect(self.showInfoText)
         self.pushButtonShowASThroughput.clicked.connect(self.graphics_global.showThroughput)
+        self.pushButtonShowNode.clicked.connect(lambda x:self.nodelist.setVisible(x))
         self.actionModifyTopo.triggered.connect(self.pushButtonModifyTopo.click) # 将动作与对应按钮绑定
         self.actionAdvancedReg.triggered.connect(self.pushButtonAdvancedReg.click)
         self.actionShowBaseinfo.triggered.connect(self.pushButtonShowBaseinfo.click)
@@ -65,16 +67,26 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         # 拓扑修改信号
         self.pushButtonSetColor.clicked.connect(self.textSetColor)
         self.pushButtonSetFont.clicked.connect(self.textSetFont)
+        self.pushButtonDelete.clicked.connect(self.delItem)
 
     def textSetColor(self, flag):
-        if not self.graphics_global.view.choose_text:
+        if not self.graphics_global.view.selectedText:
             return
-        self.graphics_global.view.choose_text.changeColor()
+        self.graphics_global.view.selectedText.changeColor()
     
     def textSetFont(self, flag):
-        if not self.graphics_global.view.choose_text:
+        if not self.graphics_global.view.selectedText:
             return
-        self.graphics_global.view.choose_text.changeFont()
+        self.graphics_global.view.selectedText.changeFont()
+
+    def delItem(self, flag):
+        if self.graphics_global.view.selectedItem:
+            if isinstance(self.graphics_global.view.selectedItem, Node):
+                self.graphics_global.view.removeNode(self.graphics_global.view.selectedItem)
+            elif isinstance(self.graphics_global.view.selectedItem, Edge):
+                self.graphics_global.view.removeEdge(self.graphics_global.view.selectedItem)
+            self.graphics_global.view.selectedItem = None
+            self.GS.message_signal.emit(2, "信息显示框")
 
     def showInfoText(self, flag):
         ''' docstring: 显示基础信息框 '''
@@ -118,7 +130,8 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.pushButtonSetFont.setVisible(flag)
         self.pushButtonReset.setVisible(flag)
         self.pushButtonSetColor.setVisible(flag)
-        self.nodelist.setVisible(flag)
+        self.pushButtonShowNode.setVisible(flag)
+        self.nodelist.setVisible(flag and self.pushButtonShowNode.isChecked())
         self.line2.setVisible(flag)
 
     def showAdvancedReg(self, flag):
@@ -198,35 +211,22 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
             self.ASlist.setText(ret)
             self.changeAdvancedReg(row, whitelist=ret)
 
-    # def setTopoLineType(self, index):
-    #     ''' docstring: 设置拓扑图添加连线的类型 '''
-    #     self.graphicwindow.graphics_global.addedgetype = index
-
-    # def topoAddLine(self):
-    #     ''' docstring: 拓扑图添加连线 '''
-    #     self.graphicwindow.graphics_global.addedgeenable = True
-    #     # self.graphicwindow.graphics_global.addedgetype = self.lineType.currentIndex()
-
-    # def showItem(self, name, nid, AS):
-    # '''docstring: 显示图形元素 '''
-    #     self.itemname.setText(name)
-    #     self.itemnid.setText(nid)
-    #     self.itemas.setText(AS)
-
 
 if __name__ == "__main__":
-    import sys
+    ''' 模块测试将所有能开启的按钮全部打开，方便展示 '''
 
     from PyQt5.QtWidgets import QApplication
+    import os
+    import sys
 
+    __BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
     app = QApplication([])
     from FileData import FileData
     fd = FileData()
     window = GraphicWindow(fd)
     window.show()
-    DATAPATH = "D:/CodeHub/CoLoRagent/data.json"
-    window.loadTopo(DATAPATH)
-    
+    DATAPATH = __BASE_DIR+"/data.json"
+    window.loadTopo(DATAPATH)    
     window.actionReopenToolbar.trigger()
     window.pushButtonAdvancedReg.click()
     window.pushButtonShowBaseinfo.click()
@@ -236,8 +236,9 @@ if __name__ == "__main__":
     QCoreApplication.postEvent(window,
         QKeyEvent(QKeyEvent.KeyPress, Qt.Key_M, QGuiApplication.keyboardModifiers()))
     window.pushButtonModifyTopo.click()
+    window.pushButtonShowNode.click()
     
     window.chooseFile.addItem("testfile")
     ret = app.exec_()
-    window.saveTopo(DATAPATH)
+    # window.saveTopo(DATAPATH)
     sys.exit(ret)
