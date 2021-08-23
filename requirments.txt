@@ -1,5 +1,5 @@
 cryptography==3.4.7
-opencv-python==4.1.2.30
+opencv-python==4.5.3.56
 PyQt5==5.15.4
 PyQt5-stubs==5.15.2.0
 pyqtgraph==0.12.1
