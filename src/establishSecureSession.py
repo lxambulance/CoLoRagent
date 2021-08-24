@@ -119,8 +119,8 @@ class Session():
         self.pids = pids
         self.ip = ip
         self.signal = signal
-        self.status = 0
-        self.ECDH_private_key_client = None
+        self.myStatus = 0
+        self.ECDH_private_key_client = ec.generate_private_key(ec.SECP384R1())
         self.ECDH_private_key_server = None
         self.ECDH_shared_key = None
         self.random_client = None
@@ -153,15 +153,14 @@ class Session():
         print("第一次握手信息", loads)
         NewDataPkt = PL.DataPkt(1, 0, 1, 0,
             sid if sid else self.sid,
-            nid_cus=nid if nid else self.nid, SegID=0,
-            PIDs=pids if pids else self.pids, load=loads)
+            nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=1,
+            PIDs=pids if pids else self.pids, load=str.encode(loads))
         colordatapkt = NewDataPkt.packing()
-        self.status = 1
+        self.myStatus = 1
         self.ensureSend(ip if ip else self.ip, colordatapkt, 1)
 
     def sendSecondHandshake(self, nid=None, sid=None, pids=None, ip=None):
         ''' docstring: 发送第二个握手包 '''
-        self.ECDH_private_key_client = ec.generate_private_key(ec.SECP384R1())
         self.random_client = os.urandom(20)
         ECDH_public_key_bytes = self.ECDH_private_key_client.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
@@ -184,10 +183,10 @@ class Session():
         print("第二次握手信息", loads)
         NewDataPkt = PL.DataPkt(1, 0, 1, 0,
             sid if sid else self.sid,
-            nid_cus=nid if nid else self.nid, SegID=0,
-            PIDs=pids if pids else self.pids, load=loads)
+            nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=2,
+            PIDs=pids if pids else self.pids, load=str.encode(loads))
         colordatapkt = NewDataPkt.packing()
-        self.status = 4
+        self.myStatus = 4
         self.ensureSend(ip if ip else self.ip, colordatapkt, 4)
 
     def sendThirdHandshake(self, nid=None, sid=None, pids=None, ip=None):
@@ -203,10 +202,10 @@ class Session():
         print("第三次握手信息", loads)
         NewDataPkt = PL.DataPkt(1, 0, 1, 0,
             sid if sid else self.sid,
-            nid_cus=nid if nid else self.nid, SegID=0,
-            PIDs=pids if pids else self.pids, load=loads)
+            nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=3,
+            PIDs=pids if pids else self.pids, load=str.encode(loads))
         colordatapkt = NewDataPkt.packing()
-        self.status = 5
+        self.myStatus = 5
         self.ensureSend(ip if ip else self.ip, colordatapkt, 5)
 
     def sendGet(self):
@@ -214,11 +213,13 @@ class Session():
         PL.Get(tmpsid, 2)
 
     def ensureSend(self, ip, pkt, num):
+        ''' docstring: 保证可靠传输。TODO:信号存在问题，暂时不用，假定传输可靠 '''
         PL.SendIpv4(ip, pkt)
+        return
         for i in range(3):
             time.sleep(RTO)
-            if self.status == num:
-                self.signals.emit(0, f'第{num}次握手包，第{i+1}次重传')
+            if self.myStatus == num:
+                self.signal.emit(0, f'第{num}次握手包，第{i+1}次重传')
                 PL.SendIpv4(ip, pkt)
             else:
                 break
@@ -249,14 +250,14 @@ def newSession(nid:int, sid:str, pids:list, ip:str, signal:pyqtSignal, flag = Tr
         nid2sidList[nid_str]=[sid]
     else:
         # 同一个nid已经存在，已经握过手了
-        newsession.status = 6
+        newsession.myStatus = 6
         nid2sidList[nid_str].append(sid)
         return
     # 开始握手
     if flag:
-        newsession.sendFirstHandshake()
+        newsession.sendFirstHandshake(nid=nid)
     else:
-        newsession.status = 2
+        newsession.myStatus = 2
         # 验证签名并保存参数
         data = json.loads(loads)
         if data["cypher_suite"] != "ECDHE_ECDSA_WITH_AES_256_GCM_SHA256":
@@ -264,16 +265,16 @@ def newSession(nid:int, sid:str, pids:list, ip:str, signal:pyqtSignal, flag = Tr
             return
         newsession.remote_ECDH_public_key_bytes = bytes.fromhex(data["keyexchange_pare"])
         newsession.random_server = bytes.fromhex(data["random"])
-        remote_public_key_bytes = bytes.fromhex(data["public_key"])
-        if not checkNidPublickey(nid_str, remote_public_key_bytes):
+        newsession.remote_public_key_bytes = bytes.fromhex(data["public_key"])
+        if not checkNidPublickey(nid_str, newsession.remote_public_key_bytes):
             signal.emit(1, "公钥自证明错误，建立会话失败\n")
             return
         message = str.encode(data["cypher_suite"]) \
             + newsession.remote_ECDH_public_key_bytes \
             + newsession.random_server \
-            + remote_public_key_bytes
+            + newsession.remote_public_key_bytes
         signature = bytes.fromhex(data["signature"])
-        if not checkSignature(message, signature, remote_public_key_bytes):
+        if not checkSignature(message, signature, newsession.remote_public_key_bytes):
             signal.emit(1, "公钥签名错误，建立会话失败\n")
             return
         newsession.calcSharedKey()
@@ -295,16 +296,14 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
     session = Session_list.get(session_key, None)
     if not session:
         return
-    else:
-        session = session[0]
-    if session.status == 1:
-        session.status = 3
+    if session.myStatus == 1:
+        session.myStatus = 3
         session.sendGet()
-    elif session.status == 2:
-        session.status = 4
-        session.sendSecondHandshake(nid, "0"*39+"2", pids, ip)
-    elif session.status == 3:
-        session.status = 5
+    elif session.myStatus == 2:
+        session.myStatus = 4
+        session.sendSecondHandshake(nid, Agent.nid.hex()+"0"*39+"2", pids, ip)
+    elif session.myStatus == 3:
+        session.myStatus = 5
         # 验证签名并保存参数
         data = json.loads(loads)
         if data["cypher_suite"] != "ECDHE_ECDSA_WITH_AES_256_GCM_SHA256":
@@ -326,16 +325,18 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
             return
         session.calcSharedKey()
         session.sendThirdHandshake()
-    elif session.status == 4:
-        session.status = 6
+    elif session.myStatus == 4:
+        session.myStatus = 6
         data = json.loads(loads)
         message = str.encode(data['status']) + bytes.fromhex(data['session_id'])
         if not checkSignature(message, bytes.fromhex(data['signature']),
             session.remote_public_key_bytes):
             session.signal.emit(1, "公钥签名错误，建立会话失败\n")
             return
-    elif session.status == 5:
-        session.status = 6
+    elif session.myStatus == 5:
+        session.myStatus = 6
+
+    print(session.nid, session.sid, session.myStatus)
 
 
 # TODO: 需要一个线程处理失败的或超时的连接

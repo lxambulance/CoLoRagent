@@ -147,6 +147,7 @@ def SidAnn(ttl=64, PublicKey='', P=0):
             AnnSidUnits[NewKey] = SidUnits[key]
             Lock_AnnSidUnits.release()
         SendIpv4(GetRMip(), Tar)
+        # print(Tar)
     else:
         print("错误！代理注册未完成！")
 
@@ -824,6 +825,7 @@ def SendIpv4(ipdst, data):
     ''' docstring: 封装IPv4网络包并发送
     ipdst: 目标IP地址，data: IP包正文内容，proto: 约定值150 '''
     pkt = IP(dst=ipdst, proto=150) / data
+    # print(ipdst, data)
     # pkt.show()
     send(pkt, verbose=0)
 

@@ -343,13 +343,12 @@ class PktHandler(threading.Thread):
                                 return
                         # 特殊握手数据
                         elif NewSid not in RecvingSid.keys() and RecvDataPkt.load[0]==123:
-                            specsid = f"{PL.Nid:032x}" + '0'*39 + '2'
-                            if NewSid != specsid:
+                            if isinstance(SavePath, int) and SavePath == 2 or RecvDataPkt.SegID == 3:
+                                ESS.gotoNextStatus(RecvDataPkt.nid_pro, loads=RecvDataPkt.load)
+                            else:
                                 ESS.newSession(RecvDataPkt.nid_pro, NewSid,
                                     RecvDataPkt.PIDs[1:][::-1], ReturnIP, self.signals.output,
                                     flag = False, loads = RecvDataPkt.load)
-                            else:
-                                ESS.gotoNextStatus(RecvDataPkt.nid_pro, loads=RecvDataPkt.load)
                         # 普通文件
                         elif NewSid not in RecvingSid.keys():
                             # 新内容
@@ -399,7 +398,7 @@ class PktHandler(threading.Thread):
                                 WaitingACK[NidCus] = 0
                             Lock_WaitingACK.release()
                             return
-                        # 回应加密握手包
+                        # 回应加密握手包, TODO: 判断条件是否有必要???
                         if (NewSid not in SendingSid.keys()):
                             ESS.gotoNextStatus(RecvDataPkt.nid_cus, NewSid)
                         # 普通文件
