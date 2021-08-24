@@ -117,7 +117,7 @@ class PktHandler(threading.Thread):
 
     def run(self):
         if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
-            self.packet.show()
+            # self.packet.show()
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
             if(PL.RegFlag == 0):
@@ -202,7 +202,7 @@ class PktHandler(threading.Thread):
                             # 安全链接服务
                             ESS.gotoNextStatus(NidCus, pids=PIDs, ip=ReturnIP)
                         return
-                    if SidUnitLevel>5:
+                    if int(SidUnitLevel)>5:
                         ESS.newSession(NidCus, NewSid, PIDs, ReturnIP, self.signals.output)
                         return
                     # 获取数据，分片或直接传输
