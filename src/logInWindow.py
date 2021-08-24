@@ -63,6 +63,7 @@ class logInWindow(QDialog, Ui_Dialog):
             __raw_data['RMIPv4'] = self.rmIPv4
             with open(self.configpath, 'w') as f:
                 json.dump(__raw_data, f)
+            ESS.Agent.saveKey(self.configpath)
 
     def autoFillForm(self, path):
         ''' docstring: 根据*.json文件内容填写表单剩余项 '''
@@ -75,7 +76,7 @@ class logInWindow(QDialog, Ui_Dialog):
             try:
                 ESS.Agent.loadKey(__raw_data)
             except:
-                # print("load wrong! regenerate keys.")
+                print("load wrong! regenerate keys.")
                 ESS.Agent.regenerate()
             self.myNID = ESS.Agent.nid.hex()
             self.agentNID.setText(self.myNID)

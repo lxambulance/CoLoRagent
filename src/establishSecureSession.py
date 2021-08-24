@@ -35,7 +35,7 @@ class keys():
         self.private_key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(data['private_key']))
         self.public_key_bytes = bytes.fromhex(data['public_key'])
         self.public_key = Ed25519PublicKey.from_public_bytes(self.public_key_bytes)
-        self.nid = data['myNID']
+        self.nid = bytes.fromhex(data['myNID'])
         self.rsa_private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048

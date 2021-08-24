@@ -61,8 +61,8 @@ class CoLoRApp(QApplication):
 
         # 测试
         CM.PL.RegFlag=1
-        nid = "11111111111111111111111111111100"
-        CM.PL.PeerProxys[int(nid, 16)]='192.168.56.101'
+        nid = "b0cd69ef142db5a471676ad710eebf3a"
+        CM.PL.PeerProxys[int(nid, 16)]='192.168.50.62'
         # time.sleep(2)
         # Video provider
         # CM.PL.AddCacheSidUnit(1,1,1,1,1)
