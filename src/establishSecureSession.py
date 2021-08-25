@@ -4,6 +4,8 @@ import json
 import hashlib
 import time
 import ProxyLib as PL
+import ColorMonitor as CM
+import math
 import os
 from threading import Thread
 from PyQt5.QtCore import pyqtSignal
@@ -14,6 +16,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 
 class MyEncoder(json.JSONEncoder):
@@ -84,8 +87,8 @@ class keys():
         )
         # print(self.rsa_public_key_bytes)
         # print(rsa_private_key_bytes)
-        print("public key:", self.public_key_bytes.hex())
-        print("nid:", self.nid.hex())
+        # print("public key:", self.public_key_bytes.hex())
+        # print("nid:", self.nid.hex())
 
 def checkNidPublickey(nid, public_key_bytes):
     calcnid = HKDF(
@@ -109,7 +112,7 @@ Agent = keys()
 Session_list = {} # key: nid+sid, value:Session()
 nid2sidList = {} # key:nid, value:[sid]
 # TODO: 遗留问题，通过nid找sid，因为get包缺少第二个sid字段
-RTO = 2
+RTO = 2 # 超时重传时间默认设置为两秒
 
 class Session():
     ''' docstring: 会话类，主要的存储对象 '''
@@ -120,19 +123,21 @@ class Session():
         self.ip = ip
         self.signal = signal
         self.myStatus = 0
-        self.ECDH_private_key_client = ec.generate_private_key(ec.SECP384R1())
-        self.ECDH_private_key_server = None
+        self.sessionId = None # TODO: 处理快速连接
+        self.ECDH_private_key_self = ec.generate_private_key(ec.SECP384R1()) # 由于后续两端使用位置不一致，这里直接初始化
+        self.ECDH_private_key_remote = None
         self.ECDH_shared_key = None
         self.random_client = None
         self.random_server = None
+        self.mainKey = None
         self.remote_ECDH_public_key_bytes = None
         self.remote_public_key_bytes = None
 
     def sendFirstHandshake(self, nid=None, sid=None, pids=None, ip=None):
         ''' docstring: 发送第一个握手包 '''
-        self.ECDH_private_key_server = ec.generate_private_key(ec.SECP384R1())
+        self.ECDH_private_key_remote = ec.generate_private_key(ec.SECP384R1())
         self.random_server = os.urandom(20)
-        ECDH_public_key_bytes = self.ECDH_private_key_server.public_key().public_bytes(
+        ECDH_public_key_bytes = self.ECDH_private_key_remote.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.UncompressedPoint
         )
@@ -150,11 +155,11 @@ class Session():
             "signature":signature
         }
         loads = json.dumps(data, cls=MyEncoder)
-        print("第一次握手信息", loads)
+        self.signal(0, f"第一次握手信息{loads}")
         NewDataPkt = PL.DataPkt(1, 0, 1, 0,
             sid if sid else self.sid,
             nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=1,
-            PIDs=pids if pids else self.pids, load=str.encode(loads))
+            PIDs=pids if pids else self.pids, load=b'\x02'+str.encode(loads))
         colordatapkt = NewDataPkt.packing()
         self.myStatus = 1
         self.ensureSend(ip if ip else self.ip, colordatapkt, 1)
@@ -162,7 +167,7 @@ class Session():
     def sendSecondHandshake(self, nid=None, sid=None, pids=None, ip=None):
         ''' docstring: 发送第二个握手包 '''
         self.random_client = os.urandom(20)
-        ECDH_public_key_bytes = self.ECDH_private_key_client.public_key().public_bytes(
+        ECDH_public_key_bytes = self.ECDH_private_key_self.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.UncompressedPoint
         )
@@ -180,11 +185,11 @@ class Session():
             "signature":signature
         }
         loads = json.dumps(data, cls=MyEncoder)
-        print("第二次握手信息", loads)
+        self.signal(0, f"第二次握手信息{loads}")
         NewDataPkt = PL.DataPkt(1, 0, 1, 0,
             sid if sid else self.sid,
             nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=2,
-            PIDs=pids if pids else self.pids, load=str.encode(loads))
+            PIDs=pids if pids else self.pids, load=b'\x02' + str.encode(loads))
         colordatapkt = NewDataPkt.packing()
         self.myStatus = 4
         self.ensureSend(ip if ip else self.ip, colordatapkt, 4)
@@ -192,6 +197,7 @@ class Session():
     def sendThirdHandshake(self, nid=None, sid=None, pids=None, ip=None):
         ''' docstring: 发送第三个握手包 '''
         session_id = os.urandom(8)
+        self.sessionId = session_id
         signature = Agent.private_key.sign(str.encode("finished") + session_id)
         data = {
             "status": "finished",
@@ -199,11 +205,11 @@ class Session():
             "signature": signature
         }
         loads = json.dumps(data, cls=MyEncoder)
-        print("第三次握手信息", loads)
+        self.signal(0, f"第三次握手信息{loads}")
         NewDataPkt = PL.DataPkt(1, 0, 1, 0,
             sid if sid else self.sid,
             nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=3,
-            PIDs=pids if pids else self.pids, load=str.encode(loads))
+            PIDs=pids if pids else self.pids, load=b'\x02' + str.encode(loads))
         colordatapkt = NewDataPkt.packing()
         self.myStatus = 5
         self.ensureSend(ip if ip else self.ip, colordatapkt, 5)
@@ -225,15 +231,23 @@ class Session():
                 break
 
     def calcSharedKey(self):
-        ''' docstring: 计算共享密钥 '''
+        ''' docstring: 计算共享密钥和会话主秘钥 '''
         remote_ECDH_public_key = ec.EllipticCurvePublicKey.from_encoded_point(
             ec.SECP384R1(),
             self.remote_ECDH_public_key_bytes
         )
-        self.ECDH_shared_key = self.ECDH_private_key_client.exchange(
+        self.ECDH_shared_key = self.ECDH_private_key_self.exchange(
             ec.ECDH(),
             remote_ECDH_public_key
         )
+        prekey = self.ECDH_shared_key + self.random_client + self.random_server
+        self.mainKey = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=self.random_client + self.random_server,
+            info=None
+        ).derive(prekey)
+
 
 def newSession(nid:int, sid:str, pids:list, ip:str, signal:pyqtSignal, flag = True, loads = b''):
     ''' docstring: 建立一个新的会话 '''
@@ -259,7 +273,7 @@ def newSession(nid:int, sid:str, pids:list, ip:str, signal:pyqtSignal, flag = Tr
     else:
         newsession.myStatus = 2
         # 验证签名并保存参数
-        data = json.loads(loads)
+        data = json.loads(loads[1])
         if data["cypher_suite"] != "ECDHE_ECDSA_WITH_AES_256_GCM_SHA256":
             signal.emit(1, "加密套件不支持")
             return
@@ -277,21 +291,17 @@ def newSession(nid:int, sid:str, pids:list, ip:str, signal:pyqtSignal, flag = Tr
         if not checkSignature(message, signature, newsession.remote_public_key_bytes):
             signal.emit(1, "公钥签名错误，建立会话失败\n")
             return
-        newsession.calcSharedKey()
         # 发送特殊通告包
         PL.AddCacheSidUnit(2,1,1,1,1)
         PL.SidAnn()
 
+def checkSession(nid, sid):
+    session_key = f"{nid:032x}" + sid
+    return Session_list.get(session_key, None) != None
+
 def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None):
     ''' docstring: session状态转移函数 '''
     nid_str = f"{nid:032x}"
-    if not sid:
-        sid = nid2sidList.get(nid_str, None)
-        if not sid:
-            # 错误的nid
-            return
-        else:
-            sid = sid[0]
     session_key = nid_str+sid
     session = Session_list.get(session_key, None)
     if not session:
@@ -302,10 +312,11 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
     elif session.myStatus == 2:
         session.myStatus = 4
         session.sendSecondHandshake(nid, Agent.nid.hex()+"0"*39+"2", pids, ip)
+        session.calcSharedKey()
     elif session.myStatus == 3:
         session.myStatus = 5
         # 验证签名并保存参数
-        data = json.loads(loads)
+        data = json.loads(loads[1])
         if data["cypher_suite"] != "ECDHE_ECDSA_WITH_AES_256_GCM_SHA256":
             session.signal.emit(1, "加密套件不支持")
             return
@@ -327,16 +338,17 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
         session.sendThirdHandshake()
     elif session.myStatus == 4:
         session.myStatus = 6
-        data = json.loads(loads)
+        data = json.loads(loads[1])
+        session.sessionId = bytes.fromhex(data['session_id'])
         message = str.encode(data['status']) + bytes.fromhex(data['session_id'])
-        if not checkSignature(message, bytes.fromhex(data['signature']),
-            session.remote_public_key_bytes):
+        if not checkSignature(message, bytes.fromhex(data['signature']), session.remote_public_key_bytes):
             session.signal.emit(1, "公钥签名错误，建立会话失败\n")
             return
     elif session.myStatus == 5:
+        # 握手阶段结束，开始处理加密通信
         session.myStatus = 6
-
-    print(session.nid, session.sid, session.myStatus)
+        # TODO: 想办法调用CM run
+    session.signal.emit(0, f"与节点{session.nid}的{session.sid}已建立加密通道")
 
 
 # TODO: 需要一个线程处理失败的或超时的连接

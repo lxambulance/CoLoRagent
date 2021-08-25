@@ -202,6 +202,7 @@ class PktHandler(threading.Thread):
                             # 安全链接服务
                             ESS.gotoNextStatus(NidCus, pids=PIDs, ip=ReturnIP)
                         return
+                    # 特定密集文件，开启加密传输
                     if int(SidUnitLevel)>5:
                         ESS.newSession(NidCus, NewSid, PIDs, ReturnIP, self.signals.output)
                         return
@@ -341,8 +342,8 @@ class PktHandler(threading.Thread):
                             Lock_VideoCache.release()
                             if(RecvDataPkt.R == 0):
                                 return
-                        # 特殊握手数据
-                        elif NewSid not in RecvingSid.keys() and RecvDataPkt.load[0]==123:
+                        # 握手数据
+                        elif NewSid not in RecvingSid.keys() and RecvDataPkt.load[0]==2:
                             if isinstance(SavePath, int) and SavePath == 2 or RecvDataPkt.SegID == 3:
                                 ESS.gotoNextStatus(RecvDataPkt.nid_pro, loads=RecvDataPkt.load)
                             else:
@@ -398,8 +399,8 @@ class PktHandler(threading.Thread):
                                 WaitingACK[NidCus] = 0
                             Lock_WaitingACK.release()
                             return
-                        # 回应加密握手包, TODO: 判断条件是否有必要???
-                        if (NewSid not in SendingSid.keys()):
+                        # 回应加密握手包
+                        if ESS.checkSession(RecvDataPkt.nid_cus, NewSid) and RecvDataPkt.SegID < 4:
                             ESS.gotoNextStatus(RecvDataPkt.nid_cus, NewSid)
                         # 普通文件
                         if (NewSid not in SendingSid.keys()) or (RecvDataPkt.SegID != SendingSid[NewSid][2]-1):
