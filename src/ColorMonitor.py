@@ -198,27 +198,34 @@ class PktHandler(threading.Thread):
                             # 视频服务
                             self.video_provider(
                                 NewSid, NidCus, PIDs, SidLoadLength, ReturnIP)
-                        elif SidPath == 2:
+                        elif (SidPath & 0xff) == 2:
                             # 安全链接服务
-                            ESS.gotoNextStatus(NidCus, pids=PIDs, ip=ReturnIP)
+                            ESS.gotoNextStatus(NidCus, NewSid, pids=PIDs, ip=ReturnIP)
                         return
                     # 特定密集文件，开启加密传输
+                    ESSflag = ESS.checkSession(NidCus, NewSid)
                     if int(SidUnitLevel)>5:
-                        ESS.newSession(NidCus, NewSid, PIDs, ReturnIP, self.signals.output)
-                        return
+                        if not ESSflag:
+                            ESS.newSession(NidCus, NewSid, PIDs, ReturnIP, self.signals.output, pkt=self.packet)
+                            return
+                        elif not ESS.sessionReady(NidCus, NewSid):
+                            self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
+                            return
                     # 获取数据，分片或直接传输
                     DataLength = len(PL.ConvertFile(SidPath))
+                    if ESSflag:
+                        SidLoadLength -= 36
                     if (DataLength <= SidLoadLength):
                         ChipNum = 1
                         ChipLength = DataLength
-                        load = PL.ConvertInt2Bytes(
-                            1, 1) + PL.ConvertFile(SidPath)
+                        text = PL.ConvertFile(SidPath)
+                        load = PL.ConvertInt2Bytes(5 if ESSflag else 1, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
                     else:
                         ChipNum = math.ceil(DataLength/SidLoadLength)
                         ChipLength = SidLoadLength
-                        load = PL.ConvertInt2Bytes(
-                            0, 1) + PL.ConvertFile(SidPath, rpointer=SidLoadLength)
-                    SendingSid[NewSid] = [ChipNum, ChipLength, 1, NidCus, PIDs]
+                        text = PL.ConvertFile(SidPath, rpointer=SidLoadLength)
+                        load = PL.ConvertInt2Bytes(4 if ESSflag else 0, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
+                    SendingSid[NewSid] = [ChipNum, ChipLength, 1, NidCus, PIDs, ESSflag]
                     NewDataPkt = PL.DataPkt(
                         1, 0, 1, 0, NewSid, nid_cus=NidCus, SegID=0, PIDs=PIDs, load=load)
                     Tar = NewDataPkt.packing()
@@ -344,16 +351,16 @@ class PktHandler(threading.Thread):
                                 return
                         # 握手数据
                         elif NewSid not in RecvingSid.keys() and RecvDataPkt.load[0]==2:
-                            if isinstance(SavePath, int) and SavePath == 2 or RecvDataPkt.SegID == 3:
-                                ESS.gotoNextStatus(RecvDataPkt.nid_pro, loads=RecvDataPkt.load)
+                            if RecvDataPkt.SegID > 1:
+                                ESS.gotoNextStatus(RecvDataPkt.nid_pro, NewSid, loads=RecvDataPkt.load)
                             else:
                                 ESS.newSession(RecvDataPkt.nid_pro, NewSid,
                                     RecvDataPkt.PIDs[1:][::-1], ReturnIP, self.signals.output,
-                                    flag = False, loads = RecvDataPkt.load)
+                                    flag = False, loads = RecvDataPkt.load, pkt = RecvDataPkt)
                         # 普通文件
                         elif NewSid not in RecvingSid.keys():
                             # 新内容
-                            if (RecvDataPkt.load[0] == 1):
+                            if ((RecvDataPkt.load[0] & 1) == 1):
                                 # 使用一个data包完成传输
                                 PL.Lock_gets.acquire()
                                 PL.gets.pop(NewSid)  # 传输完成
@@ -363,13 +370,15 @@ class PktHandler(threading.Thread):
                                 RecvingSid[NewSid] = 1  # 记录当前SID信息
                             else:
                                 return
+                            text = RecvDataPkt.load[1:]
                             PL.ConvertByte(
-                                RecvDataPkt.load[1:], SavePath)  # 存储数据
+                                ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, text) if (RecvDataPkt.load[0] & 4) == 4 else text,
+                                SavePath)  # 存储数据
                         else:
                             # 此前收到过SID的数据包
                             if(RecvDataPkt.S != 0) and (RecvDataPkt.SegID == RecvingSid[NewSid]):
                                 # 正确的后续数据包
-                                if(RecvDataPkt.load[0] == 1):
+                                if((RecvDataPkt.load[0] & 1) == 1):
                                     # 传输完成
                                     RecvingSid.pop(NewSid)
                                     PL.Lock_gets.acquire()
@@ -377,8 +386,10 @@ class PktHandler(threading.Thread):
                                     PL.Lock_gets.release()
                                 else:
                                     RecvingSid[NewSid] += 1
+                                text = RecvDataPkt.load[1:]
                                 PL.ConvertByte(
-                                    RecvDataPkt.load[1:], SavePath)  # 存储数据
+                                    ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, text) if (RecvDataPkt.load[0] & 4) == 4 else text,
+                                    SavePath)  # 存储数据
                             elif(RecvDataPkt.S != 0) and (RecvDataPkt.SegID < RecvingSid[NewSid]):
                                 # 此前已收到数据包（可能是ACK丢失）,仅返回ACK
                                 self.signals.output.emit(0, '此前已收到数据包，重传ACK')
@@ -400,13 +411,15 @@ class PktHandler(threading.Thread):
                             Lock_WaitingACK.release()
                             return
                         # 回应加密握手包
-                        if ESS.checkSession(RecvDataPkt.nid_cus, NewSid) and RecvDataPkt.SegID < 4:
-                            ESS.gotoNextStatus(RecvDataPkt.nid_cus, NewSid)
-                        # 普通文件
+                        if ESS.checkSession(RecvDataPkt.nid_cus, NewSid) or RecvDataPkt.SegID == 3:
+                            ESS.gotoNextStatus(RecvDataPkt.nid_cus, NewSid, SegID=RecvDataPkt.SegID)
                         if (NewSid not in SendingSid.keys()) or (RecvDataPkt.SegID != SendingSid[NewSid][2]-1):
                             return
+                        # 普通文件
                         if(SendingSid[NewSid][0] > SendingSid[NewSid][2]):
                             # 发送下一片
+                            ESSflag = SendingSid[NewSid][5]
+                            NidCus = SendingSid[NewSid][3]
                             PL.Lock_AnnSidUnits.acquire()
                             SidPath = PL.AnnSidUnits[NewSid].path
                             PL.Lock_AnnSidUnits.release()
@@ -414,11 +427,11 @@ class PktHandler(threading.Thread):
                                 SendingSid[NewSid][2]
                             if(SendingSid[NewSid][0] == SendingSid[NewSid][2]+1):
                                 # 最后一片
-                                load = PL.ConvertInt2Bytes(
-                                    1, 1) + PL.ConvertFile(SidPath, lpointer=lpointer)
+                                text = PL.ConvertFile(SidPath, lpointer=lpointer)
+                                load = PL.ConvertInt2Bytes(5 if ESSflag else 1, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
                             else:
-                                load = PL.ConvertInt2Bytes(
-                                    0, 1) + PL.ConvertFile(SidPath, lpointer=lpointer, rpointer=lpointer+SendingSid[NewSid][1])
+                                text = PL.ConvertFile(SidPath, lpointer=lpointer, rpointer=lpointer+SendingSid[NewSid][1])
+                                load = PL.ConvertInt2Bytes(4 if ESSflag else 0, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
                             SegID = SendingSid[NewSid][2]
                             SendingSid[NewSid][2] += 1  # 下一片指针偏移
                             NewDataPkt = PL.DataPkt(

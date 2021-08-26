@@ -109,8 +109,8 @@ def checkSignature(message, signature, public_key_bytes):
         return True
 
 Agent = keys()
-Session_list = {} # key: nid+sid, value:Session()
-nid2sidList = {} # key:nid, value:[sid]
+sessionlist = {} # key: nid+sid, value:Session()
+specsid2sid = {} # key:nid, value:sid
 # TODO: 遗留问题，通过nid找sid，因为get包缺少第二个sid字段
 RTO = 2 # 超时重传时间默认设置为两秒
 
@@ -214,9 +214,12 @@ class Session():
         self.myStatus = 5
         self.ensureSend(ip if ip else self.ip, colordatapkt, 5)
 
-    def sendGet(self):
-        tmpsid = self.nid + "00"*19 + "02"
+    def sendGet(self, SegID):
+        SegID_str = f"{SegID:08x}"
+        tmpsid = SegID_str[0:3] + "00"*16 + '02'
+        specsid2sid[tmpsid] = self.sid
         PL.Get(tmpsid, 2)
+        # TODO: 需要重传确认
 
     def ensureSend(self, ip, pkt, num):
         ''' docstring: 保证可靠传输。TODO:信号存在问题，暂时不用，假定传输可靠 '''
@@ -249,27 +252,39 @@ class Session():
         ).derive(prekey)
 
 
-def newSession(nid:int, sid:str, pids:list, ip:str, signal:pyqtSignal, flag = True, loads = b''):
+def Encrypt(nid, sid, text):
+    ''' docstring: 对特定服务做加密，返回值是CoLoR_data_load加密包格式的bytes串 '''
+    session = sessionlist.get(f"{nid:032x}" + sid, None)
+    iv = os.urandom(16)
+    encryptor = Cipher(algorithms.AES(session.mainKey), modes.GCM(iv, min_tag_length=20)).encryptor()
+    encryptor.authenticate_additional_data(session.random_client + session.random_server)
+    ciphertext = encryptor.update(text) + encryptor.finalize()
+    return iv + encryptor.tag + ciphertext
+
+def Decrypt(nid, sid, load):
+    ''' docstring: 对特定服务做解密，返回值明文bytes串 '''
+    session = sessionlist.get(f"{nid:032x}" + sid, None)
+    iv = load[:16]
+    tag = load[16:36]
+    decryptor = Cipher(algorithms.AES(session.mainKey), modes.GCM(iv, tag)).decryptor()
+    decryptor.authenticate_additional_data(session.random_client + session.random_server)
+    return decryptor.update(load[36:]) + decryptor.finalize()
+
+def newSession(nid:int, sid:str, pids:list, ip:str, signal:pyqtSignal, flag = True, loads = b'', pkt = None):
     ''' docstring: 建立一个新的会话 '''
     signal.emit(0, f"文件（{sid}）\n建立加密会话\n")
     nid_str = f"{nid:032x}"
     session_key = nid_str+sid
-    newsession = Session_list.get(session_key, None)
+    newsession = sessionlist.get(session_key, None)
     if newsession:
         # TODO: 一次异常的重连
         return
     newsession = Session(nid_str, sid, pids, ip, signal)
-    Session_list[session_key] = newsession
-    if nid2sidList.get(nid_str, None) == None:
-        nid2sidList[nid_str]=[sid]
-    else:
-        # 同一个nid已经存在，已经握过手了
-        newsession.myStatus = 6
-        nid2sidList[nid_str].append(sid)
-        return
+    sessionlist[session_key] = newsession
     # 开始握手
     if flag:
         newsession.sendFirstHandshake(nid=nid)
+        newsession.pkt = pkt
     else:
         newsession.myStatus = 2
         # 验证签名并保存参数
@@ -292,26 +307,47 @@ def newSession(nid:int, sid:str, pids:list, ip:str, signal:pyqtSignal, flag = Tr
             signal.emit(1, "公钥签名错误，建立会话失败\n")
             return
         # 发送特殊通告包
-        PL.AddCacheSidUnit(2,1,1,1,1)
+        specsid = os.urandom(3)
+        newSID = specsid.hex() + '00'*16 + '02'
+        while specsid2sid.get(newSID, None):
+            specsid = os.urandom(3)
+            newSID = specsid.hex() + '00'*16 + '02'
+        specsid2sid[newSID] = sid
+        pkt.SegID = int(specsid.hex()+'01', 16)
+        PL.AddCacheSidUnit(int(newSID,16),1,1,1,1)
         PL.SidAnn()
 
 def checkSession(nid, sid):
     session_key = f"{nid:032x}" + sid
-    return Session_list.get(session_key, None) != None
+    return sessionlist.get(session_key, None) != None
 
-def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None):
+def sessionReady(nid, sid):
+    session_key = f"{nid:032x}" + sid
+    session = sessionlist.get(session_key, None)
+    if not session:
+        return False
+    return session.myStatus == 6
+
+def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None, SegID = 0):
     ''' docstring: session状态转移函数 '''
+    if not checkSession(nid, sid):
+        # 特殊sid转化为真实sid
+        sid = specsid2sid.pop(sid, None)
+        if not sid:
+            return
     nid_str = f"{nid:032x}"
     session_key = nid_str+sid
-    session = Session_list.get(session_key, None)
-    if not session:
+    session = sessionlist.get(session_key, None)
+    if not session or session.myStatus == 6:
         return
     if session.myStatus == 1:
+        if (SegID & 0xff) != 1:
+            return
         session.myStatus = 3
-        session.sendGet()
+        session.sendGet(SegID)
     elif session.myStatus == 2:
         session.myStatus = 4
-        session.sendSecondHandshake(nid, Agent.nid.hex()+"0"*39+"2", pids, ip)
+        session.sendSecondHandshake(nid, sid, pids, ip)
         session.calcSharedKey()
     elif session.myStatus == 3:
         session.myStatus = 5
@@ -337,6 +373,8 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
         session.calcSharedKey()
         session.sendThirdHandshake()
     elif session.myStatus == 4:
+        if SegID != 2:
+            return
         session.myStatus = 6
         data = json.loads(loads[1])
         session.sessionId = bytes.fromhex(data['session_id'])
@@ -345,10 +383,14 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
             session.signal.emit(1, "公钥签名错误，建立会话失败\n")
             return
     elif session.myStatus == 5:
+        if SegID != 3:
+            return
         # 握手阶段结束，开始处理加密通信
         session.myStatus = 6
-        # TODO: 想办法调用CM run
-    session.signal.emit(0, f"与节点{session.nid}的{session.sid}已建立加密通道")
+        pkthandler = CM.PktHandler(session.pkt)
+        pkthandler.start()
+    if session.myStatus == 6:    
+        session.signal.emit(0, f"与节点{session.nid}的{session.sid}已建立加密通道")
 
 
 # TODO: 需要一个线程处理失败的或超时的连接
@@ -360,7 +402,6 @@ class sessionDaemon(Thread):
 
     def run(self):
         pass
-
 
 # test1: load private key & decrypt
 # from cryptography.hazmat.primitives import serialization
