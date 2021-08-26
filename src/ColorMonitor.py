@@ -193,6 +193,7 @@ class PktHandler(threading.Thread):
                                 1, "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                             return
                     # 判断是否传递特殊内容
+                    print('lxambulance sb', SidPath)
                     if isinstance(SidPath, int):
                         if SidPath == 1:
                             # 视频服务
