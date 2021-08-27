@@ -5,7 +5,7 @@ import hashlib
 import time
 import ProxyLib as PL
 import ColorMonitor as CM
-import math
+import threading
 import os
 from threading import Thread
 from PyQt5.QtCore import pyqtSignal, QObject
@@ -256,12 +256,14 @@ class Session():
             info=None
         ).derive(prekey)
 
+# import queue
+# decryptqueue = queue.Queue(200)
 
 def Encrypt(nid, sid, text):
     ''' docstring: 对特定服务做加密，返回值是CoLoR_data_load加密包格式的bytes串 '''
     session = sessionlist.get(f"{nid:032x}" + sid, None)
     iv = os.urandom(16)
-    encryptor = Cipher(algorithms.AES(session.mainKey), modes.GCM(iv, min_tag_length=20)).encryptor()
+    encryptor = Cipher(algorithms.AES(session.mainKey), modes.GCM(iv)).encryptor()
     encryptor.authenticate_additional_data(session.random_client + session.random_server)
     ciphertext = encryptor.update(text) + encryptor.finalize()
     return iv + encryptor.tag + ciphertext
@@ -270,10 +272,28 @@ def Decrypt(nid, sid, load):
     ''' docstring: 对特定服务做解密，返回值明文bytes串 '''
     session = sessionlist.get(f"{nid:032x}" + sid, None)
     iv = load[:16]
-    tag = load[16:36]
+    tag = load[16:32]
     decryptor = Cipher(algorithms.AES(session.mainKey), modes.GCM(iv, tag)).decryptor()
     decryptor.authenticate_additional_data(session.random_client + session.random_server)
-    return decryptor.update(load[36:]) + decryptor.finalize()
+    return decryptor.update(load[32:]) + decryptor.finalize()
+
+# class decryptor(Thread):
+#     def __init__(self):
+#         Thread.__init__(self)
+    
+#     def run(self):
+#         round = 0
+#         while True:
+#             (nid, sid, load, path) = decryptqueue.get()
+#             print(round)
+#             round += 1
+#             try:
+#                 PL.ConvertByte(Decrypt(nid, sid, load), path)
+#             except:
+#                 pass
+
+# mydecryptor = decryptor()
+# mydecryptor.start()
 
 def newSession(nid:int, sid:str, pids:list, ip:str, flag = True, loads = b'', pkt = None):
     ''' docstring: 建立一个新的会话 '''
@@ -335,12 +355,10 @@ def sessionReady(nid, sid):
 
 def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None, SegID = 0):
     ''' docstring: session状态转移函数 '''
-    print("lxambulance ssbb", nid, sid)
     if not checkSession(nid, sid):
         # 特殊sid转化为真实sid
         sid_origin = sid
         sid = specsid2sid.pop(sid, None)
-        print("sid", sid)
         if not sid:
             return
     nid_str = f"{nid:032x}"

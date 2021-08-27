@@ -193,7 +193,6 @@ class PktHandler(threading.Thread):
                                 1, "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                             return
                     # 判断是否传递特殊内容
-                    print('lxambulance sb', SidPath)
                     if isinstance(SidPath, int):
                         if SidPath == 1:
                             # 视频服务
@@ -207,7 +206,7 @@ class PktHandler(threading.Thread):
                     ESSflag = ESS.checkSession(NidCus, NewSid)
                     if int(SidUnitLevel)>5:
                         if not ESSflag:
-                            ESS.newSession(NidCus, NewSid, PIDs, ReturnIP, self.signals.output, pkt=self.packet)
+                            ESS.newSession(NidCus, NewSid, PIDs, ReturnIP, pkt=self.packet)
                             return
                         elif not ESS.sessionReady(NidCus, NewSid):
                             self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
@@ -356,7 +355,7 @@ class PktHandler(threading.Thread):
                                 ESS.gotoNextStatus(RecvDataPkt.nid_pro, NewSid, loads=RecvDataPkt.load)
                             else:
                                 ESS.newSession(RecvDataPkt.nid_pro, NewSid,
-                                    RecvDataPkt.PIDs[1:][::-1], ReturnIP, self.signals.output,
+                                    RecvDataPkt.PIDs[1:][::-1], ReturnIP,
                                     flag = False, loads = RecvDataPkt.load, pkt = RecvDataPkt)
                         # 普通文件
                         elif NewSid not in RecvingSid.keys():
@@ -374,7 +373,8 @@ class PktHandler(threading.Thread):
                             text = RecvDataPkt.load[1:]
                             PL.ConvertByte(
                                 ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, text) if (RecvDataPkt.load[0] & 4) == 4 else text,
-                                SavePath)  # 存储数据
+                                SavePath
+                            ) # 存储数据
                         else:
                             # 此前收到过SID的数据包
                             if(RecvDataPkt.S != 0) and (RecvDataPkt.SegID == RecvingSid[NewSid]):
@@ -390,7 +390,8 @@ class PktHandler(threading.Thread):
                                 text = RecvDataPkt.load[1:]
                                 PL.ConvertByte(
                                     ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, text) if (RecvDataPkt.load[0] & 4) == 4 else text,
-                                    SavePath)  # 存储数据
+                                    SavePath
+                                ) # 存储数据
                             elif(RecvDataPkt.S != 0) and (RecvDataPkt.SegID < RecvingSid[NewSid]):
                                 # 此前已收到数据包（可能是ACK丢失）,仅返回ACK
                                 self.signals.output.emit(0, '此前已收到数据包，重传ACK')
