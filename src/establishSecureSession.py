@@ -226,7 +226,6 @@ class Session():
     def ensureSend(self, ip, pkt, num):
         ''' docstring: 保证可靠传输。TODO:信号存在问题，暂时不用，假定传输可靠 '''
         PL.SendIpv4(ip, pkt)
-        return
         for i in range(3):
             time.sleep(RTO)
             if self.myStatus == num:

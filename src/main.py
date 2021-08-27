@@ -1,17 +1,19 @@
 # coding=utf-8
 ''' docstring: 主程序 '''
 
+
 import sys
+import time
+
 import qdarkstyle as qds
 import ColorMonitor as CM
 import establishSecureSession as ESS
 import MainWindow as mw
 from logInWindow import logInWindow
-from PyQt5.QtWidgets import QApplication, QStyleFactory
-from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtCore import Qt
 
-import time
+from PyQt5.QtGui import QPalette
+from PyQt5.QtWidgets import QApplication, QStyleFactory
+
 
 try:
     # Include in try/except block if you're also targeting Mac/Linux
@@ -97,9 +99,9 @@ class CoLoRApp(QApplication):
 
 
 if __name__ == '__main__':
-    import os
-    os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
-    os.environ['QT_API'] = 'pyqt5'
+    # import os
+    # os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+    # os.environ['QT_API'] = 'pyqt5'
 
     app = CoLoRApp(sys.argv)
     sys.exit(app.exec_())
