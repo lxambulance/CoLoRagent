@@ -1,12 +1,11 @@
 # coding=utf-8
 
+
+import os
 import json
-import hashlib
 import time
 import ProxyLib as PL
 import ColorMonitor as CM
-import threading
-import os
 from threading import Thread
 from PyQt5.QtCore import pyqtSignal, QObject
 from cryptography.exceptions import InvalidSignature
@@ -130,7 +129,6 @@ class Session():
         self.myStatus = 0
         self.sessionId = None # TODO: 处理快速连接
         self.ECDH_private_key_self = ec.generate_private_key(ec.SECP384R1()) # 由于后续两端使用位置不一致，这里直接初始化
-        self.ECDH_private_key_remote = None
         self.ECDH_shared_key = None
         self.random_client = None
         self.random_server = None
@@ -140,9 +138,8 @@ class Session():
 
     def sendFirstHandshake(self, nid=None, sid=None, pids=None, ip=None):
         ''' docstring: 发送第一个握手包 '''
-        self.ECDH_private_key_remote = ec.generate_private_key(ec.SECP384R1())
         self.random_server = os.urandom(20)
-        ECDH_public_key_bytes = self.ECDH_private_key_remote.public_key().public_bytes(
+        ECDH_public_key_bytes = self.ECDH_private_key_self.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.UncompressedPoint
         )
@@ -249,15 +246,13 @@ class Session():
             remote_ECDH_public_key
         )
         prekey = self.ECDH_shared_key + self.random_client + self.random_server
+        # print("ECDH shared key:", self.ECDH_shared_key, "prekey:", prekey)
         self.mainKey = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
             salt=self.random_client + self.random_server,
             info=None
         ).derive(prekey)
-
-# import queue
-# decryptqueue = queue.Queue(200)
 
 def Encrypt(nid, sid, text):
     ''' docstring: 对特定服务做加密，返回值是CoLoR_data_load加密包格式的bytes串 '''
@@ -266,6 +261,8 @@ def Encrypt(nid, sid, text):
     encryptor = Cipher(algorithms.AES(session.mainKey), modes.GCM(iv)).encryptor()
     encryptor.authenticate_additional_data(session.random_client + session.random_server)
     ciphertext = encryptor.update(text) + encryptor.finalize()
+    # print(encryptor.tag, len(encryptor.tag))
+    # print(session.mainKey, iv, session.random_client + session.random_server)
     return iv + encryptor.tag + ciphertext
 
 def Decrypt(nid, sid, load):
@@ -273,27 +270,11 @@ def Decrypt(nid, sid, load):
     session = sessionlist.get(f"{nid:032x}" + sid, None)
     iv = load[:16]
     tag = load[16:32]
+    # print(tag, len(tag))
+    # print(session.mainKey, iv, session.random_client + session.random_server)
     decryptor = Cipher(algorithms.AES(session.mainKey), modes.GCM(iv, tag)).decryptor()
     decryptor.authenticate_additional_data(session.random_client + session.random_server)
     return decryptor.update(load[32:]) + decryptor.finalize()
-
-# class decryptor(Thread):
-#     def __init__(self):
-#         Thread.__init__(self)
-    
-#     def run(self):
-#         round = 0
-#         while True:
-#             (nid, sid, load, path) = decryptqueue.get()
-#             print(round)
-#             round += 1
-#             try:
-#                 PL.ConvertByte(Decrypt(nid, sid, load), path)
-#             except:
-#                 pass
-
-# mydecryptor = decryptor()
-# mydecryptor.start()
 
 def newSession(nid:int, sid:str, pids:list, ip:str, flag = True, loads = b'', pkt = None):
     ''' docstring: 建立一个新的会话 '''

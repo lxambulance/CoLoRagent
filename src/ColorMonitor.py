@@ -214,7 +214,7 @@ class PktHandler(threading.Thread):
                     # 获取数据，分片或直接传输
                     DataLength = len(PL.ConvertFile(SidPath))
                     if ESSflag:
-                        SidLoadLength -= 36
+                        SidLoadLength -= 32
                     if (DataLength <= SidLoadLength):
                         ChipNum = 1
                         ChipLength = DataLength
