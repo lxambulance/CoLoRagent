@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import zlib
 import queue
+import pickle
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -24,8 +25,24 @@ Lock_WaitingACK = threading.Lock()
 VideoCache = {}  # 流视频接收者缓存数据片，{帧序号：{片序号：片内容}}，最多存储最新的三个帧的信息
 MergeFlag = {}  # 流视频接收者记录单个数据片的可拼装情况{帧序号：flag}；flag=0，未收到最后一片；收到最后一片：flag=片数
 Lock_VideoCache = threading.Lock()
-FrameCache = queue.Queue(10) # 视频接收者完整帧的缓存区
-FrameSid = queue.Queue(10) # 记录视频帧对应的SID
+FrameCache = queue.Queue(10)  # 视频接收者完整帧的缓存区
+FrameSid = queue.Queue(10)  # 记录视频帧对应的SID
+# 数据库查询相关全局变量
+QueryCache = {}  # client已经指定但尚未传输的数据库查询指令，key:ServerNid(str)，value:完整的单一查询指令字符串
+Lock_QueryCache = threading.Lock()
+SqlResultCache = {} # client接收数据库查询结果的缓冲区，key：ServerNid(int)，value:bytes字符串
+Lock_SqlResultCache = threading.Lock()
+
+
+def GetSql(ServerNid, command):
+    # client获取数据库内容的初始化函数，参数为数据库NID(16进制字符串)及完整的单一查询指令字符串
+    PL.AddCacheSidUnit(4, 1, 1, 1, 1)
+    PL.SidAnn()
+    Lock_QueryCache.acquire()
+    QueryCache[ServerNid] = pickle.dumps(command)
+    Lock_QueryCache.release()
+    SID = ServerNid + '3'.zfill(40)
+    PL.Get(SID, 3)
 
 
 class pktSignals(QObject):
@@ -115,7 +132,7 @@ class PktHandler(threading.Thread):
             Lock_WaitingACK.release()
 
     def run(self):
-        if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4):
+        if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
             if(PL.RegFlag == 0):
@@ -194,22 +211,36 @@ class PktHandler(threading.Thread):
                         self.video_provider(
                             NewSid, NidCus, PIDs, SidLoadLength, ReturnIP)
                         return
-                    DataLength = len(PL.ConvertFile(SidPath))
+                    elif isinstance(SidPath, int) and SidPath == 4:
+                        Data = QueryCache[hex(NidCus).replace(
+                            '0x', '').zfill(32)]
+                    else:
+                        Data = PL.ConvertFile(SidPath)
+                    DataLength = len(Data)
                     if (DataLength <= SidLoadLength):
                         ChipNum = 1
                         ChipLength = DataLength
                         load = PL.ConvertInt2Bytes(
-                            1, 1) + PL.ConvertFile(SidPath)
+                            1, 1) + Data
+                        endflag = 1
                     else:
                         ChipNum = math.ceil(DataLength/SidLoadLength)
                         ChipLength = SidLoadLength
-                        load = PL.ConvertInt2Bytes(
-                            0, 1) + PL.ConvertFile(SidPath, rpointer=SidLoadLength)
+                        load = PL.ConvertInt2Bytes(0, 1) + Data[:SidLoadLength]
+                        endflag = 0
                     SendingSid[NewSid] = [ChipNum, ChipLength, 1, NidCus, PIDs]
                     NewDataPkt = PL.DataPkt(
                         1, 0, 1, 0, NewSid, nid_cus=NidCus, SegID=0, PIDs=PIDs, load=load)
                     Tar = NewDataPkt.packing()
                     PL.SendIpv4(ReturnIP, Tar)
+                    # 数据库查询指令发送完成，获取查询内容
+                    if isinstance(SidPath, int) and (SidPath == 4) and (endflag == 1):
+                        Lock_QueryCache.acquire()
+                        QueryCache.pop(hex(NidCus).replace('0x', '').zfill(32))
+                        Lock_QueryCache.release()
+                        SID = hex(NidCus).replace(
+                            '0x', '').zfill(32) + '3'.zfill(40)
+                        PL.Get(SID, 3)
                     # 重传判断，待完善锁机制 #
                     for i in range(3):
                         time.sleep(RTO)
@@ -217,6 +248,10 @@ class PktHandler(threading.Thread):
                             self.signals.output.emit(0, '第'+str(SendingSid[NewSid]
                                                                 [2]-1)+'片，第'+str(i+1)+'次重传')
                             PL.SendIpv4(ReturnIP, Tar)
+                            if isinstance(SidPath, int) and (SidPath == 4) and (endflag == 1):
+                                SID = hex(NidCus).replace(
+                                    '0x', '').zfill(32) + '3'.zfill(40)
+                                PL.Get(SID, 3)
                         else:
                             break
                 elif (data[0] == 0x73):
@@ -302,7 +337,8 @@ class PktHandler(threading.Thread):
                                 if FrameCount not in VideoCache.keys():
                                     VideoCache[FrameCount] = {}
                                 VideoCache[FrameCount][ChipCount] = RecvDataPkt.load[1:]
-                                MergeFlag[FrameCount] = ChipCount + 1 if (RecvDataPkt.load[0] == 1) else 0
+                                MergeFlag[FrameCount] = ChipCount + \
+                                    1 if (RecvDataPkt.load[0] == 1) else 0
                                 # 重置缓冲区
                                 pops = []
                                 for frame in VideoCache.keys():
@@ -314,7 +350,7 @@ class PktHandler(threading.Thread):
                             Lock_VideoCache.release()
                             if(RecvDataPkt.R == 0):
                                 return
-                        # 普通文件
+                        # 定长数据（包括普通文件，数据库查询结果等）
                         elif NewSid not in RecvingSid.keys():
                             # 新内容
                             if (RecvDataPkt.load[0] == 1):
@@ -322,13 +358,28 @@ class PktHandler(threading.Thread):
                                 PL.Lock_gets.acquire()
                                 PL.gets.pop(NewSid)  # 传输完成
                                 PL.Lock_gets.release()
+                                endflag = 1
                             elif (RecvDataPkt.SegID == 0):
                                 # 存在后续相同SIDdata包
                                 RecvingSid[NewSid] = 1  # 记录当前SID信息
+                                endflag = 0
                             else:
                                 return
-                            PL.ConvertByte(
-                                RecvDataPkt.load[1:], SavePath)  # 存储数据
+                            # 将接收到的数据存入缓冲区
+                            if (isinstance(SavePath, int) and SavePath == 3):
+                                Lock_SqlResultCache.acquire()
+                                SqlResultCache[RecvDataPkt.nid_pro] = RecvDataPkt.load[1:]
+                                Lock_SqlResultCache.release()
+                                if (endflag == 1):
+                                    Lock_SqlResultCache.acquire()
+                                    SqlResult = SqlResultCache.pop(RecvDataPkt.nid_pro)
+                                    Lock_SqlResultCache.release()
+                                    SqlResult = pickle.loads(SqlResult)
+                                    print("接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
+                                    print(SqlResult)
+                            else:
+                                PL.ConvertByte(
+                                    RecvDataPkt.load[1:], SavePath)  # 存储数据
                         else:
                             # 此前收到过SID的数据包
                             if(RecvDataPkt.S != 0) and (RecvDataPkt.SegID == RecvingSid[NewSid]):
@@ -339,10 +390,25 @@ class PktHandler(threading.Thread):
                                     PL.Lock_gets.acquire()
                                     PL.gets.pop(NewSid)
                                     PL.Lock_gets.release()
+                                    endflag = 1
                                 else:
                                     RecvingSid[NewSid] += 1
-                                PL.ConvertByte(
-                                    RecvDataPkt.load[1:], SavePath)  # 存储数据
+                                    endflag = 0
+                                # 将接收到的数据存入缓冲区
+                                if (isinstance(SavePath, int) and SavePath == 3):
+                                    Lock_SqlResultCache.acquire()
+                                    SqlResultCache[RecvDataPkt.nid_pro] = RecvDataPkt.load[1:]
+                                    Lock_SqlResultCache.release()
+                                    if (endflag == 1):
+                                        Lock_SqlResultCache.acquire()
+                                        SqlResult = SqlResultCache.pop(RecvDataPkt.nid_pro)
+                                        Lock_SqlResultCache.release()
+                                        SqlResult = pickle.loads(SqlResult)
+                                        print("接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
+                                        print(SqlResult)
+                                else:
+                                    PL.ConvertByte(
+                                        RecvDataPkt.load[1:], SavePath)  # 存储数据
                             elif(RecvDataPkt.S != 0) and (RecvDataPkt.SegID < RecvingSid[NewSid]):
                                 # 此前已收到数据包（可能是ACK丢失）,仅返回ACK
                                 self.signals.output.emit(0, '此前已收到数据包，重传ACK')
@@ -371,14 +437,14 @@ class PktHandler(threading.Thread):
                     else:
                         # ACK包
                         # 视频流
+                        NidCus = RecvDataPkt.nid_cus
                         if (isinstance(PL.AnnSidUnits[NewSid].path, int) and PL.AnnSidUnits[NewSid].path == 1):
-                            NidCus = RecvDataPkt.nid_cus
                             Lock_WaitingACK.acquire()
                             if (NidCus in WaitingACK.keys()):
                                 WaitingACK[NidCus] = 0
                             Lock_WaitingACK.release()
                             return
-                        # 普通文件
+                        # 定长数据（包括普通文件，数据库查询结果等）
                         if (NewSid not in SendingSid.keys()) or (RecvDataPkt.SegID != SendingSid[NewSid][2]-1):
                             return
                         if(SendingSid[NewSid][0] > SendingSid[NewSid][2]):
@@ -386,15 +452,23 @@ class PktHandler(threading.Thread):
                             PL.Lock_AnnSidUnits.acquire()
                             SidPath = PL.AnnSidUnits[NewSid].path
                             PL.Lock_AnnSidUnits.release()
+                            # 判断是否传递特殊内容
+                            if isinstance(SidPath, int) and SidPath == 4:
+                                Data = QueryCache[hex(NidCus).replace(
+                                    '0x', '').zfill(32)]
+                            else:
+                                Data = PL.ConvertFile(SidPath)
                             lpointer = SendingSid[NewSid][1] * \
                                 SendingSid[NewSid][2]
                             if(SendingSid[NewSid][0] == SendingSid[NewSid][2]+1):
                                 # 最后一片
                                 load = PL.ConvertInt2Bytes(
-                                    1, 1) + PL.ConvertFile(SidPath, lpointer=lpointer)
+                                    1, 1) + Data[lpointer:]
+                                endflag = 1
                             else:
                                 load = PL.ConvertInt2Bytes(
-                                    0, 1) + PL.ConvertFile(SidPath, lpointer=lpointer, rpointer=lpointer+SendingSid[NewSid][1])
+                                    0, 1) + Data[lpointer:lpointer+SendingSid[NewSid][1]]
+                                endflag = 0
                             SegID = SendingSid[NewSid][2]
                             SendingSid[NewSid][2] += 1  # 下一片指针偏移
                             NewDataPkt = PL.DataPkt(
@@ -416,6 +490,11 @@ class PktHandler(threading.Thread):
                                     self.signals.output(
                                         "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                             PL.SendIpv4(ReturnIP, Tar)
+                            # 数据库查询指令发送完成，获取查询内容
+                            if isinstance(SidPath, int) and (SidPath == 4) and (endflag == 1):
+                                SID = hex(NidCus).replace(
+                                    '0x', '').zfill(32) + '3'.zfill(40)
+                                PL.Get(SID, 3)
                             # 重传判断，待完善锁机制 #
                             for i in range(3):
                                 time.sleep(RTO)
@@ -423,6 +502,10 @@ class PktHandler(threading.Thread):
                                     self.signals.output.emit(
                                         0, '第'+str(SegID)+'片，第'+str(i+1)+'次重传')
                                     PL.SendIpv4(ReturnIP, Tar)
+                                    if isinstance(SidPath, int) and (SidPath == 4) and (endflag == 1):
+                                        SID = hex(NidCus).replace(
+                                            '0x', '').zfill(32) + '3'.zfill(40)
+                                        PL.Get(SID, 3)
                                 else:
                                     break
                         else:
@@ -487,13 +570,14 @@ class ControlPktSender(threading.Thread):
             else:
                 break
 
+
 class video_customer(threading.Thread):
-    flag = 0 # 等待状态标记
-    
+    flag = 0  # 等待状态标记
+
     def __init__(self):
         threading.Thread.__init__(self)
         self.flag = 0
-    
+
     def run(self):
         while 1:
             if(self.flag == 0):
@@ -517,6 +601,7 @@ class video_customer(threading.Thread):
                 except:
                     self.flag = 0
                     break
+
 
 class Monitor(threading.Thread):
     ''' docstring: 自行实现的监听线程类，继承自线程类 '''
@@ -542,5 +627,6 @@ class Monitor(threading.Thread):
         AnnSender.start()
         VideoCus = video_customer()
         VideoCus.start()
-        sniff(filter="ip", iface = "Realtek USB GbE Family Controller", prn=self.parser, count=0)
+        sniff(filter="ip", iface="Realtek USB GbE Family Controller",
+              prn=self.parser, count=0)
         # sniff(filter="ip", prn=self.parser, count=0)
