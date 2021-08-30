@@ -39,7 +39,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
     
     def changeFiletype(self, index):
         self.currentfiletype = index
-        print(index)
+        # print(index)
         if index==1:
             self.inputFileName.setText("video server")
             self.inputFileName.setEnabled(False)

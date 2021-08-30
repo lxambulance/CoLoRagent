@@ -51,7 +51,7 @@ class CollapsibleMessageBox(QWidget):
             self.text.setWordWrap(True)
             if not Message:
                 Message = '空'
-            self.text.setText(Message+'\n')
+            self.text.setText(Message.replace('\n','\n\n')+'\n')
             lay.addWidget(self.text)
             self.setContentLayout(lay)
 

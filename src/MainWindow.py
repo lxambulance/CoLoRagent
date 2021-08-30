@@ -141,8 +141,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 设置网络拓扑窗口
         self.graphicwindow = GraphicWindow(self.fd)
         self.graphicwindow.loadTopo(DATA_PATH)
-        self.graphicwindow.pushButtonShowBaseinfo.click()
-        self.graphicwindow.pushButtonShowASThroughput.click()
         self.graphicwindow.hide()
 
         # 设置日志记录
@@ -240,6 +238,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if geo.left() or geo.top():
                 self.graphicwindow.setGeometry(geo)
             self.graphicwindow.show()
+            if not self.graphicwindow.pushButtonShowBaseinfo.isChecked():
+                self.graphicwindow.pushButtonShowBaseinfo.click()
+            if not self.graphicwindow.pushButtonShowASThroughput.isChecked():
+                self.graphicwindow.pushButtonShowASThroughput.click()
             self.logWidget.addLog("<动作> 打开拓扑窗口", f"Geo = {geo}", False)
         else:
             # 确保通过x关闭后，主窗口按钮状态同步

@@ -1,16 +1,19 @@
 # coding=utf-8
 ''' docstring: 主程序 '''
 
+
 import sys
+import time
+
 import qdarkstyle as qds
 import ColorMonitor as CM
+import establishSecureSession as ESS
 import MainWindow as mw
 from logInWindow import logInWindow
-from PyQt5.QtWidgets import QApplication, QStyleFactory
-from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtCore import Qt
 
-import time
+from PyQt5.QtGui import QPalette
+from PyQt5.QtWidgets import QApplication, QStyleFactory
+
 
 try:
     # Include in try/except block if you're also targeting Mac/Linux
@@ -46,6 +49,7 @@ class CoLoRApp(QApplication):
         # print(f'before HOME_DIR{mw.HOME_DIR} DATA_PATH{mw.DATA_PATH}')
 
         self.window = mw.MainWindow()
+        ESS.ESSsignal.output.connect(self.window.handleMessageFromPkt)
         self.window.actionWindows.triggered.connect(self._setStyle)
         self.window.actionwindowsvista.triggered.connect(self._setStyle)
         self.window.actionFusion.triggered.connect(self._setStyle)
@@ -60,7 +64,11 @@ class CoLoRApp(QApplication):
         thread_monitor.start()
 
         # 测试
-        # CM.PL.RegFlag=1
+        CM.PL.RegFlag=1
+        # nid = "b0cd69ef142db5a471676ad710eebf3a"
+        # CM.PL.PeerProxys[int(nid, 16)]='192.168.50.62'
+        nid = "d23454d19f307d8b98ff2da277c0b546"
+        CM.PL.PeerProxys[int(nid, 16)]='192.168.50.199'
         # time.sleep(2)
         # Video provider
         # CM.PL.AddCacheSidUnit(1,1,1,1,1)
@@ -91,9 +99,9 @@ class CoLoRApp(QApplication):
 
 
 if __name__ == '__main__':
-    import os
-    os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
-    os.environ['QT_API'] = 'pyqt5'
+    # import os
+    # os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+    # os.environ['QT_API'] = 'pyqt5'
 
     app = CoLoRApp(sys.argv)
     sys.exit(app.exec_())

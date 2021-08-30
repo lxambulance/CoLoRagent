@@ -1,6 +1,7 @@
 # coding=utf-8
 ''' docstring: CoLoR 登录对话 '''
 
+import establishSecureSession as ESS
 from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog
 from logInDialog import Ui_Dialog
 import os
@@ -34,12 +35,14 @@ class logInWindow(QDialog, Ui_Dialog):
         self.choosepath_config.clicked.connect(self.getConfigPath)
         self.choosepath_filetmp.clicked.connect(self.getFiletmpPath)
         self.buttonBox.accepted.connect(self.checkInput)
-        self.agentNID.textChanged.connect(self.setNID)
+        self.generateNid.clicked.connect(self.setNid)
         self.agentIPv4.textChanged.connect(self.setIPv4)
         self.RMIPv4.textChanged.connect(self.setRMIPv4)
 
-    def setNID(self, text):
-        self.myNID = text
+    def setNid(self):
+        ESS.Agent.regenerate()
+        self.myNID = ESS.Agent.nid.hex()
+        self.agentNID.setText(self.myNID)
 
     def setIPv4(self, text):
         self.myIPv4 = text
@@ -60,6 +63,7 @@ class logInWindow(QDialog, Ui_Dialog):
             __raw_data['RMIPv4'] = self.rmIPv4
             with open(self.configpath, 'w') as f:
                 json.dump(__raw_data, f)
+            ESS.Agent.saveKey(self.configpath)
 
     def autoFillForm(self, path):
         ''' docstring: 根据*.json文件内容填写表单剩余项 '''
@@ -69,7 +73,12 @@ class logInWindow(QDialog, Ui_Dialog):
             __raw_data = json.load(f)
             self.filetmppath = __raw_data.get('filetmppath', None)
             self.showpath_filetmp.setText(self.filetmppath)
-            self.myNID = __raw_data.get('myNID', None)
+            try:
+                ESS.Agent.loadKey(__raw_data)
+            except:
+                print("load wrong! regenerate keys.")
+                ESS.Agent.regenerate()
+            self.myNID = ESS.Agent.nid.hex()
             self.agentNID.setText(self.myNID)
             self.myIPv4 = __raw_data.get('myIPv4', None)
             self.agentIPv4.setText(self.myIPv4)

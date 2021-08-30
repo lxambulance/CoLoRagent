@@ -1,7 +1,6 @@
 # coding=utf-8
 ''' docstring: CoLoR监听线程，负责与网络组件的报文交互 '''
 
-from re import S
 from scapy.all import *
 import threading
 import ProxyLib as PL
@@ -14,12 +13,14 @@ import queue
 import pickle
 
 from PyQt5.QtCore import QObject, pyqtSignal
+import establishSecureSession as ESS
 
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
 RecvingSid = {}  # 记录内容接收情况，key:SID，value:下一片指针
 WaitingACK = {}  # 流视频提供者记录ACK回复情况，key:NID（customer），value:连续未收到ACK个数
 RTO = 1  # 超时重传时间
+ESS.RTO = RTO
 # 视频传输相关全局变量
 Lock_WaitingACK = threading.Lock()
 VideoCache = {}  # 流视频接收者缓存数据片，{帧序号：{片序号：片内容}}，最多存储最新的三个帧的信息
@@ -133,6 +134,10 @@ class PktHandler(threading.Thread):
 
     def run(self):
         if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
+<<<<<<< HEAD
+=======
+            # self.packet.show()
+>>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
             if(PL.RegFlag == 0):
@@ -182,6 +187,7 @@ class PktHandler(threading.Thread):
                         PL.Lock_AnnSidUnits.release()
                         return
                     # 返回数据
+                    SidUnitLevel = PL.AnnSidUnits[NewSid].Strategy_units.get(1, 0) #获取密级以备后续使用，没有默认为0
                     SidPath = PL.AnnSidUnits[NewSid].path
                     PL.Lock_AnnSidUnits.release()
                     NidCus = NewGetPkt.nid
@@ -207,10 +213,16 @@ class PktHandler(threading.Thread):
                                 1, "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                             return
                     # 判断是否传递特殊内容
-                    if isinstance(SidPath, int) and SidPath == 1:
-                        self.video_provider(
-                            NewSid, NidCus, PIDs, SidLoadLength, ReturnIP)
+                    if isinstance(SidPath, int):
+                        if SidPath == 1:
+                            # 视频服务
+                            self.video_provider(
+                                NewSid, NidCus, PIDs, SidLoadLength, ReturnIP)
+                        elif (SidPath & 0xff) == 2:
+                            # 安全链接服务
+                            ESS.gotoNextStatus(NidCus, NewSid, pids=PIDs, ip=ReturnIP)
                         return
+<<<<<<< HEAD
                     elif isinstance(SidPath, int) and SidPath == 4:
                         Data = QueryCache[hex(NidCus).replace(
                             '0x', '').zfill(32)]
@@ -229,6 +241,32 @@ class PktHandler(threading.Thread):
                         load = PL.ConvertInt2Bytes(0, 1) + Data[:SidLoadLength]
                         endflag = 0
                     SendingSid[NewSid] = [ChipNum, ChipLength, 1, NidCus, PIDs]
+=======
+                    # 特定密集文件，开启加密传输
+                    ESSflag = ESS.checkSession(NidCus, NewSid)
+                    if int(SidUnitLevel)>5:
+                        if not ESSflag:
+                            ESS.newSession(NidCus, NewSid, PIDs, ReturnIP, pkt=self.packet)
+                            return
+                        elif not ESS.sessionReady(NidCus, NewSid):
+                            self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
+                            return
+                    # 获取数据，分片或直接传输
+                    DataLength = len(PL.ConvertFile(SidPath))
+                    if ESSflag:
+                        SidLoadLength -= 32
+                    if (DataLength <= SidLoadLength):
+                        ChipNum = 1
+                        ChipLength = DataLength
+                        text = PL.ConvertFile(SidPath)
+                        load = PL.ConvertInt2Bytes(5 if ESSflag else 1, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
+                    else:
+                        ChipNum = math.ceil(DataLength/SidLoadLength)
+                        ChipLength = SidLoadLength
+                        text = PL.ConvertFile(SidPath, rpointer=SidLoadLength)
+                        load = PL.ConvertInt2Bytes(4 if ESSflag else 0, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
+                    SendingSid[NewSid] = [ChipNum, ChipLength, 1, NidCus, PIDs, ESSflag]
+>>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
                     NewDataPkt = PL.DataPkt(
                         1, 0, 1, 0, NewSid, nid_cus=NidCus, SegID=0, PIDs=PIDs, load=load)
                     Tar = NewDataPkt.packing()
@@ -255,7 +293,7 @@ class PktHandler(threading.Thread):
                         else:
                             break
                 elif (data[0] == 0x73):
-                    # 收到网络中的data报文(ACK)
+                    # 收到网络中的data报文(或ACK)
                     # 校验和检验
                     HeaderLength = data[6]
                     CS = PL.CalculateCS(data[0:HeaderLength])
@@ -282,6 +320,21 @@ class PktHandler(threading.Thread):
                             return
                         SavePath = PL.gets[NewSid]
                         PL.Lock_gets.release()
+                        ReturnIP = ''
+                        if (len(RecvDataPkt.PIDs) <= 1):
+                            # 域内请求
+                            if (RecvDataPkt.nid_pro in PL.PeerProxys.keys()):
+                                ReturnIP = PL.PeerProxys[RecvDataPkt.nid_pro]
+                            else:
+                                self.signals.output.emit(1,
+                                                         "未知的NID：" + hex(RecvDataPkt.nid_pro).replace('0x', '').zfill(32))
+                        else:
+                            PX = RecvDataPkt.PIDs[1] >> 16
+                            if (PX in PL.PXs.keys()):
+                                ReturnIP = PL.PXs[PX]
+                            else:
+                                self.signals.output.emit(
+                                    1, "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                         # 视频流数据
                         if isinstance(SavePath, int) and SavePath == 1:
                             FrameCount = RecvDataPkt.SegID >> 16
@@ -350,10 +403,22 @@ class PktHandler(threading.Thread):
                             Lock_VideoCache.release()
                             if(RecvDataPkt.R == 0):
                                 return
+<<<<<<< HEAD
                         # 定长数据（包括普通文件，数据库查询结果等）
+=======
+                        # 握手数据
+                        elif NewSid not in RecvingSid.keys() and RecvDataPkt.load[0]==2:
+                            if RecvDataPkt.SegID > 1:
+                                ESS.gotoNextStatus(RecvDataPkt.nid_pro, NewSid, loads=RecvDataPkt.load)
+                            else:
+                                ESS.newSession(RecvDataPkt.nid_pro, NewSid,
+                                    RecvDataPkt.PIDs[1:][::-1], ReturnIP,
+                                    flag = False, loads = RecvDataPkt.load, pkt = RecvDataPkt)
+                        # 普通文件
+>>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
                         elif NewSid not in RecvingSid.keys():
                             # 新内容
-                            if (RecvDataPkt.load[0] == 1):
+                            if ((RecvDataPkt.load[0] & 1) == 1):
                                 # 使用一个data包完成传输
                                 PL.Lock_gets.acquire()
                                 PL.gets.pop(NewSid)  # 传输完成
@@ -365,6 +430,7 @@ class PktHandler(threading.Thread):
                                 endflag = 0
                             else:
                                 return
+<<<<<<< HEAD
                             # 将接收到的数据存入缓冲区
                             if (isinstance(SavePath, int) and SavePath == 3):
                                 Lock_SqlResultCache.acquire()
@@ -380,11 +446,18 @@ class PktHandler(threading.Thread):
                             else:
                                 PL.ConvertByte(
                                     RecvDataPkt.load[1:], SavePath)  # 存储数据
+=======
+                            text = RecvDataPkt.load[1:]
+                            PL.ConvertByte(
+                                ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, text) if (RecvDataPkt.load[0] & 4) == 4 else text,
+                                SavePath
+                            ) # 存储数据
+>>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
                         else:
                             # 此前收到过SID的数据包
                             if(RecvDataPkt.S != 0) and (RecvDataPkt.SegID == RecvingSid[NewSid]):
                                 # 正确的后续数据包
-                                if(RecvDataPkt.load[0] == 1):
+                                if((RecvDataPkt.load[0] & 1) == 1):
                                     # 传输完成
                                     RecvingSid.pop(NewSid)
                                     PL.Lock_gets.acquire()
@@ -393,6 +466,7 @@ class PktHandler(threading.Thread):
                                     endflag = 1
                                 else:
                                     RecvingSid[NewSid] += 1
+<<<<<<< HEAD
                                     endflag = 0
                                 # 将接收到的数据存入缓冲区
                                 if (isinstance(SavePath, int) and SavePath == 3):
@@ -409,6 +483,13 @@ class PktHandler(threading.Thread):
                                 else:
                                     PL.ConvertByte(
                                         RecvDataPkt.load[1:], SavePath)  # 存储数据
+=======
+                                text = RecvDataPkt.load[1:]
+                                PL.ConvertByte(
+                                    ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, text) if (RecvDataPkt.load[0] & 4) == 4 else text,
+                                    SavePath
+                                ) # 存储数据
+>>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
                             elif(RecvDataPkt.S != 0) and (RecvDataPkt.SegID < RecvingSid[NewSid]):
                                 # 此前已收到数据包（可能是ACK丢失）,仅返回ACK
                                 self.signals.output.emit(0, '此前已收到数据包，重传ACK')
@@ -418,21 +499,6 @@ class PktHandler(threading.Thread):
                         NewDataPkt = PL.DataPkt(
                             1, 1, 0, 0, NewSid, nid_pro=RecvDataPkt.nid_pro, SegID=RecvDataPkt.SegID, PIDs=RecvDataPkt.PIDs[1:][::-1])
                         Tar = NewDataPkt.packing()
-                        ReturnIP = ''
-                        if (len(RecvDataPkt.PIDs) <= 1):
-                            # 域内请求
-                            if (RecvDataPkt.nid_pro in PL.PeerProxys.keys()):
-                                ReturnIP = PL.PeerProxys[RecvDataPkt.nid_pro]
-                            else:
-                                self.signals.output.emit(1,
-                                                         "未知的NID：" + hex(RecvDataPkt.nid_pro).replace('0x', '').zfill(32))
-                        else:
-                            PX = RecvDataPkt.PIDs[1] >> 16
-                            if (PX in PL.PXs.keys()):
-                                ReturnIP = PL.PXs[PX]
-                            else:
-                                self.signals.output.emit(
-                                    1, "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                         PL.SendIpv4(ReturnIP, Tar)
                     else:
                         # ACK包
@@ -444,11 +510,20 @@ class PktHandler(threading.Thread):
                                 WaitingACK[NidCus] = 0
                             Lock_WaitingACK.release()
                             return
+<<<<<<< HEAD
                         # 定长数据（包括普通文件，数据库查询结果等）
+=======
+                        # 回应加密握手包
+                        if ESS.checkSession(RecvDataPkt.nid_cus, NewSid) or RecvDataPkt.SegID == 3:
+                            ESS.gotoNextStatus(RecvDataPkt.nid_cus, NewSid, SegID=RecvDataPkt.SegID)
+>>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
                         if (NewSid not in SendingSid.keys()) or (RecvDataPkt.SegID != SendingSid[NewSid][2]-1):
                             return
+                        # 普通文件
                         if(SendingSid[NewSid][0] > SendingSid[NewSid][2]):
                             # 发送下一片
+                            ESSflag = SendingSid[NewSid][5]
+                            NidCus = SendingSid[NewSid][3]
                             PL.Lock_AnnSidUnits.acquire()
                             SidPath = PL.AnnSidUnits[NewSid].path
                             PL.Lock_AnnSidUnits.release()
@@ -462,6 +537,7 @@ class PktHandler(threading.Thread):
                                 SendingSid[NewSid][2]
                             if(SendingSid[NewSid][0] == SendingSid[NewSid][2]+1):
                                 # 最后一片
+<<<<<<< HEAD
                                 load = PL.ConvertInt2Bytes(
                                     1, 1) + Data[lpointer:]
                                 endflag = 1
@@ -469,6 +545,13 @@ class PktHandler(threading.Thread):
                                 load = PL.ConvertInt2Bytes(
                                     0, 1) + Data[lpointer:lpointer+SendingSid[NewSid][1]]
                                 endflag = 0
+=======
+                                text = PL.ConvertFile(SidPath, lpointer=lpointer)
+                                load = PL.ConvertInt2Bytes(5 if ESSflag else 1, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
+                            else:
+                                text = PL.ConvertFile(SidPath, lpointer=lpointer, rpointer=lpointer+SendingSid[NewSid][1])
+                                load = PL.ConvertInt2Bytes(4 if ESSflag else 0, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
+>>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
                             SegID = SendingSid[NewSid][2]
                             SendingSid[NewSid][2] += 1  # 下一片指针偏移
                             NewDataPkt = PL.DataPkt(
@@ -627,6 +710,11 @@ class Monitor(threading.Thread):
         AnnSender.start()
         VideoCus = video_customer()
         VideoCus.start()
+<<<<<<< HEAD
         sniff(filter="ip", iface="Realtek USB GbE Family Controller",
               prn=self.parser, count=0)
         # sniff(filter="ip", prn=self.parser, count=0)
+=======
+        # sniff(filter="ip", iface = "VirtualBox Host-Only Network", prn=self.parser, count=0)
+        sniff(filter="ip", prn=self.parser, count=0)
+>>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b

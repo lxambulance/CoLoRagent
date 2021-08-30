@@ -10,7 +10,11 @@
 
 该前端是一个简易的网盘系统，支持“生产者”注册文件，然后“消费者”抓取文件。主界面分为两大部分，上方是文件列表，支持基本文件操作，下方是网络拓扑，支持基本图形操作以及一些与文件列表的结合操作，下方右边是一些信息反馈以及控制相关，将所有不太适合做在拓扑图里的功能放在这里，并且通过标签页切换。 
 
-![image-20210520205141762](https://raw.githubusercontent.com/lxambulance/cloudimg/master/img/image-20210520205141762.png)
+![截图1](https://raw.githubusercontent.com/lxambulance/cloudimg/master/img/%E6%88%AA%E5%9B%BE1.PNG)
+
+![截图2](https://raw.githubusercontent.com/lxambulance/cloudimg/master/img/%E6%88%AA%E5%9B%BE2.PNG)
+
+![截图3](https://raw.githubusercontent.com/lxambulance/cloudimg/master/img/%E6%88%AA%E5%9B%BE3.PNG)
 
 以上是项目网盘功能的基础展示，为了更好地体现CoLoR的特性，诸如溯源、防止攻击等。接下来将罗列一些待添加或待改进的功能。
 
@@ -21,23 +25,6 @@
 - 流数据传输
 - 安全认证
 
-### 进度
-
-- 2021.2.24 目前只包含前端几个页面以及一些简单的按钮逻辑。
-- 2021.3.10 前端基本完成，开始考虑前后交互的逻辑。
-- 2021.3.15 美化了前端几个界面的设计，开始阅读后端代码。
-- 2021.3.18 前后端融合完成，非常简陋的初始版本。
-- 2021.3.29 做了一定美化，暂时没有时间更新readme。
-- 2021.3.30 删除了无用的页面，增加和细化了一些功能。
-- 2021.4.25 完成了一次完整联调，还有待改进的点，以及一些小功能。
-- 2021.5.11 完成了联调，主要功能完成，操作体验上还有优化空间。
-- 2021.6.1 研究了scapy发包库，添加了一些测试工具，接下去要从界面设计，后续功能添加等方面考虑。
-- 2021.7.13 近期有点摸鱼，写不动代码，慢慢从细节修改。
-
-作为git练习，dev分支可能会出现许多无聊地、甚至错误地提交。
-
-warning: 不要尝试重构他人代码（费力不讨好，学习除外），修改的同时容易埋更多bug，当做黑盒能用就行。
-
 ## 前端数据文件存储
 
 以Json格式存储 1、基本数据条目，二维结构；2、拓扑图；3、其余一些客户端代理配置信息
@@ -45,13 +32,18 @@ warning: 不要尝试重构他人代码（费力不讨好，学习除外），�
 ```json
 {
     "base data":[
-        [ "name", "path", "SID", false(is register?), false(is download?) ],
+        [ "name", "path", "SID",
+         false,//is register
+         false, //is download
+         "secret level",
+         "white list"
+        ],
         [...]
     ],
     "topo map":{
         "nodes": [
-        	{"type","name","size","nid","pos","font","color"}, //all attributes
-			{"type":0(AS), "size": 384},
+			{"type","name","size","nid","pos","font","color"}, //all attributes
+			{"type":0(AS), "size": 384, "tfont":, "tcolor":}, //tfont和tcolor用于AS通量统计
 			{"type":1(RM), "nid":"11111111111111111111111111111111"}, 
 			{"type":2(BR), "nid":"11111111111111112222222222222222"},
 			{"type":3(normal router)}
@@ -80,7 +72,7 @@ warning: 不要尝试重构他人代码（费力不讨好，学习除外），�
 "base data"每列含义（./SourceCode/serviceTable.py）如下：
 
 ```python
-COLUMN = ['文件名', '路径', 'SID', '是否通告', '是否下载']
+COLUMN = ['文件名', '路径', 'SID', '是否通告', '是否下载', '密级指定', '白名单']
 ```
 
 "topo map"中"nodes"."type"含义如下：
@@ -194,15 +186,15 @@ level：可选策略字段，标注当前SidUnit等级。int类型，可为1~10�
 
 ttl：可选字段，含义同通告包的ttl字段。int类型，可为0~255。
 
-PublicKey：可选字段，含义同通告包的Public_key字段。String类型，规定内含字符为16进制字符（0~9，a~f），字符串长度为2的倍数，最短长度为2。
+PublicKey：可选字段，含义同通告包的Public_key字段。String类型，规定内含字符为16进制字符（0\~9，a\~f），字符串长度为2的倍数，最短长度为2。
 
-P：可选字段，含义同通告包的P字段。int类型，可为0~1。
+P：可选字段，含义同通告包的P字段。int类型，可为0\~1。
 
 ### Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1)详细说明
 
 功能：发送Get报文，从网络中获取特定SID对应的内容，存储到规定位置。
 
-SID：希望从网络中获取内容的SID。String类型，规定内含字符为16进制字符（0~9，a~f），长度为32（仅N_sid）、40（仅L_sid）或72（完整SID）。
+SID：希望从网络中获取内容的SID。String类型，规定内含字符为16进制字符（0\~9，a\~f），长度为32（仅N_sid）、40（仅L_sid）或72（完整SID）。
 
 path：从网络获取内容后期望存储的位置（含文件名！）。格式同此前path。
 
@@ -212,7 +204,7 @@ PublicKey：可选字段，含义同get包的Public_key字段。格式同此前P
 
 QoS：可选字段，含义同get包的QoS_requirements字段。格式同PublicKey。
 
-SegID：可选字段，含义同get包的Seg_ID字段。int类型，可选范围为0~0xffffffff。
+SegID：可选字段，含义同get包的Seg_ID字段。int类型，可选范围为0\~0xffffffff。
 
 A：可选字段，含义同get包的A字段。int类型，可为0~1。
 
@@ -230,7 +222,7 @@ Value：通过AddCacheSidUnit生成的通告单元类（class SidUnit，记录�
 
 功能：记录已向网络中通告的SID，以及对应的通告策略。
 
-Key：SID。String类型，规定内含字符为16进制字符（0~9，a~f），长度为32（仅N_sid）、40（仅L_sid）或72（完整SID）。
+Key：SID。String类型，规定内含字符为16进制字符（0\~9，a\~f），长度为32（仅N_sid）、40（仅L_sid）或72（完整SID）。
 
 Value：通告单元，格式同CacheSidUnits的Value。
 
@@ -246,6 +238,44 @@ Value：目标存储路径(含文件名)，String类型。
 
 - Icon包含一些图标文件
 - PageUI包含QT的ui文件
-- SourceCode包含代码源文件（目前只有一个文件夹，前后端代码不多，都在这里了）
-- test包含一些测试用文件，可以随意修改。
+- src包含代码源文件
+- test包含一些测试用文件，可以随意修改
+- doc包含几个文档
 
+Icon/文件夹内有一个resource.qrc记录了图标文件，以及它们的重命名，这个文件主要用于qt，编译成二进制码后（src中的resource_rc.py文件）就可以摆脱主机图片格式的限制，便于运行和分发。
+
+test/文件夹下写了color的get、data、control包解析器，存储了两份与物理拓扑对应的json拓扑数据记录，还有json格式转换的两个小程序，其余一些文件是端到端安全认证的一些测试文件。
+
+## 编译器版本以及库依赖
+
+python3.9.1
+
+```
+cryptography 3.4.7
+opencv-python 4.5.3.56
+PyQt5 5.15.4
+pyqtgraph 0.11.1
+pyqt5-tools 5.15.2.3.0.2
+qdarkstyle 3.0.2
+scapy 2.4.4
+```
+
+为了有较好的qt编程体验建议安装pyqt5-stubs，然后配置vscode中的pylint，这样可以让编译器联想和提示库函数。
+
+## 进度
+
+- 2021.2.24 目前只包含前端几个页面以及一些简单的按钮逻辑。
+- 2021.3.10 前端基本完成，开始考虑前后交互的逻辑。
+- 2021.3.15 美化了前端几个界面的设计，开始阅读后端代码。
+- 2021.3.18 前后端融合完成，非常简陋的初始版本。
+- 2021.3.29 做了一定美化，暂时没有时间更新readme。
+- 2021.3.30 删除了无用的页面，增加和细化了一些功能。
+- 2021.4.25 完成了一次完整联调，还有待改进的点，以及一些小功能。
+- 2021.5.11 完成了联调，主要功能完成，操作体验上还有优化空间。
+- 2021.6.1 研究了scapy发包库，添加了一些测试工具，接下去要从界面设计，后续功能添加等方面考虑。
+- 2021.7.13 近期有点摸鱼，写不动代码，慢慢从细节修改。
+- 2021.7.27 集成了视频流功能，界面基本更新完毕。
+
+作为git练习，dev分支可能会出现许多无聊地、甚至错误地提交。
+
+warning: 不要尝试重构他人代码（费力不讨好，学习除外），修改的同时容易埋更多bug，当做黑盒能用就行。

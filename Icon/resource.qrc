@@ -39,6 +39,7 @@
     <file alias="del">trash.png</file>
     <file alias="font">font.png</file>
     <file alias="color">color-palette.png</file>
+    <file alias="showNode">drag-and-drop.png</file>
   </qresource>
   <qresource prefix="video">
     <file alias="control-play">control.png</file>
