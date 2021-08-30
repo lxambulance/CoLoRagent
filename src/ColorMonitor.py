@@ -29,9 +29,10 @@ Lock_VideoCache = threading.Lock()
 FrameCache = queue.Queue(10)  # 视频接收者完整帧的缓存区
 FrameSid = queue.Queue(10)  # 记录视频帧对应的SID
 # 数据库查询相关全局变量
-QueryCache = {}  # client已经指定但尚未传输的数据库查询指令，key:ServerNid(str)，value:完整的单一查询指令字符串
+# client已经指定但尚未传输的数据库查询指令，key:ServerNid(str)，value:完整的单一查询指令字符串
+QueryCache = {}
 Lock_QueryCache = threading.Lock()
-SqlResultCache = {} # client接收数据库查询结果的缓冲区，key：ServerNid(int)，value:bytes字符串
+SqlResultCache = {}  # client接收数据库查询结果的缓冲区，key：ServerNid(int)，value:bytes字符串
 Lock_SqlResultCache = threading.Lock()
 
 
@@ -134,10 +135,7 @@ class PktHandler(threading.Thread):
 
     def run(self):
         if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
-<<<<<<< HEAD
-=======
             # self.packet.show()
->>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
             data = bytes(self.packet['Raw'])  # 存入二进制字符串
             PktLength = len(data)
             if(PL.RegFlag == 0):
@@ -187,7 +185,8 @@ class PktHandler(threading.Thread):
                         PL.Lock_AnnSidUnits.release()
                         return
                     # 返回数据
-                    SidUnitLevel = PL.AnnSidUnits[NewSid].Strategy_units.get(1, 0) #获取密级以备后续使用，没有默认为0
+                    SidUnitLevel = PL.AnnSidUnits[NewSid].Strategy_units.get(
+                        1, 0)  # 获取密级以备后续使用，没有默认为0
                     SidPath = PL.AnnSidUnits[NewSid].path
                     PL.Lock_AnnSidUnits.release()
                     NidCus = NewGetPkt.nid
@@ -218,35 +217,24 @@ class PktHandler(threading.Thread):
                             # 视频服务
                             self.video_provider(
                                 NewSid, NidCus, PIDs, SidLoadLength, ReturnIP)
+                            return
                         elif (SidPath & 0xff) == 2:
                             # 安全链接服务
-                            ESS.gotoNextStatus(NidCus, NewSid, pids=PIDs, ip=ReturnIP)
-                        return
-<<<<<<< HEAD
-                    elif isinstance(SidPath, int) and SidPath == 4:
-                        Data = QueryCache[hex(NidCus).replace(
-                            '0x', '').zfill(32)]
+                            ESS.gotoNextStatus(
+                                NidCus, NewSid, pids=PIDs, ip=ReturnIP)
+                            return
+                        elif SidPath == 4:
+                            Data = QueryCache[hex(NidCus).replace(
+                                '0x', '').zfill(32)]
                     else:
                         Data = PL.ConvertFile(SidPath)
                     DataLength = len(Data)
-                    if (DataLength <= SidLoadLength):
-                        ChipNum = 1
-                        ChipLength = DataLength
-                        load = PL.ConvertInt2Bytes(
-                            1, 1) + Data
-                        endflag = 1
-                    else:
-                        ChipNum = math.ceil(DataLength/SidLoadLength)
-                        ChipLength = SidLoadLength
-                        load = PL.ConvertInt2Bytes(0, 1) + Data[:SidLoadLength]
-                        endflag = 0
-                    SendingSid[NewSid] = [ChipNum, ChipLength, 1, NidCus, PIDs]
-=======
                     # 特定密集文件，开启加密传输
                     ESSflag = ESS.checkSession(NidCus, NewSid)
-                    if int(SidUnitLevel)>5:
+                    if int(SidUnitLevel) > 5:
                         if not ESSflag:
-                            ESS.newSession(NidCus, NewSid, PIDs, ReturnIP, pkt=self.packet)
+                            ESS.newSession(NidCus, NewSid, PIDs,
+                                           ReturnIP, pkt=self.packet)
                             return
                         elif not ESS.sessionReady(NidCus, NewSid):
                             self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
@@ -258,15 +246,18 @@ class PktHandler(threading.Thread):
                     if (DataLength <= SidLoadLength):
                         ChipNum = 1
                         ChipLength = DataLength
-                        text = PL.ConvertFile(SidPath)
-                        load = PL.ConvertInt2Bytes(5 if ESSflag else 1, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
+                        load = PL.ConvertInt2Bytes(
+                            5 if ESSflag else 1, 1) + (ESS.Encrypt(NidCus, NewSid, Data) if ESSflag else Data)
+                        endflag = 1
                     else:
                         ChipNum = math.ceil(DataLength/SidLoadLength)
                         ChipLength = SidLoadLength
-                        text = PL.ConvertFile(SidPath, rpointer=SidLoadLength)
-                        load = PL.ConvertInt2Bytes(4 if ESSflag else 0, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
-                    SendingSid[NewSid] = [ChipNum, ChipLength, 1, NidCus, PIDs, ESSflag]
->>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
+                        text = Data[:SidLoadLength]
+                        load = PL.ConvertInt2Bytes(
+                            4 if ESSflag else 0, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
+                        endflag = 0
+                    SendingSid[NewSid] = [
+                        ChipNum, ChipLength, 1, NidCus, PIDs, ESSflag]
                     NewDataPkt = PL.DataPkt(
                         1, 0, 1, 0, NewSid, nid_cus=NidCus, SegID=0, PIDs=PIDs, load=load)
                     Tar = NewDataPkt.packing()
@@ -403,19 +394,17 @@ class PktHandler(threading.Thread):
                             Lock_VideoCache.release()
                             if(RecvDataPkt.R == 0):
                                 return
-<<<<<<< HEAD
-                        # 定长数据（包括普通文件，数据库查询结果等）
-=======
                         # 握手数据
-                        elif NewSid not in RecvingSid.keys() and RecvDataPkt.load[0]==2:
+                        elif NewSid not in RecvingSid.keys() and RecvDataPkt.load[0] == 2:
                             if RecvDataPkt.SegID > 1:
-                                ESS.gotoNextStatus(RecvDataPkt.nid_pro, NewSid, loads=RecvDataPkt.load)
+                                ESS.gotoNextStatus(
+                                    RecvDataPkt.nid_pro, NewSid, loads=RecvDataPkt.load)
                             else:
                                 ESS.newSession(RecvDataPkt.nid_pro, NewSid,
-                                    RecvDataPkt.PIDs[1:][::-1], ReturnIP,
-                                    flag = False, loads = RecvDataPkt.load, pkt = RecvDataPkt)
-                        # 普通文件
->>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
+                                               RecvDataPkt.PIDs[1:][::-
+                                                                    1], ReturnIP,
+                                               flag=False, loads=RecvDataPkt.load, pkt=RecvDataPkt)
+                        # 定长数据（包括普通文件，数据库查询结果等）
                         elif NewSid not in RecvingSid.keys():
                             # 新内容
                             if ((RecvDataPkt.load[0] & 1) == 1):
@@ -430,29 +419,24 @@ class PktHandler(threading.Thread):
                                 endflag = 0
                             else:
                                 return
-<<<<<<< HEAD
                             # 将接收到的数据存入缓冲区
+                            text = ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, RecvDataPkt.load[1:]) if (
+                                RecvDataPkt.load[0] & 4) == 4 else RecvDataPkt.load[1:]
                             if (isinstance(SavePath, int) and SavePath == 3):
                                 Lock_SqlResultCache.acquire()
-                                SqlResultCache[RecvDataPkt.nid_pro] = RecvDataPkt.load[1:]
+                                SqlResultCache[RecvDataPkt.nid_pro] = text
                                 Lock_SqlResultCache.release()
                                 if (endflag == 1):
                                     Lock_SqlResultCache.acquire()
-                                    SqlResult = SqlResultCache.pop(RecvDataPkt.nid_pro)
+                                    SqlResult = SqlResultCache.pop(
+                                        RecvDataPkt.nid_pro)
                                     Lock_SqlResultCache.release()
                                     SqlResult = pickle.loads(SqlResult)
-                                    print("接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
+                                    print(
+                                        "接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
                                     print(SqlResult)
                             else:
-                                PL.ConvertByte(
-                                    RecvDataPkt.load[1:], SavePath)  # 存储数据
-=======
-                            text = RecvDataPkt.load[1:]
-                            PL.ConvertByte(
-                                ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, text) if (RecvDataPkt.load[0] & 4) == 4 else text,
-                                SavePath
-                            ) # 存储数据
->>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
+                                PL.ConvertByte(text, SavePath)  # 存储数据
                         else:
                             # 此前收到过SID的数据包
                             if(RecvDataPkt.S != 0) and (RecvDataPkt.SegID == RecvingSid[NewSid]):
@@ -466,30 +450,25 @@ class PktHandler(threading.Thread):
                                     endflag = 1
                                 else:
                                     RecvingSid[NewSid] += 1
-<<<<<<< HEAD
                                     endflag = 0
                                 # 将接收到的数据存入缓冲区
+                                text = ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, RecvDataPkt.load[1:]) if (
+                                    RecvDataPkt.load[0] & 4) == 4 else RecvDataPkt.load[1:]
                                 if (isinstance(SavePath, int) and SavePath == 3):
                                     Lock_SqlResultCache.acquire()
-                                    SqlResultCache[RecvDataPkt.nid_pro] = RecvDataPkt.load[1:]
+                                    SqlResultCache[RecvDataPkt.nid_pro] = text
                                     Lock_SqlResultCache.release()
                                     if (endflag == 1):
                                         Lock_SqlResultCache.acquire()
-                                        SqlResult = SqlResultCache.pop(RecvDataPkt.nid_pro)
+                                        SqlResult = SqlResultCache.pop(
+                                            RecvDataPkt.nid_pro)
                                         Lock_SqlResultCache.release()
                                         SqlResult = pickle.loads(SqlResult)
-                                        print("接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
+                                        print(
+                                            "接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
                                         print(SqlResult)
                                 else:
-                                    PL.ConvertByte(
-                                        RecvDataPkt.load[1:], SavePath)  # 存储数据
-=======
-                                text = RecvDataPkt.load[1:]
-                                PL.ConvertByte(
-                                    ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, text) if (RecvDataPkt.load[0] & 4) == 4 else text,
-                                    SavePath
-                                ) # 存储数据
->>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
+                                    PL.ConvertByte(text, SavePath)  # 存储数据
                             elif(RecvDataPkt.S != 0) and (RecvDataPkt.SegID < RecvingSid[NewSid]):
                                 # 此前已收到数据包（可能是ACK丢失）,仅返回ACK
                                 self.signals.output.emit(0, '此前已收到数据包，重传ACK')
@@ -510,16 +489,13 @@ class PktHandler(threading.Thread):
                                 WaitingACK[NidCus] = 0
                             Lock_WaitingACK.release()
                             return
-<<<<<<< HEAD
-                        # 定长数据（包括普通文件，数据库查询结果等）
-=======
                         # 回应加密握手包
                         if ESS.checkSession(RecvDataPkt.nid_cus, NewSid) or RecvDataPkt.SegID == 3:
-                            ESS.gotoNextStatus(RecvDataPkt.nid_cus, NewSid, SegID=RecvDataPkt.SegID)
->>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
+                            ESS.gotoNextStatus(
+                                RecvDataPkt.nid_cus, NewSid, SegID=RecvDataPkt.SegID)
                         if (NewSid not in SendingSid.keys()) or (RecvDataPkt.SegID != SendingSid[NewSid][2]-1):
                             return
-                        # 普通文件
+                        # 定长数据（包括普通文件，数据库查询结果等）
                         if(SendingSid[NewSid][0] > SendingSid[NewSid][2]):
                             # 发送下一片
                             ESSflag = SendingSid[NewSid][5]
@@ -537,21 +513,16 @@ class PktHandler(threading.Thread):
                                 SendingSid[NewSid][2]
                             if(SendingSid[NewSid][0] == SendingSid[NewSid][2]+1):
                                 # 最后一片
-<<<<<<< HEAD
+                                text = Data[lpointer:]
                                 load = PL.ConvertInt2Bytes(
-                                    1, 1) + Data[lpointer:]
+                                    5 if ESSflag else 1, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
                                 endflag = 1
                             else:
+                                text = Data[lpointer:lpointer +
+                                            SendingSid[NewSid][1]]
                                 load = PL.ConvertInt2Bytes(
-                                    0, 1) + Data[lpointer:lpointer+SendingSid[NewSid][1]]
+                                    4 if ESSflag else 0, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
                                 endflag = 0
-=======
-                                text = PL.ConvertFile(SidPath, lpointer=lpointer)
-                                load = PL.ConvertInt2Bytes(5 if ESSflag else 1, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
-                            else:
-                                text = PL.ConvertFile(SidPath, lpointer=lpointer, rpointer=lpointer+SendingSid[NewSid][1])
-                                load = PL.ConvertInt2Bytes(4 if ESSflag else 0, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
->>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
                             SegID = SendingSid[NewSid][2]
                             SendingSid[NewSid][2] += 1  # 下一片指针偏移
                             NewDataPkt = PL.DataPkt(
@@ -710,11 +681,5 @@ class Monitor(threading.Thread):
         AnnSender.start()
         VideoCus = video_customer()
         VideoCus.start()
-<<<<<<< HEAD
-        sniff(filter="ip", iface="Realtek USB GbE Family Controller",
-              prn=self.parser, count=0)
-        # sniff(filter="ip", prn=self.parser, count=0)
-=======
         # sniff(filter="ip", iface = "VirtualBox Host-Only Network", prn=self.parser, count=0)
         sniff(filter="ip", prn=self.parser, count=0)
->>>>>>> 11831f8a05c8330fea6114402e6650aab18c572b
