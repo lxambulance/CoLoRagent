@@ -408,26 +408,3 @@ class sessionDaemon(Thread):
 
     def run(self):
         pass
-
-# test1: load private key & decrypt
-# from cryptography.hazmat.primitives import serialization
-# from cryptography.hazmat.primitives.asymmetric import rsa, padding
-# from cryptography.hazmat.primitives.serialization import load_pem_private_key
-# s = b"-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC1qsdd3K6Bn7yP\nrKpefxfjLJq6M6tx1ERokEHOiotTdC+ToskQQREwWD3JyTGoQtvufmasknP7Mb1U\nDiJgdjT6KTjbZu/F6fvPxlS3dEjXrsAx12NFoP/BzdOLh+/4kVkIXQn7/iKC6SON\nhpMRaxIx5UpAzI1OPoULWLk3/lpaIE0J/TKbn7+3/e9aeRK5ple2bCueLx+Z1WIo\nQ+1v1vGwE7rO7Hzkg/nz0TJcUsSxeiVmsj9UYLNCRph4N2gUXX7PNxE8OKnM6Usi\n10Amh+U96H2Uh6ZEQIbcXofEGvW+sPKqVQVt4Lj5YrjWC6iwe9YIg4ATWJzExZkS\n94Sz1263AgMBAAECggEAU0DqkNdbmcfskCNfCGNSPSfp2L9pKIdQumKx5ceURjCO\nxSfq4OoQyIkH9/ueKDBLviZrQ1bylAGddHHtyysg6CwQBGxOIfMzFWsc094Uq9NH\n/Q9qTTSVQOnksqMflFh35t9MfhFfG4NgabFsoKTi977OopebgmogaqzEZSbJnVc9\niBi7RCdM8KVeVwCntaJYKq31ZX4RbGPxxRJBU2QxqLsTMXLJz7owObWrwBpmVbMl\nPimJsROSL9a1si8+/k+QktKexPOprj5RcwbnZ5awxHClPS5vsn4zoZD75PqaI4Nu\nl1+1bvXYa4lEeNXzg6c0ZyQfPum4Gmw3oGd4sZxJYQKBgQDuumsPgLXlouH1+Egu\ngWvTMqp9CbBjVs23QF8xC613r3xA31Aa5yaD9ULShXTavcxgsvLABlVZyXsskUaS\nUfsoCjzNknk6lIJyfcSJjaP7YzqbqBgKISXaw5tDnj7cIdrmpQPTK8ufTPJcPzlM\nDlzs8JRkq5rjdXLwED5H/ijLnwKBgQDCz4JJ3P4g//fKkYGE9OQfle2PqS2VDI1R\nQyF0hczvQ1wimRQljW6lIZKBInzTVEYCm2F3IkpCr0DUnchWZwFvLY2KMQyEZNgc\niG44QVE30bNFr6XdN0oC/TEkFQehI1flTKQFwkR/R/KNXFiBIpD9qqxP77PYREGl\ngrkF8cQF6QKBgQDHWAkwP9UkNRgkcbeshcvI5uTwVlfhC8np/KnAZbTrXTEPZqoY\nXO6PgAzViDVkttpj4OnNqTw6JoFhXMomQqjL7YiKTIZIgVxQSG8GQa0trNVyxzGT\nu8xFWdNb6lcpMGf+8so32rlEg1dZ6j1pIhE8lUQEsDs9NoTMq3OmYDgmlwKBgGHr\nBXT09HNH1ZfnDS/0G5nYtUCpa3ToizuWP4GfI0P8Gpp1URATB9NOjaIE4LMkP9Bd\no17LSII+Lprv99ueCLWGMweL4dvGCG5HEQeLpTQmXjKfuAH6IWRhOUsGmwAekLZ7\nkFIotF85nav6B65Y3oHyQIwpUr9Yh5qWm0Nmov3JAoGAC5d+UoVtj4tSV1P7koPl\nocw2dWZ+Dz2fCe2Tbo/jowp8GGhusMnWXLkE2vInxWk6zbRJOP3CUr/KhwuBAgY/\nMaxZLVb1EpEFzsOA1DO9E5hPV0PGeIgdqPTlFe93ZUXhrQYyqtWcgKOOKOKVRiFr\nP90PndtBw8OzLOuD5rn4zsU=\n-----END PRIVATE KEY-----\n"
-# private_key = load_pem_private_key(s, None, None)
-# print(type(private_key))
-# a = "44c90bb9b10781edce6b962d60b8a6e6d88e31899b74a7d6c26cdda84543e212bb3d3fce8b3ca4732191b956f9fbe70cce14a6d4af26e67a478b15d6156a8d36d561ae9875e4a90799fbf4afc8da2055f5a504dc40c1a3d4d9c1759d7dcc55ac8b86abaafc8523ae5149b0d514c71e925d30d11dd0961415950d1ba3796925146f8df5c87703b1d6f217038d091b5c72f0cb7226598e3f4421da24cb07335d498618906da8df6368c50d3c1e612c854fe8380ecf5c79b9e8e9c075b4103a2391d33aa16c0bf92526bbed5a8394b71237ed7c3415380cc0480541d0d4372c24f570590cb127ccf251d554d8f148a919df26246154d6b9368217c5af802c92fc63"
-# b = bytes.fromhex(a)
-# message = private_key.decrypt(b, padding.PKCS1v15())
-
-# test2: key derivation
-# from cryptography.hazmat.primitives import hashes
-# from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-# message = b"hello world"
-# a = HKDF(
-#     algorithm=hashes.SHA256(),
-#     length=16,
-#     salt=None,
-#     info=None
-# ).derive(message)
-# print(a.hex())
