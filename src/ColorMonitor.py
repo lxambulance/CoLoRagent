@@ -11,6 +11,7 @@ import numpy as np
 import zlib
 import queue
 import pickle
+import pymysql
 
 from PyQt5.QtCore import QObject, pyqtSignal
 import establishSecureSession as ESS
@@ -29,11 +30,16 @@ Lock_VideoCache = threading.Lock()
 FrameCache = queue.Queue(10)  # 视频接收者完整帧的缓存区
 FrameSid = queue.Queue(10)  # 记录视频帧对应的SID
 # 数据库查询相关全局变量
-# client已经指定但尚未传输的数据库查询指令，key:ServerNid(str)，value:完整的单一查询指令字符串
+# client已经指定但尚未传输的数据库查询指令，key:ServerNid(int)，value:完整的单一查询指令字符串
 QueryCache = {}
 Lock_QueryCache = threading.Lock()
 SqlResultCache = {}  # client接收数据库查询结果的缓冲区，key：ServerNid(int)，value:bytes字符串
 Lock_SqlResultCache = threading.Lock()
+ServerQueryCache = {} # server接收数据库查询请求的缓冲区，key：clientNid(int)，value:bytes字符串
+Lock_ServerQueryCache = threading.Lock()
+# server接收到查询命令后存储查询结果的缓冲区，key：clientNid(int)，value:bytes字符串
+ServerResultCache = {}
+Lock_ServerResultCache = threading.Lock()
 
 
 def GetSql(ServerNid, command):
@@ -41,9 +47,9 @@ def GetSql(ServerNid, command):
     PL.AddCacheSidUnit(4, 1, 1, 1, 1)
     PL.SidAnn()
     Lock_QueryCache.acquire()
-    QueryCache[ServerNid] = pickle.dumps(command)
+    QueryCache[int(ServerNid, 16)] = pickle.dumps(command)
     Lock_QueryCache.release()
-    SID = ServerNid + '3'.zfill(40)
+    SID = ServerNid.zfill(32) + '3'.zfill(40)
     PL.Get(SID, 3)
 
 
@@ -133,6 +139,20 @@ class PktHandler(threading.Thread):
                 break
             Lock_WaitingACK.release()
 
+    def SqlQuery(self, command):
+        # 打开数据库连接
+        db = pymysql.connect(host="localhost", user="root", password="Mysql233.", database="testdb")
+        # 使用 cursor() 方法创建一个游标对象 cursor
+        cursor = db.cursor()
+        result = -1
+        try:
+            cursor.execute(command)
+            result = cursor.fetchall()
+        except:
+            print("Error: unable to fecth data")
+        db.close()
+        return result
+    
     def run(self):
         if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
             # self.packet.show()
@@ -223,9 +243,35 @@ class PktHandler(threading.Thread):
                             ESS.gotoNextStatus(
                                 NidCus, NewSid, pids=PIDs, ip=ReturnIP)
                             return
+                        elif SidPath == 3:
+                            # 数据库查询服务
+                            if (NidCus not in ServerResultCache.keys()):
+                                # 首次接收
+                                Lock_ServerResultCache.acquire()
+                                ServerResultCache[NidCus] = b''
+                                Lock_ServerResultCache.release()
+                                SID = hex(NidCus).replace(
+                                    '0x', '').zfill(32) + '4'.zfill(40)
+                                PL.Get(SID, 4)
+                                return
+                            else:
+                                # 第二次接收（已经接收到查询指令）
+                                Data = b''
+                                errorflag = 1
+                                for i in range(3):
+                                    Lock_ServerResultCache.acquire()
+                                    if (len(ServerResultCache[NidCus]) != 0):
+                                        Data = ServerResultCache[NidCus]
+                                        Lock_ServerResultCache.release()
+                                        errorflag = 0
+                                        break
+                                    Lock_ServerResultCache.release()
+                                    time.sleep(1)
+                                if (errorflag == 1):
+                                    self.signals.output.emit(1, "未获得正确查询指令！查询失败！")
+                                    return
                         elif SidPath == 4:
-                            Data = QueryCache[hex(NidCus).replace(
-                                '0x', '').zfill(32)]
+                            Data = QueryCache[NidCus]
                     else:
                         Data = PL.ConvertFile(SidPath)
                     DataLength = len(Data)
@@ -262,14 +308,20 @@ class PktHandler(threading.Thread):
                         1, 0, 1, 0, NewSid, nid_cus=NidCus, SegID=0, PIDs=PIDs, load=load)
                     Tar = NewDataPkt.packing()
                     PL.SendIpv4(ReturnIP, Tar)
-                    # 数据库查询指令发送完成，获取查询内容
-                    if isinstance(SidPath, int) and (SidPath == 4) and (endflag == 1):
-                        Lock_QueryCache.acquire()
-                        QueryCache.pop(hex(NidCus).replace('0x', '').zfill(32))
-                        Lock_QueryCache.release()
-                        SID = hex(NidCus).replace(
-                            '0x', '').zfill(32) + '3'.zfill(40)
-                        PL.Get(SID, 3)
+                    # 内容发送完成的特殊操作
+                    if isinstance(SidPath, int) and (endflag == 1):
+                        if (SidPath == 3):
+                            Lock_ServerResultCache.acquire()
+                            ServerResultCache.pop(NidCus)
+                            Lock_ServerResultCache.release()
+                        elif (SidPath == 4):
+                            # 数据库查询指令发送完成，获取查询内容
+                            Lock_QueryCache.acquire()
+                            QueryCache.pop(NidCus)
+                            Lock_QueryCache.release()
+                            SID = hex(NidCus).replace(
+                                '0x', '').zfill(32) + '3'.zfill(40)
+                            PL.Get(SID, 3)
                     # 重传判断，待完善锁机制 #
                     for i in range(3):
                         time.sleep(RTO)
@@ -422,19 +474,34 @@ class PktHandler(threading.Thread):
                             # 将接收到的数据存入缓冲区
                             text = ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, RecvDataPkt.load[1:]) if (
                                 RecvDataPkt.load[0] & 4) == 4 else RecvDataPkt.load[1:]
-                            if (isinstance(SavePath, int) and SavePath == 3):
-                                Lock_SqlResultCache.acquire()
-                                SqlResultCache[RecvDataPkt.nid_pro] = text
-                                Lock_SqlResultCache.release()
-                                if (endflag == 1):
+                            if isinstance(SavePath, int):
+                                if SavePath == 3:
                                     Lock_SqlResultCache.acquire()
-                                    SqlResult = SqlResultCache.pop(
-                                        RecvDataPkt.nid_pro)
+                                    SqlResultCache[RecvDataPkt.nid_pro] = text
                                     Lock_SqlResultCache.release()
-                                    SqlResult = pickle.loads(SqlResult)
-                                    print(
-                                        "接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
-                                    print(SqlResult)
+                                    if (endflag == 1):
+                                        Lock_SqlResultCache.acquire()
+                                        SqlResult = SqlResultCache.pop(
+                                            RecvDataPkt.nid_pro)
+                                        Lock_SqlResultCache.release()
+                                        SqlResult = pickle.loads(SqlResult)
+                                        print(
+                                            "接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
+                                        print(SqlResult)
+                                elif SavePath == 4:
+                                    Lock_ServerQueryCache.acquire()
+                                    ServerQueryCache[RecvDataPkt.nid_pro] = text
+                                    Lock_SqlResultCache.release()
+                                    if (endflag == 1):
+                                        Lock_ServerQueryCache.acquire()
+                                        QueryText = pickle.loads(ServerQueryCache.pop(RecvDataPkt.nid_pro))
+                                        Lock_SqlResultCache.release()
+                                        SqlResult = self.SqlQuery(QueryText)
+                                        if (SqlResult != -1):
+                                            SqlResult = pickle.dumps(SqlResult)
+                                            Lock_ServerResultCache.acquire()
+                                            ServerResultCache[RecvDataPkt.nid_pro] = SqlResult
+                                            Lock_ServerResultCache.release()
                             else:
                                 PL.ConvertByte(text, SavePath)  # 存储数据
                         else:
@@ -454,19 +521,34 @@ class PktHandler(threading.Thread):
                                 # 将接收到的数据存入缓冲区
                                 text = ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, RecvDataPkt.load[1:]) if (
                                     RecvDataPkt.load[0] & 4) == 4 else RecvDataPkt.load[1:]
-                                if (isinstance(SavePath, int) and SavePath == 3):
-                                    Lock_SqlResultCache.acquire()
-                                    SqlResultCache[RecvDataPkt.nid_pro] = text
-                                    Lock_SqlResultCache.release()
-                                    if (endflag == 1):
+                                if isinstance(SavePath, int):
+                                    if SavePath == 3:
                                         Lock_SqlResultCache.acquire()
-                                        SqlResult = SqlResultCache.pop(
-                                            RecvDataPkt.nid_pro)
+                                        SqlResultCache[RecvDataPkt.nid_pro] += text
                                         Lock_SqlResultCache.release()
-                                        SqlResult = pickle.loads(SqlResult)
-                                        print(
-                                            "接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
-                                        print(SqlResult)
+                                        if (endflag == 1):
+                                            Lock_SqlResultCache.acquire()
+                                            SqlResult = SqlResultCache.pop(
+                                                RecvDataPkt.nid_pro)
+                                            Lock_SqlResultCache.release()
+                                            SqlResult = pickle.loads(SqlResult)
+                                            print(
+                                                "接收到来自NID为<" + str(RecvDataPkt.nid_pro) + ">的数据库查询结果：")
+                                            print(SqlResult)
+                                    elif SavePath == 4:
+                                        Lock_ServerQueryCache.acquire()
+                                        ServerQueryCache[RecvDataPkt.nid_pro] += text
+                                        Lock_SqlResultCache.release()
+                                        if (endflag == 1):
+                                            Lock_ServerQueryCache.acquire()
+                                            QueryText = pickle.loads(ServerQueryCache.pop(RecvDataPkt.nid_pro))
+                                            Lock_SqlResultCache.release()
+                                            SqlResult = self.SqlQuery(QueryText)
+                                            if (SqlResult != -1):
+                                                SqlResult = pickle.dumps(SqlResult)
+                                                Lock_ServerResultCache.acquire()
+                                                ServerResultCache[RecvDataPkt.nid_pro] = SqlResult
+                                                Lock_ServerResultCache.release()
                                 else:
                                     PL.ConvertByte(text, SavePath)  # 存储数据
                             elif(RecvDataPkt.S != 0) and (RecvDataPkt.SegID < RecvingSid[NewSid]):
@@ -504,9 +586,11 @@ class PktHandler(threading.Thread):
                             SidPath = PL.AnnSidUnits[NewSid].path
                             PL.Lock_AnnSidUnits.release()
                             # 判断是否传递特殊内容
-                            if isinstance(SidPath, int) and SidPath == 4:
-                                Data = QueryCache[hex(NidCus).replace(
-                                    '0x', '').zfill(32)]
+                            if isinstance(SidPath, int):
+                                if SidPath == 3:
+                                    Data = ServerResultCache[NidCus]
+                                elif SidPath == 4:
+                                    Data = QueryCache[NidCus]
                             else:
                                 Data = PL.ConvertFile(SidPath)
                             lpointer = SendingSid[NewSid][1] * \
@@ -544,11 +628,20 @@ class PktHandler(threading.Thread):
                                     self.signals.output(
                                         "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                             PL.SendIpv4(ReturnIP, Tar)
-                            # 数据库查询指令发送完成，获取查询内容
-                            if isinstance(SidPath, int) and (SidPath == 4) and (endflag == 1):
-                                SID = hex(NidCus).replace(
-                                    '0x', '').zfill(32) + '3'.zfill(40)
-                                PL.Get(SID, 3)
+                            # 内容发送完成的特殊操作
+                            if isinstance(SidPath, int) and (endflag == 1):
+                                if (SidPath == 3):
+                                    Lock_ServerResultCache.acquire()
+                                    ServerResultCache.pop(NidCus)
+                                    Lock_ServerResultCache.release()
+                                elif (SidPath == 4):
+                                    # 数据库查询指令发送完成，获取查询内容
+                                    Lock_QueryCache.acquire()
+                                    QueryCache.pop(NidCus)
+                                    Lock_QueryCache.release()
+                                    SID = hex(NidCus).replace(
+                                        '0x', '').zfill(32) + '3'.zfill(40)
+                                    PL.Get(SID, 3)
                             # 重传判断，待完善锁机制 #
                             for i in range(3):
                                 time.sleep(RTO)
