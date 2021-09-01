@@ -8,7 +8,7 @@
 
 ### 前端现状
 
-该前端是一个简易的网盘系统，支持“生产者”注册文件，然后“消费者”抓取文件。主界面分为两大部分，上方是文件列表，支持基本文件操作，下方是网络拓扑，支持基本图形操作以及一些与文件列表的结合操作，下方右边是一些信息反馈以及控制相关，将所有不太适合做在拓扑图里的功能放在这里，并且通过标签页切换。 
+该前端是一个简易的文件共享系统，支持“生产者”注册文件，然后“消费者”抓取文件。主界面分为两大部分，上方是文件列表，支持基本文件操作，下方是网络拓扑，支持基本图形操作以及一些与文件列表的结合操作，下方右边是一些信息反馈以及控制相关，将所有不太适合做在拓扑图里的功能放在这里，并且通过标签页切换。 
 
 ![截图1](https://raw.githubusercontent.com/lxambulance/cloudimg/master/img/%E6%88%AA%E5%9B%BE1.PNG)
 
@@ -16,13 +16,14 @@
 
 ![截图3](https://raw.githubusercontent.com/lxambulance/cloudimg/master/img/%E6%88%AA%E5%9B%BE3.PNG)
 
-以上是项目网盘功能的基础展示，为了更好地体现CoLoR的特性，诸如溯源、防止攻击等。接下来将罗列一些待添加或待改进的功能。
+以上是项目功能的基础展示，为了更好地体现CoLoR的特性，诸如溯源、防止攻击等。接下来将罗列一些待添加或待改进的功能。
 
-- 收包显示（做到图中）
-- AS统计信息（做到图中）
-- 攻击溯源（类似收包，换种颜色）
+- 收包显示
+- AS统计信息
+- 攻击溯源
 - 数据包泄露检测
-- 流数据传输
+- 视频流数据传输
+- 数据库查询
 - 安全认证
 
 ## 前端数据文件存储
@@ -134,6 +135,9 @@ NodeType = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
 	me[主要书写代码]
 	notme[/工具生成代码/]</code></pre>
 </details>
+## 后端现状
+
+这部分非本人负责，主要功能集中在ColorMonitor.py和Proxylib.py两个文件里。主要包含了一套发包系统，一个简单的停等协议，特殊功能有视频流传输和数据库操作。
 
 ## 后端逻辑
 
@@ -154,7 +158,7 @@ NodeType = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
     G--->|No|H[/End/]</code></pre>
 </details>
 
-## 后端接口函数
+## 后端主要函数
 
 ### proxylib.py功能函数简介
 
@@ -164,9 +168,9 @@ NodeType = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
 4. def SidAnn(ttl, publickey, P) #发送通告文件，所有参数均为默认值
 5. def Get(SID, path, ttl, publickey, QoS, SegId) #获取文件，SID为服务ID，path为存放路径，后边参数暂时设为默认值，不管
 
-传递时文件以文件路径做唯一标记（可能不是最好的实现方式，待改进）。
+**AddCacheSidUnit(path, AM, N, L, I, level=-1)详细说明**
 
-### AddCacheSidUnit(path, AM, N, L, I, level=-1)详细说明
+功能：生成SID策略单元并缓存于cache。
 
 path：文件路径
 
@@ -180,9 +184,9 @@ I：含义同announce_unit的I字段。int类型，可为0~1。
 
 level：可选策略字段，标注当前SidUnit等级。int类型，可为1~10，或不填。
 
-### SidAnn(ttl=64, PublicKey='', P=1)详细说明
+**SidAnn(ttl=64, PublicKey='', P=1)详细说明**
 
-功能：从待通告Cache中整合已生成SID策略单元，向RM发送对应ANN报文。
+功能：从待通告cache中整合已生成SID策略单元，向RM发送对应ANN报文。
 
 ttl：可选字段，含义同通告包的ttl字段。int类型，可为0~255。
 
@@ -190,7 +194,7 @@ PublicKey：可选字段，含义同通告包的Public_key字段。String类型�
 
 P：可选字段，含义同通告包的P字段。int类型，可为0\~1。
 
-### Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1)详细说明
+**Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1)详细说明**
 
 功能：发送Get报文，从网络中获取特定SID对应的内容，存储到规定位置。
 
@@ -200,17 +204,11 @@ path：从网络获取内容后期望存储的位置（含文件名！）。格�
 
 ttl：可选字段，含义同get包的ttl字段。int类型，可为0~255。
 
-PublicKey：可选字段，含义同get包的Public_key字段。格式同此前PublicKey。
-
-QoS：可选字段，含义同get包的QoS_requirements字段。格式同PublicKey。
-
-SegID：可选字段，含义同get包的Seg_ID字段。int类型，可选范围为0\~0xffffffff。
-
 A：可选字段，含义同get包的A字段。int类型，可为0~1。
 
 ## 后端公共变量定义
 
-### CacheSidUnits = {key:value}
+**CacheSidUnits = {key:value}**
 
 功能：暂存通过AddCacheSidUnit生成，但尚未调用SidAnn进行通告的SID通告单元。
 
@@ -218,7 +216,7 @@ Key: String类型，调用AddCacheSidUnit时使用的文件路径。
 
 Value：通过AddCacheSidUnit生成的通告单元类（class SidUnit，记录了通告单元信息）。
 
-### AnnSidUnits = {key:value}
+**AnnSidUnits = {key:value}**
 
 功能：记录已向网络中通告的SID，以及对应的通告策略。
 
@@ -226,7 +224,7 @@ Key：SID。String类型，规定内含字符为16进制字符（0\~9，a\~f）�
 
 Value：通告单元，格式同CacheSidUnits的Value。
 
-### gets = {key:value}
+**gets = {key:value}**
 
 功能：记录当前请求中（即发送了get但暂未完全接收到）的SID信息。
 
@@ -275,7 +273,8 @@ scapy 2.4.4
 - 2021.6.1 研究了scapy发包库，添加了一些测试工具，接下去要从界面设计，后续功能添加等方面考虑。
 - 2021.7.13 近期有点摸鱼，写不动代码，慢慢从细节修改。
 - 2021.7.27 集成了视频流功能，界面基本更新完毕。
+- 2021.9.1 完成了数据库操作和安全认证（客户端部分，另一部分依赖于RM）
 
 作为git练习，dev分支可能会出现许多无聊地、甚至错误地提交。
 
-warning: 不要尝试重构他人代码（费力不讨好，学习除外），修改的同时容易埋更多bug，当做黑盒能用就行。
+warning: 请不要在完全理解前尝试重构他人代码，修改的同时容易制造更多bug，当做黑盒能用就行。
