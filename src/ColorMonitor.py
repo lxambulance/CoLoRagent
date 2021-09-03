@@ -571,6 +571,7 @@ class PktHandler(threading.Thread):
                                 WaitingACK[NidCus] = 0
                             Lock_WaitingACK.release()
                             return
+                        # print(ESS.checkSession(NidCus, NewSid), RecvDataPkt.SegID)
                         # 回应加密握手包
                         if ESS.checkSession(RecvDataPkt.nid_cus, NewSid) or RecvDataPkt.SegID == 3:
                             ESS.gotoNextStatus(

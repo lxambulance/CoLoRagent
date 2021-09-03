@@ -173,6 +173,7 @@ class Session():
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.UncompressedPoint
         )
+        self.calcSharedKey()
         signature = Agent.private_key.sign(
             str.encode("ECDHE_ECDSA_WITH_AES_256_GCM_SHA256") + \
             ECDH_public_key_bytes + \
@@ -252,6 +253,7 @@ class Session():
             salt=self.random_client + self.random_server,
             info=None
         ).derive(prekey)
+        # print(self.mainKey)
 
 def Encrypt(nid, sid, text):
     ''' docstring: 对特定服务做加密，返回值是CoLoR_data_load加密包格式的bytes串 '''
@@ -288,8 +290,8 @@ def newSession(nid:int, sid:str, pids:list, ip:str, flag = True, loads = b'', pk
     sessionlist[session_key] = newsession
     # 开始握手
     if flag:
-        newsession.sendFirstHandshake(nid=nid)
         newsession.pkt = pkt
+        newsession.sendFirstHandshake(nid=nid)
     else:
         newsession.myStatus = 2
         # 验证签名并保存参数
@@ -346,6 +348,7 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
     session = sessionlist.get(session_key, None)
     if not session or session.myStatus == 6:
         return
+    # print(session.myStatus)
     if session.myStatus == 1:
         if (SegID & 0xff) != 1:
             return
@@ -354,7 +357,6 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
     elif session.myStatus == 2:
         session.myStatus = 4
         session.sendSecondHandshake(nid, sid_origin, pids, ip)
-        session.calcSharedKey()
     elif session.myStatus == 3:
         session.myStatus = 5
         # 验证签名并保存参数
@@ -379,8 +381,6 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
         session.calcSharedKey()
         session.sendThirdHandshake()
     elif session.myStatus == 4:
-        if SegID != 2:
-            return
         session.myStatus = 6
         data = json.loads(loads[1:])
         session.sessionId = bytes.fromhex(data['session_id'])
@@ -395,7 +395,7 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
         session.myStatus = 6
         pkthandler = CM.PktHandler(session.pkt)
         pkthandler.start()
-    if session.myStatus == 6:    
+    if session.myStatus == 6:
         ESSsignal.output.emit(0, f"与节点{session.nid}的{session.sid}已建立加密通道")
 
 
