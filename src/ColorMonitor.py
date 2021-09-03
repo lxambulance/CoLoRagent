@@ -286,7 +286,6 @@ class PktHandler(threading.Thread):
                             self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
                             return
                     # 获取数据，分片或直接传输
-                    DataLength = len(PL.ConvertFile(SidPath))
                     if ESSflag:
                         SidLoadLength -= 32
                     if (DataLength <= SidLoadLength):
@@ -491,11 +490,11 @@ class PktHandler(threading.Thread):
                                 elif SavePath == 4:
                                     Lock_ServerQueryCache.acquire()
                                     ServerQueryCache[RecvDataPkt.nid_pro] = text
-                                    Lock_SqlResultCache.release()
+                                    Lock_ServerQueryCache.release()
                                     if (endflag == 1):
                                         Lock_ServerQueryCache.acquire()
                                         QueryText = pickle.loads(ServerQueryCache.pop(RecvDataPkt.nid_pro))
-                                        Lock_SqlResultCache.release()
+                                        Lock_ServerQueryCache.release()
                                         SqlResult = self.SqlQuery(QueryText)
                                         if (SqlResult != -1):
                                             SqlResult = pickle.dumps(SqlResult)

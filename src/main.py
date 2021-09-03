@@ -70,12 +70,11 @@ class CoLoRApp(QApplication):
         nid = "d23454d19f307d8b98ff2da277c0b546"
         CM.PL.PeerProxys[int(nid, 16)]='192.168.50.199'
         # time.sleep(2)
-        # Video provider
-        # CM.PL.AddCacheSidUnit(1,1,1,1,1)
+        # Sql provider
+        # CM.PL.AddCacheSidUnit(3,1,1,1,1)
         # CM.PL.SidAnn()
-        # Video customer
-        # SID = '1'*30+'00' + '1'.zfill(40)
-        # CM.PL.Get(SID,1)
+        # Sql customer
+        # CM.GetSql(nid, "SELECT * from employee;")
 
     def _setStyle(self):
         ''' docstring: 切换qss格式 '''
