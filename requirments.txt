@@ -1,0 +1,9 @@
+cryptography==3.4.7
+opencv-contrib-python-headless==4.5.4.58
+PyQt5
+PyQt5-stubs==5.15.2.0
+pyqtgraph==0.12.1
+qdarkstyle==3.0.2
+scapy==2.4.5
+PyMySQL==1.0.2
+pickleshare==0.7.5
