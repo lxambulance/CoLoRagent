@@ -43,13 +43,13 @@
     ],
     "topo map":{
         "nodes": [
-			{"type","name","size","nid","pos","font","color"}, //all attributes
-			{"type":0(AS), "size": 384, "tfont":, "tcolor":}, //tfont和tcolor用于AS通量统计
-			{"type":1(RM), "nid":"11111111111111111111111111111111"}, 
-			{"type":2(BR), "nid":"11111111111111112222222222222222"},
-			{"type":3(normal router)}
-			{"type":4(Switch)}
-			{"type":5(agent-me), "nid":"11111111111111111111111111111110"}
+            {"type","name","size","nid","pos","font","color"}, //all attributes
+            {"type":0(AS), "size": 384, "tfont":, "tcolor":}, //tfont和tcolor用于AS通量统计
+            {"type":1(RM), "nid":"11111111111111111111111111111111"}, 
+            {"type":2(BR), "nid":"11111111111111112222222222222222"},
+            {"type":3(normal router)}
+            {"type":4(Switch)}
+            {"type":5(agent-me), "nid":"11111111111111111111111111111110"}
         ],
         "edges":[
             [1, 3, "px", "font", "color"],
@@ -60,8 +60,8 @@
         }
     },
     "user info":{
-    	"filetmppath":"D:/CodeHub/CoLoRagent/.tmp/",
-    	"myNID":"11111111111111111111111111111110",
+        "filetmppath":"D:/CodeHub/CoLoRagent/.tmp/",
+        "myNID":"11111111111111111111111111111110",
         "RMIPv4":"10.0.0.1",
         "myIPv4":"192.168.50.192"
     }
@@ -88,7 +88,7 @@ NodeType = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
 
 <details>
     <summary>查看源码</summary>
-	<pre><code>graph LR
+    <pre><code>graph LR
     A[/main/]--->|main thread|B[mainwindow]
     A-.->|new thread|C[CoLoRMonitor]
     B---D[File list]
@@ -111,29 +111,29 @@ NodeType = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
 
 <details>
     <summary>查看源码</summary>
-	<pre><code>graph TD
-	A[main.py] ---> b[logInWindow.py]
-	b ---> B[MainWindow.py]
-	B ---> C[AddItemWindow.py]
-	B ---> D[GraphicWindow.py]
-	B ---> E[FileData.py]
-	B ---> F[serviceList.py]
-	B ---> G[serviceTable.py]
-	F ---> E
-	G ---> E
-	B ---> H[worker.py]
-	D ---> I[topoGraphView.py]
-	D ---> J[topoGraphScene.py]
-	J ---> K[NodeEdge.py]
-	I ---> J
-	I ---> K
-	B ---> rc[/resource_rc.py/]
-	K ---> rc
-	b ---> logIn[/logInDialog.py/]
-	B ---> main[/MainPage.py/]
-	C ---> add[/addItemDialog.py/]
-	me[主要书写代码]
-	notme[/工具生成代码/]</code></pre>
+    <pre><code>graph TD
+    A[main.py] ---> b[logInWindow.py]
+    b ---> B[MainWindow.py]
+    B ---> C[AddItemWindow.py]
+    B ---> D[GraphicWindow.py]
+    B ---> E[FileData.py]
+    B ---> F[serviceList.py]
+    B ---> G[serviceTable.py]
+    F ---> E
+    G ---> E
+    B ---> H[worker.py]
+    D ---> I[topoGraphView.py]
+    D ---> J[topoGraphScene.py]
+    J ---> K[NodeEdge.py]
+    I ---> J
+    I ---> K
+    B ---> rc[/resource_rc.py/]
+    K ---> rc
+    b ---> logIn[/logInDialog.py/]
+    B ---> main[/MainPage.py/]
+    C ---> add[/addItemDialog.py/]
+    me[主要书写代码]
+    notme[/工具生成代码/]</code></pre>
 </details>
 ## 后端现状
 
@@ -145,7 +145,7 @@ NodeType = ['cloud', 'RM', 'BR', 'router', 'switch', 'PC']
 
 <details>
     <summary>查看源码</summary>
-	<pre><code>graph LR
+    <pre><code>graph LR
     A[/main/]--->|start thread|B[CoLoRMonitor]
     B--->|listen|C{package.type?}
     C--get--> D[check database then send]
@@ -259,22 +259,3 @@ scapy 2.4.4
 ```
 
 为了有较好的qt编程体验建议安装pyqt5-stubs，然后配置vscode中的pylint，这样可以让编译器联想和提示库函数。
-
-## 进度
-
-- 2021.2.24 目前只包含前端几个页面以及一些简单的按钮逻辑。
-- 2021.3.10 前端基本完成，开始考虑前后交互的逻辑。
-- 2021.3.15 美化了前端几个界面的设计，开始阅读后端代码。
-- 2021.3.18 前后端融合完成，非常简陋的初始版本。
-- 2021.3.29 做了一定美化，暂时没有时间更新readme。
-- 2021.3.30 删除了无用的页面，增加和细化了一些功能。
-- 2021.4.25 完成了一次完整联调，还有待改进的点，以及一些小功能。
-- 2021.5.11 完成了联调，主要功能完成，操作体验上还有优化空间。
-- 2021.6.1 研究了scapy发包库，添加了一些测试工具，接下去要从界面设计，后续功能添加等方面考虑。
-- 2021.7.13 近期有点摸鱼，写不动代码，慢慢从细节修改。
-- 2021.7.27 集成了视频流功能，界面基本更新完毕。
-- 2021.9.1 完成了数据库操作和安全认证（客户端部分，另一部分依赖于RM）
-
-作为git练习，dev分支可能会出现许多无聊地、甚至错误地提交。
-
-warning: 请不要在完全理解前尝试重构他人代码，修改的同时容易制造更多bug，当做黑盒能用就行。
