@@ -199,6 +199,9 @@ class Ann_unit(Packet):
             pkt = pkt[:1] + Int2Bytes(self.Unit_length, 1) + pkt[2:]
         return pkt + pay
 
+    def extract_padding(self, s):
+        return "", s
+
 
 class ColorAnn(Packet):
     ''' docstring: 注册包格式 '''
@@ -260,6 +263,9 @@ class IP_NID(Packet):
         StrFixedLenField("nid", "", 16)
     ]
 
+    def extract_padding(self, s):
+        return "", s
+
 
 class PX_IP(Packet):
     ''' docstring: PX-IP映射条目 '''
@@ -268,6 +274,9 @@ class PX_IP(Packet):
         LEShortField("PX", None),
         LEIntField("IP", None)
     ]
+
+    def extract_padding(self, s):
+        return "", s
 
 
 class ASinfo(Packet):
@@ -291,6 +300,9 @@ class AttackSummaryUnit(Packet):
         LEIntField('attack_num', None)
     ]
 
+    def extract_padding(self, s):
+        return "", s
+
 
 class AttackInfo(Packet):
     ''' docstring: 攻击信息表 '''
@@ -298,7 +310,7 @@ class AttackInfo(Packet):
     fields_desc = [
         StrFixedLenField("BR_nid", "", 16),
         PacketListField('attack_list', None, AttackSummaryUnit,
-                        count_from=lambda pkt:(pkt.pkg_length-16)//5)
+                        next_cls_cb=lambda a, b, c, d:AttackSummaryUnit)
     ]
 
 
@@ -398,6 +410,7 @@ if __name__ == '__main__':
     au.L_sid = b'\x02'*20
     au.nid = b'\x03'*16
     ca = ColorAnn(Announce_unit_list=[au, au])
+    ca.show2()
     send(pkt/ca, verbose=0)
 
     ipniditem = IP_NID(IP=Ipv42Int("192.168.50.62"), nid=b"\xf0"*16)
