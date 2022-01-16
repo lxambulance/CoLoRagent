@@ -814,8 +814,7 @@ def CalculateCS(tar):
         pointer += 2
         sum += temp
     if (length - pointer > 0):
-        sum += tar[pointer]<<8
-        print()
+        sum += tar[pointer] << 8
     sum = (sum >> 16) + (sum & 0xffff)
     sum = (sum >> 16) + (sum & 0xffff)  # 防止上一步相加后结果大于16位
     return (sum ^ 0xffff)  # 按位取反后返回

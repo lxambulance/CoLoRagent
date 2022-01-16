@@ -259,3 +259,15 @@ scapy 2.4.4
 ```
 
 为了有较好的qt编程体验建议安装pyqt5-stubs，然后配置vscode中的pylint，这样可以让编译器联想和提示库函数。
+
+## 代码格式
+
+使用python autopep8
+
+类型名：每个单词首字母大写，即PascalCase
+
+函数名：除第一个单词首字母大写，即camelCase
+
+变量名：小写+下划线，即snake_case
+
+其他按照各个库的习惯写

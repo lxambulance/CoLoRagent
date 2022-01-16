@@ -15,7 +15,10 @@ class MyEncoder(json.JSONEncoder):
             return obj.hex()
         return json.JSONEncoder.default(self, obj)
 
+
 count = 0
+
+
 def keyGenerate():
     global count
     count += 1
@@ -43,16 +46,20 @@ def keyGenerate():
     print("nid", nid.hex())
     return private_key, private_bytes, public_key, public_bytes, nid.hex()
 
+
 def publicKeyCheck(nid_hex, publick_key_hex):
     tmpnid = hashlib.sha256()
     public_bytes = bytes.fromhex(publick_key_hex)
     tmpnid.update(public_bytes)
 
+
 def loadKey(data):
     private_bytes = data['private']
-    private_key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(data['private']))
+    private_key = Ed25519PrivateKey.from_private_bytes(
+        bytes.fromhex(data['private']))
     public_bytes = data['public']
-    public_key = Ed25519PublicKey.from_public_bytes(bytes.fromhex(data['public']))
+    public_key = Ed25519PublicKey.from_public_bytes(
+        bytes.fromhex(data['public']))
     nid = data['nid']
     print('私钥', private_bytes)
     print('公钥', public_bytes)
@@ -65,21 +72,21 @@ if __name__ == '__main__':
 
     private_key, private_bytes, public_key, public_bytes, nid = keyGenerate()
 
-    data['client']={
-        "private":private_bytes,
-        "public":public_bytes,
+    data['client'] = {
+        "private": private_bytes,
+        "public": public_bytes,
         "nid": nid
     }
 
     private_key, private_bytes, public_key, public_bytes, nid = keyGenerate()
 
-    data['server']={
-        "private":private_bytes,
-        "public":public_bytes,
+    data['server'] = {
+        "private": private_bytes,
+        "public": public_bytes,
         "nid": nid
     }
 
     print(json.dumps(data, cls=MyEncoder))
 
-    with open("./test/testKey.json","w") as f:
+    with open("./test/testKey.json", "w") as f:
         json.dump(data, f, cls=MyEncoder)

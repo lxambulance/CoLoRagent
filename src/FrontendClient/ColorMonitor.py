@@ -35,7 +35,7 @@ QueryCache = {}
 Lock_QueryCache = threading.Lock()
 SqlResultCache = {}  # client接收数据库查询结果的缓冲区，key：ServerNid(int)，value:bytes字符串
 Lock_SqlResultCache = threading.Lock()
-ServerQueryCache = {} # server接收数据库查询请求的缓冲区，key：clientNid(int)，value:bytes字符串
+ServerQueryCache = {}  # server接收数据库查询请求的缓冲区，key：clientNid(int)，value:bytes字符串
 Lock_ServerQueryCache = threading.Lock()
 # server接收到查询命令后存储查询结果的缓冲区，key：clientNid(int)，value:bytes字符串
 ServerResultCache = {}
@@ -141,7 +141,8 @@ class PktHandler(threading.Thread):
 
     def SqlQuery(self, command):
         # 打开数据库连接
-        db = pymysql.connect(host="localhost", user="root", password="Mysql233.", database="testdb")
+        db = pymysql.connect(host="localhost", user="root",
+                             password="Mysql233.", database="testdb")
         # 使用 cursor() 方法创建一个游标对象 cursor
         cursor = db.cursor()
         result = -1
@@ -152,7 +153,7 @@ class PktHandler(threading.Thread):
             print("Error: unable to fecth data")
         db.close()
         return result
-    
+
     def run(self):
         if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
             # self.packet.show()
@@ -268,7 +269,8 @@ class PktHandler(threading.Thread):
                                     Lock_ServerResultCache.release()
                                     time.sleep(1)
                                 if (errorflag == 1):
-                                    self.signals.output.emit(1, "未获得正确查询指令！查询失败！")
+                                    self.signals.output.emit(
+                                        1, "未获得正确查询指令！查询失败！")
                                     return
                         elif SidPath == 4:
                             Data = QueryCache[NidCus]
@@ -375,8 +377,9 @@ class PktHandler(threading.Thread):
                             if (PX in PL.PXs.keys()):
                                 ReturnIP = PL.PXs[PX]
                             else:
-                                self.signals.output.emit(
-                                    1, "未知的PX："+hex(PX).replace('0x', '').zfill(4))
+                                pass
+                                # TODO: bug视频传输一片一个ACK，两者PID序列不同
+                                # self.signals.output.emit(1, "未知的PX："+hex(PX).replace('0x', '').zfill(4))
                         # 视频流数据
                         if isinstance(SavePath, int) and SavePath == 1:
                             FrameCount = RecvDataPkt.SegID >> 16
@@ -493,7 +496,8 @@ class PktHandler(threading.Thread):
                                     Lock_ServerQueryCache.release()
                                     if (endflag == 1):
                                         Lock_ServerQueryCache.acquire()
-                                        QueryText = pickle.loads(ServerQueryCache.pop(RecvDataPkt.nid_pro))
+                                        QueryText = pickle.loads(
+                                            ServerQueryCache.pop(RecvDataPkt.nid_pro))
                                         Lock_ServerQueryCache.release()
                                         SqlResult = self.SqlQuery(QueryText)
                                         if (SqlResult != -1):
@@ -540,11 +544,14 @@ class PktHandler(threading.Thread):
                                         Lock_SqlResultCache.release()
                                         if (endflag == 1):
                                             Lock_ServerQueryCache.acquire()
-                                            QueryText = pickle.loads(ServerQueryCache.pop(RecvDataPkt.nid_pro))
+                                            QueryText = pickle.loads(
+                                                ServerQueryCache.pop(RecvDataPkt.nid_pro))
                                             Lock_SqlResultCache.release()
-                                            SqlResult = self.SqlQuery(QueryText)
+                                            SqlResult = self.SqlQuery(
+                                                QueryText)
                                             if (SqlResult != -1):
-                                                SqlResult = pickle.dumps(SqlResult)
+                                                SqlResult = pickle.dumps(
+                                                    SqlResult)
                                                 Lock_ServerResultCache.acquire()
                                                 ServerResultCache[RecvDataPkt.nid_pro] = SqlResult
                                                 Lock_ServerResultCache.release()
