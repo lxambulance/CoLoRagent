@@ -64,6 +64,7 @@ def test_ColorPacketDissect():
     assert cc[AttackInfo].attack_list[2].attack_num == 6666
     cc = ColorControl(ctlpkt_odcwarning_bytes)
     assert cc[IP].src == "1.1.1.1"
+    assert cc[IP].dst == "2.2.2.2"
 
 
 def test_CalcHMAC():
