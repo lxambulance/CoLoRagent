@@ -27,6 +27,9 @@ ctlpkt_attackwarning_bytes = bytes.fromhex(
     "74401c7a08121f0000000000000000000000000000000000050a1a0000050a1a0000050a1a0000")
 ctlpkt_odcwarning_bytes = bytes.fromhex(
     "74406fae081114004500001400010000400074e40101010102020202")
+ip_control_pkt_bytes = bytes.fromhex(
+    "45000038000000004096642b0a0001010a0001057480677908061c0001d23454d19f307d8b98ff2da277c0b5460501000a0144330201000a")
+
 
 
 def test_CalcChecksum():
@@ -77,8 +80,16 @@ def test_CalcHMAC():
     assert datpkt_postbuild_bytes == cd.__bytes__()
 
 
+def test_IPguess():
+    from scapy.all import IP
+    from CoLoRProtocol.CoLoRpacket import ColorControl
+    pkt = IP(ip_control_pkt_bytes)
+    assert type(pkt.payload) == ColorControl
+
+
 if __name__ == '__main__':
     test_CalcChecksum()
     test_ipv4_int()
     test_ColorPacketDissect()
     test_CalcHMAC()
+    test_IPguess()

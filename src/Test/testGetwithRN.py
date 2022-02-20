@@ -19,6 +19,5 @@ if __name__ == '__main__':
     cg.PIDs = [b'\x01\x23\x45\x67', b'\x98\x76\x54\x32']
     cg.Flags.R = True
     cg.Random_num = bytes.fromhex("12345678")
-    # cg.show2()
 
     send(pkt/cg, verbose = 0)

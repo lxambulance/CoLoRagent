@@ -1,4 +1,3 @@
-
 ''' docstring: CoLoR协议所有类型包格式 '''
 
 
@@ -8,6 +7,7 @@ from scapy.all import (
     PacketListField, XStrFixedLenField, ConditionalField, StrLenField,
     IntField, LEIntField, ByteEnumField, bind_layers, IP
 )
+
 
 from cryptography.hazmat.primitives import hashes
 
@@ -388,23 +388,22 @@ bind_layers(ColorControl, AttackInfo, {'tag': 18})
 def newIP_guess_payload_class(self, payload):
     ''' docstring: 重载IP层负载猜测函数，添加color协议 '''
     if self.proto == 150:
-        # print(payload)
-        if payload[0] == b'\x71':
+        if payload[0] == 113:
             return ColorAnn
-        elif payload[0] == b'\x72':
+        elif payload[0] == 114:
             return ColorGet
-        elif payload[0] == b'\x73':
+        elif payload[0] == 115:
             return ColorData
-        elif payload[0] == b'\x74':
+        elif payload[0] == 116:
             return ColorControl
     return super(IP, self).guess_payload_class(payload)
 
 
 # 用于IP报文负载推测和自动填写proto字段
 IP.guess_payload_class = newIP_guess_payload_class
+bind_layers(IP, ColorAnn, {'proto': 150})
 bind_layers(IP, ColorGet, {'proto': 150})
 bind_layers(IP, ColorData, {'proto': 150})
-bind_layers(IP, ColorAnn, {'proto': 150})
 bind_layers(IP, ColorControl, {'proto': 150})
 
 
