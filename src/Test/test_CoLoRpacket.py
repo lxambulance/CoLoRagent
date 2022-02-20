@@ -13,6 +13,10 @@ getpkt_bytes = bytes.fromhex(
     "72404800d94c000002080000ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a50123456798765432")
 datpkt_bytes = bytes.fromhex(
     "73404a008b544a000300ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5000000009876543201234567")
+datpkt_hmac_bytes = bytes.fromhex(
+    "73405e0000005e000224ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a55a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a00000000000000009876543201234567")
+datpkt_postbuild_bytes = bytes.fromhex(
+    "73405e001e2e5e000224ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a55a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5aa220d10e000000009876543201234567")
 annpkt_bytes = bytes.fromhex(
     "7140820053e60020e83d0201010101010101010101010101010101020202020202020202020202020202020202020203030303030303030303030303030303010112010112e83d0201010101010101010101010101010101020202020202020202020202020202020202020203030303030303030303030303030303010112010112")
 ctlpkt_proxyregister_bytes = bytes.fromhex(
@@ -62,7 +66,18 @@ def test_ColorPacketDissect():
     assert cc[IP].src == "1.1.1.1"
 
 
+def test_CalcHMAC():
+    from CoLoRProtocol.CoLoRpacket import CalcHMAC, ColorData
+    rn = b'\x12\x34\x56\x78'
+    assert CalcHMAC(datpkt_hmac_bytes + rn)[:4] == b'\xa2\x20\xd1\x0e'
+    cd = ColorData(datpkt_postbuild_bytes)
+    cd.checksum = None
+    cd.HMAC = rn
+    assert datpkt_postbuild_bytes == cd.__bytes__()
+
+
 if __name__ == '__main__':
     test_CalcChecksum()
     test_ipv4_int()
     test_ColorPacketDissect()
+    test_CalcHMAC()

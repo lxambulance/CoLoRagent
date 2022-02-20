@@ -57,18 +57,18 @@ class CoLoRApp(QApplication):
         self.window.show()
         # 连接后端信号槽
         thread_monitor = CM.Monitor(
-            message = app.window.handleMessageFromPkt,
-            path = app.window.getPathFromPkt
+            message=app.window.handleMessageFromPkt,
+            path=app.window.getPathFromPkt
         )
         thread_monitor.setDaemon(True)
         thread_monitor.start()
 
         # 测试
-        CM.PL.RegFlag=1
+        CM.PL.RegFlag = 1
         # nid = "b0cd69ef142db5a471676ad710eebf3a"
         # CM.PL.PeerProxys[int(nid, 16)]='192.168.50.62'
-        nid = "d23454d19f307d8b98ff2da277c0b546"
-        CM.PL.PeerProxys[int(nid, 16)]='192.168.50.199'
+        # nid = "d23454d19f307d8b98ff2da277c0b546"
+        # CM.PL.PeerProxys[int(nid, 16)]='192.168.50.199'
         # time.sleep(2)
         # Sql provider
         # CM.PL.AddCacheSidUnit(3,1,1,1,1)
@@ -87,13 +87,14 @@ class CoLoRApp(QApplication):
             self.setStyle(tmp)
         elif tmp == 'Qdarkstyle':
             self.setStyleSheet(qds.load_stylesheet_pyqt5())
-            self.window.graphicwindow.setStyleSheet(qds.load_stylesheet_pyqt5())
+            self.window.graphicwindow.setStyleSheet(
+                qds.load_stylesheet_pyqt5())
         else:
             self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
         color = self.window.palette().color(QPalette.Background).name()
         color = '#ffffff' if color == '#f0f0f0' else color
         self.window.graphicwindow.graphics_global.setBackground(
-            "#6d6d6d" if tmp == 'Qdarkstyle' else color) #455364
+            "#6d6d6d" if tmp == 'Qdarkstyle' else color)  # 455364
         self.window.speedGraph.setBackground(color)
 
 

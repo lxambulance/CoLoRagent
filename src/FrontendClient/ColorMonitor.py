@@ -1,20 +1,26 @@
 # coding=utf-8
 ''' docstring: CoLoR监听线程，负责与网络组件的报文交互 '''
 
-from scapy.all import *
-import threading
-import ProxyLib as PL
-import math
-import time
-import cv2
-import numpy as np
-import zlib
-import queue
-import pickle
-import pymysql
 
+import pymysql
+import pickle
+import queue
+import zlib
+import numpy as np
+import cv2
+import time
+import math
+import ProxyLib as PL
+import threading
+from scapy.all import *
 from PyQt5.QtCore import QObject, pyqtSignal
 import establishSecureSession as ESS
+import os
+import sys
+__BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
+sys.path.append(__BASE_DIR)
+from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData
+
 
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
@@ -190,6 +196,8 @@ class PktHandler(threading.Thread):
                     if(CS != 0):
                         return
                     # 解析报文内容
+                    getpktv2 = ColorGet(data)
+                    randomnum = None if not getpktv2.Flags.R else getpktv2.Random_num
                     NewGetPkt = PL.GetPkt(0, Pkt=data)
                     # 判断是否为代理当前提供内容
                     NewSid = ''
@@ -304,11 +312,20 @@ class PktHandler(threading.Thread):
                             4 if ESSflag else 0, 1) + (ESS.Encrypt(NidCus, NewSid, text) if ESSflag else text)
                         endflag = 0
                     SendingSid[NewSid] = [
-                        ChipNum, ChipLength, 1, NidCus, PIDs, ESSflag]
+                        ChipNum, ChipLength, 1, NidCus, PIDs, ESSflag, randomnum]
                     NewDataPkt = PL.DataPkt(
                         1, 0, 1, 0, NewSid, nid_cus=NidCus, SegID=0, PIDs=PIDs, load=load)
                     Tar = NewDataPkt.packing()
-                    PL.SendIpv4(ReturnIP, Tar)
+                    if randomnum is None:
+                        PL.SendIpv4(ReturnIP, Tar)
+                    else:
+                        tmptar = ColorData(Tar)
+                        tmptar.checksum = None
+                        tmptar.Flags.C = True
+                        tmptar.HMAC = randomnum
+                        tmptar.header_length = None
+                        tmptar.pkg_length = None
+                        PL.sendIpv4(ReturnIP, tmptar)
                     # 内容发送完成的特殊操作
                     if isinstance(SidPath, int) and (endflag == 1):
                         if (SidPath == 3):
@@ -634,7 +651,16 @@ class PktHandler(threading.Thread):
                                 else:
                                     self.signals.output(
                                         "未知的PX："+hex(PX).replace('0x', '').zfill(4))
-                            PL.SendIpv4(ReturnIP, Tar)
+                            if SendingSid[NewSid][6] is None:
+                                PL.SendIpv4(ReturnIP, Tar)
+                            else:
+                                tmptar = ColorData(Tar)
+                                tmptar.checksum = None
+                                tmptar.Flags.C = True
+                                tmptar.HMAC = randomnum
+                                tmptar.header_length = None
+                                tmptar.pkg_length = None
+                                PL.sendIpv4(ReturnIP, tmptar)
                             # 内容发送完成的特殊操作
                             if isinstance(SidPath, int) and (endflag == 1):
                                 if (SidPath == 3):

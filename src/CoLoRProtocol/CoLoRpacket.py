@@ -9,6 +9,15 @@ from scapy.all import (
     IntField, LEIntField, ByteEnumField, bind_layers, IP
 )
 
+from cryptography.hazmat.primitives import hashes
+
+
+def CalcHMAC(tar):
+    ''' docstring: 计算hmac tar: bytes字符串 ret: bytes字符串'''
+    digest = hashes.Hash(hashes.MD5())
+    digest.update(tar)
+    return digest.finalize()
+
 
 def CalcChecksum(tar):
     ''' docstring: 校验和计算 tar: bytes字符串 ret: int '''
@@ -29,14 +38,14 @@ def CalcChecksum(tar):
 
 
 def Int2Bytes(data, length):
-    ''' docstring: 将int类型转成bytes类型（大端存储）
-    data: 目标数字，length: 目标字节数 '''
+    ''' docstring: 将int类型转成bytes类型 (大端存储)
+    data: 目标数字; length: 目标字节数 '''
     return data.to_bytes(length, byteorder='big')
 
 
 def Int2BytesLE(data, length):
-    ''' docstring: 将int类型转成bytes类型（小端存储）
-    data: 目标数字，length: 目标字节数 '''
+    ''' docstring: 将int类型转成bytes类型 (小端存储)
+    data: 目标数字; length: 目标字节数 '''
     return data.to_bytes(length, byteorder='little')
 
 
@@ -62,7 +71,7 @@ class ColorGet(Packet):
         XShortField("checksum", None),
         ShortField("MTU", None),
         FieldLenField("PID_num", None, fmt="B", count_of="PIDs"),
-        FlagsField("Flags", 8, 8, "rrrASQKF"),
+        FlagsField("Flags", 8, 8, "rrRASQKF"),
         ShortField("Minimal_PID_CP", None),
         StrFixedLenField("N_sid", "", 16),
         StrFixedLenField("L_sid", "", 20),
@@ -88,7 +97,11 @@ class ColorGet(Packet):
             lambda pkt:pkt.Flags.S == True),
         FieldListField(
             "PIDs", None, StrFixedLenField("", "", 4),
-            count_from=lambda pkt:pkt.PID_num)
+            count_from=lambda pkt:pkt.PID_num),
+        ConditionalField(
+            StrFixedLenField("Random_num", "", 4),
+            lambda pkt:pkt.Flags.R == True
+        )
     ]
 
     def post_build(self, pkt, pay):
@@ -130,7 +143,7 @@ class ColorData(Packet):
             StrLenField("QoS_requirements", "",
                         length_from=lambda pkt:pkt.QoS_len),
             lambda pkt:pkt.Flags.Q == True),
-        ConditionalField(IntField("HMAC", None),
+        ConditionalField(StrFixedLenField("HMAC", "", 4),
                          lambda pkt:pkt.Flags.C == True),
         ConditionalField(IntField("Seg_ID", None),
                          lambda pkt:pkt.Flags.S == True),
@@ -145,6 +158,16 @@ class ColorData(Packet):
         if self.pkg_length is None:
             self.pkg_length = len(pkt) + len(pay)
             pkt = pkt[:2] + Int2BytesLE(self.pkg_length, 2) + pkt[4:]
+        # warning: 此处将RN先放置于该包HMAC处，提取出后计算结果再放回
+        if self.Flags.C:
+            hmac_offset = 62 + 2*self.Flags.M + \
+                16*(self.Flags.R & ~self.Flags.B)
+            hmac_offset += self.Qos_len+1 if self.Flags.Q else 0
+            hmac_bytes = CalcHMAC(pkt[:hmac_offset] + Int2Bytes(0, 4) +
+                                  pkt[hmac_offset+4:] + pay + pkt[hmac_offset:hmac_offset+4])
+            # print(hmac_bytes[:4].hex())
+            self.HMAC = hmac_bytes[:4]
+            pkt = pkt[:hmac_offset] + self.HMAC + pkt[hmac_offset+4:]
         if self.checksum is None:
             self.checksum = CalcChecksum(pkt)
             pkt = pkt[:4] + Int2Bytes(self.checksum, 2) + pkt[6:]
@@ -404,13 +427,25 @@ if __name__ == '__main__':
     cd.PIDs = [b'\x00\x00\x00\x00', b'\x98\x76\x54\x32', b'\x01\x23\x45\x67']
     send(pkt/cd, verbose=0)
 
+    # 测试hmac计算
+    cd = ColorData()
+    cd.N_sid = b'\xff'*16
+    cd.L_sid = b'\x01'*20
+    cd.nid_cus = b'\xa5'*16
+    cd.nid_pro = b'\x5a'*16
+    cd.Flags.R = True
+    cd.Flags.C = True
+    cd.HMAC = b'\x12\x34\x56\x78'
+    cd.PIDs = [b'\x00\x00\x00\x00', b'\x98\x76\x54\x32', b'\x01\x23\x45\x67']
+    send(pkt/cd, verbose=0)
+
     su = Strategy_unit(tag=1, length=1, value=b"\x12")
     au = Ann_unit(AM=1, Strategy_unit_list=[su, su])
     au.N_sid = b'\x01'*16
     au.L_sid = b'\x02'*20
     au.nid = b'\x03'*16
     ca = ColorAnn(Announce_unit_list=[au, au])
-    ca.show2()
+    # ca.show2()
     send(pkt/ca, verbose=0)
 
     ipniditem = IP_NID(IP=Ipv42Int("192.168.50.62"), nid=b"\xf0"*16)

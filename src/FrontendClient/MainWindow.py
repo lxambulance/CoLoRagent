@@ -30,8 +30,8 @@ import os
 import sys
 import time
 
-__BASE_DIR = os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))).replace('\\', '/')
+__BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
 DATA_PATH = __BASE_DIR + '/data.json'

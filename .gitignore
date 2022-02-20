@@ -10,3 +10,4 @@ src/PageUI/__pycache__
 *.log
 .pytest_cache/*
 .vscode/*
+data.json

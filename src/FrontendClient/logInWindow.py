@@ -7,8 +7,8 @@ from logInDialog import Ui_Dialog
 import os
 import sys
 import json
-BASE_DIR = os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))).replace('\\', '/')
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))).replace('\\', '/')
 DATA_PATH = BASE_DIR + '/data.json'
 HOME_DIR = BASE_DIR + '/.tmp'
 sys.path.append(BASE_DIR)
@@ -91,7 +91,8 @@ class logInWindow(QDialog, Ui_Dialog):
             self.autoFillForm(configpath[0])
 
     def getFiletmpPath(self):
-        filetmppath = QFileDialog.getExistingDirectory(self, '请选择存储目录', BASE_DIR)
+        filetmppath = QFileDialog.getExistingDirectory(
+            self, '请选择存储目录', BASE_DIR)
         if filetmppath:
             self.filetmppath = filetmppath
             self.showpath_filetmp.setText(self.filetmppath)
