@@ -88,5 +88,5 @@ if __name__ == '__main__':
 
     print(json.dumps(data, cls=MyEncoder))
 
-    with open("./test/testKey.json", "w") as f:
+    with open("./data-ECCKey.json", "w") as f:
         json.dump(data, f, cls=MyEncoder)

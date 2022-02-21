@@ -11,12 +11,14 @@ sys.path.append(__BASE_DIR)
 
 getpkt_bytes = bytes.fromhex(
     "72404800d94c000002080000ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a50123456798765432")
+getpkt_RN_bytes = bytes.fromhex(
+    "72404c00ffad0000020c0000d23454d19f307d8b98ff2da277c0b546fc12850558c3e2719d6a6e297b4a61002ea408f3b0cd69ef142db5a471676ad710eebf3a012345679876543212345678")
 datpkt_bytes = bytes.fromhex(
     "73404a008b544a000300ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5000000009876543201234567")
 datpkt_hmac_bytes = bytes.fromhex(
-    "73405e0000005e000224ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a55a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a00000000000000009876543201234567")
+    "ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a55a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a00000000000000009876543201234567")
 datpkt_postbuild_bytes = bytes.fromhex(
-    "73405e001e2e5e000224ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a55a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5aa220d10e000000009876543201234567")
+    "73405e0038385e000224ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a55a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a98eec036000000009876543201234567")
 annpkt_bytes = bytes.fromhex(
     "7140820053e60020e83d0201010101010101010101010101010101020202020202020202020202020202020202020203030303030303030303030303030303010112010112e83d0201010101010101010101010101010101020202020202020202020202020202020202020203030303030303030303030303030303010112010112")
 ctlpkt_proxyregister_bytes = bytes.fromhex(
@@ -29,7 +31,6 @@ ctlpkt_odcwarning_bytes = bytes.fromhex(
     "74406fae081114004500001400010000400074e40101010102020202")
 ip_control_pkt_bytes = bytes.fromhex(
     "45000038000000004096642b0a0001010a0001057480677908061c0001d23454d19f307d8b98ff2da277c0b5460501000a0144330201000a")
-
 
 
 def test_CalcChecksum():
@@ -55,6 +56,8 @@ def test_ColorPacketDissect():
     from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorAnn, ColorControl, IP_NID, ASinfo, AttackInfo
     cg = ColorGet(getpkt_bytes)
     assert cg.PIDs[0] == b'\x01\x23\x45\x67'
+    cg = ColorGet(getpkt_RN_bytes)
+    assert cg.Random_num == b'\x12\x34\x56\x78'
     cd = ColorData(datpkt_bytes)
     assert cd.PIDs[1] == b'\x98\x76\x54\x32'
     ca = ColorAnn(annpkt_bytes)
@@ -73,9 +76,8 @@ def test_ColorPacketDissect():
 def test_CalcHMAC():
     from CoLoRProtocol.CoLoRpacket import CalcHMAC, ColorData
     rn = b'\x12\x34\x56\x78'
-    assert CalcHMAC(datpkt_hmac_bytes + rn)[:4] == b'\xa2\x20\xd1\x0e'
+    assert CalcHMAC(datpkt_hmac_bytes + rn)[-4:] == b'\x98\xee\xc0\x36'
     cd = ColorData(datpkt_postbuild_bytes)
-    cd.checksum = None
     cd.HMAC = rn
     assert datpkt_postbuild_bytes == cd.__bytes__()
 

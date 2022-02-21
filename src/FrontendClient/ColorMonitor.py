@@ -325,7 +325,8 @@ class PktHandler(threading.Thread):
                         tmptar.HMAC = randomnum
                         tmptar.header_length = None
                         tmptar.pkg_length = None
-                        PL.sendIpv4(ReturnIP, tmptar)
+                        PL.SendIpv4(ReturnIP, tmptar)
+                        Tar = tmptar
                     # 内容发送完成的特殊操作
                     if isinstance(SidPath, int) and (endflag == 1):
                         if (SidPath == 3):
@@ -660,7 +661,8 @@ class PktHandler(threading.Thread):
                                 tmptar.HMAC = randomnum
                                 tmptar.header_length = None
                                 tmptar.pkg_length = None
-                                PL.sendIpv4(ReturnIP, tmptar)
+                                PL.SendIpv4(ReturnIP, tmptar)
+                                Tar = tmptar
                             # 内容发送完成的特殊操作
                             if isinstance(SidPath, int) and (endflag == 1):
                                 if (SidPath == 3):

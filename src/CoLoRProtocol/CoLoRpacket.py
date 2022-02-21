@@ -158,20 +158,23 @@ class ColorData(Packet):
         if self.pkg_length is None:
             self.pkg_length = len(pkt) + len(pay)
             pkt = pkt[:2] + Int2BytesLE(self.pkg_length, 2) + pkt[4:]
+        # print(self.pkg_length, self.header_length)
         # warning: 此处将RN先放置于该包HMAC处，提取出后计算结果再放回
         if self.Flags.C:
             hmac_offset = 62 + 2*self.Flags.M + \
                 16*(self.Flags.R & ~self.Flags.B)
             hmac_offset += self.Qos_len+1 if self.Flags.Q else 0
-            hmac_bytes = CalcHMAC(pkt[:hmac_offset] + Int2Bytes(0, 4) +
+            hmac_start = 10 + 2*self.Flags.M
+            hmac_bytes = CalcHMAC(pkt[hmac_start:hmac_offset] + Int2Bytes(0, 4) +
                                   pkt[hmac_offset+4:] + pay + pkt[hmac_offset:hmac_offset+4])
-            # print(hmac_bytes[:4].hex())
-            self.HMAC = hmac_bytes[:4]
+            # print((pkt[hmac_start:hmac_offset] + Int2Bytes(0, 4) + pkt[hmac_offset+4:] + pay + pkt[hmac_offset:hmac_offset+4]).hex())
+            # print(hmac_bytes.hex())
+            self.HMAC = hmac_bytes[-4:]
             pkt = pkt[:hmac_offset] + self.HMAC + pkt[hmac_offset+4:]
         if self.checksum is None:
             self.checksum = CalcChecksum(pkt)
             pkt = pkt[:4] + Int2Bytes(self.checksum, 2) + pkt[6:]
-        # print(self.pkg_length, self.header_length, self.checksum)
+        # print(self.checksum)
         return pkt + pay
 
 
@@ -386,7 +389,7 @@ bind_layers(ColorControl, AttackInfo, {'tag': 18})
 
 
 def newIP_guess_payload_class(self, payload):
-    ''' docstring: 重载IP层负载猜测函数，添加color协议 '''
+    ''' docstring: 重载IP层负载猜测函数, 添加color协议 '''
     if self.proto == 150:
         if payload[0] == 113:
             return ColorAnn
@@ -408,6 +411,7 @@ bind_layers(IP, ColorControl, {'proto': 150})
 
 
 if __name__ == '__main__':
+    # 使用样例 构造测试
     from scapy.all import send
     pkt = IP(dst="192.168.50.1")
 
@@ -417,6 +421,15 @@ if __name__ == '__main__':
     cg.nid = b'\xa5'*16
     cg.PIDs = [b'\x01\x23\x45\x67', b'\x98\x76\x54\x32']
     send(pkt/cg, verbose=0)
+
+    cg = ColorGet()
+    cg.N_sid = bytes.fromhex("d23454d19f307d8b98ff2da277c0b546")
+    cg.L_sid = bytes.fromhex("a9dd379c69638ad6656b2df1dec4804ce760106a")
+    cg.nid = bytes.fromhex("b0cd69ef142db5a471676ad710eebf3a")
+    cg.PIDs = [b'\x01\x23\x45\x67', b'\x98\x76\x54\x32']
+    cg.Flags.R = True
+    cg.Random_num = bytes.fromhex("12345678")
+    send(pkt/cg, verbose = 0)
 
     cd = ColorData()
     cd.N_sid = b'\xff'*16
