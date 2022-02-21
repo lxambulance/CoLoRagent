@@ -309,10 +309,10 @@ class ASinfo(Packet):
     ''' docstring: 域内信息同步表 '''
     name = 'ASinfo'
     fields_desc = [
-        FieldLenField("ip_nid_num", None, count_of="ip_nid_list"),
+        FieldLenField("ip_nid_num", None, count_of="ip_nid_list", fmt='B'),
         PacketListField("ip_nid_list", None, IP_NID,
                         count_from=lambda pkt:pkt.ip_nid_num),
-        FieldLenField("px_ip_num", None, count_of="px_ip_list"),
+        FieldLenField("px_ip_num", None, count_of="px_ip_list", fmt='B'),
         PacketListField("px_ip_list", None, PX_IP,
                         count_from=lambda pkt:pkt.px_ip_num),
     ]
