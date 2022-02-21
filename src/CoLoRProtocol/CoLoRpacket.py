@@ -145,7 +145,7 @@ class ColorData(Packet):
             lambda pkt:pkt.Flags.Q == True),
         ConditionalField(StrFixedLenField("HMAC", "", 4),
                          lambda pkt:pkt.Flags.C == True),
-        ConditionalField(IntField("Seg_ID", None),
+        ConditionalField(LEIntField("Seg_ID", None),
                          lambda pkt:pkt.Flags.S == True),
         FieldListField("PIDs", [""], StrFixedLenField("", "", 4),
                        count_from=lambda pkt:pkt.PID_num+(pkt.Flags.R == True))
