@@ -69,15 +69,15 @@ class ColorGet(Packet):
         ByteField("TTL", 64),
         LEShortField("pkg_length", None),
         XShortField("checksum", None),
-        ShortField("MTU", None),
+        LEShortField("MTU", None),
         FieldLenField("PID_num", None, fmt="B", count_of="PIDs"),
         FlagsField("Flags", 8, 8, "rrRASQKF"),
-        ShortField("Minimal_PID_CP", None),
+        LEShortField("Minimal_PID_CP", None),
         StrFixedLenField("N_sid", "", 16),
         StrFixedLenField("L_sid", "", 20),
         StrFixedLenField("nid", "", 16),
         ConditionalField(
-            FieldLenField("Public_key_len", None, fmt="H",
+            FieldLenField("Public_key_len", None, fmt="<H",
                           length_of="Public_key"),
             lambda pkt:pkt.Flags.K == True),
         ConditionalField(
@@ -93,7 +93,7 @@ class ColorGet(Packet):
                         length_from=lambda pkt:pkt.QoS_len),
             lambda pkt:pkt.Flags.Q == True),
         ConditionalField(
-            IntField("Seg_ID", None),
+            LEIntField("Seg_ID", None),
             lambda pkt:pkt.Flags.S == True),
         FieldListField(
             "PIDs", None, StrFixedLenField("", "", 4),
@@ -128,7 +128,7 @@ class ColorData(Packet):
         FieldLenField("PID_num", None, fmt="B", count_of="PIDs",
                       adjust=lambda pkt, x:x-(pkt.Flags.R == True)),
         FlagsField("Flags", 0, 8, "rSCQMRBF"),
-        ConditionalField(ShortField("Minimal_PID_CP", None),
+        ConditionalField(LEShortField("Minimal_PID_CP", None),
                          lambda pkt:pkt.Flags.M),
         StrFixedLenField("N_sid", "", 16),
         StrFixedLenField("L_sid", "", 20),
@@ -244,7 +244,7 @@ class ColorAnn(Packet):
         PacketListField("Announce_unit_list", None, Ann_unit,
                         count_from=lambda pkt:pkt.unit_num),
         ConditionalField(
-            FieldLenField("Public_key_len", None, fmt="H",
+            FieldLenField("Public_key_len", None, fmt="<H",
                           length_of="Public_key"),
             lambda pkt:pkt.Flags.K == True
         ),
