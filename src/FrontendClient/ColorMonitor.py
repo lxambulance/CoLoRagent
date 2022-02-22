@@ -171,7 +171,7 @@ class PktHandler(threading.Thread):
         return result
 
     def run(self):
-        self.packet.show()
+        # self.packet.show()
         if (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
             # self.packet.show()
             data = bytes(self.packet[IP].payload)  # 存入二进制字符串
@@ -439,6 +439,9 @@ class PktHandler(threading.Thread):
                                     FrameSid.put(NewSid)
                                     FrameCache.put(decimg)
                             else:
+                                # TODO: 测试清空视频缓存
+                                VideoCache = {}
+                                MergeFlag = {}
                                 # 新的视频帧(这里默认不能单片完成传输，所以不包含显示逻辑)
                                 CacheKeys = list(VideoCache.keys())
                                 if(len(CacheKeys) != 0):
@@ -728,9 +731,9 @@ class PktHandler(threading.Thread):
                         if NewCtrlPkt.L_sid != 0:
                             NewSid += hex(NewCtrlPkt.L_sid).replace('0x',
                                                                     '').zfill(40)
-                        tmps = "泄露DATA包的节点源IP: " + NewCtrlPkt.ProxyIP + '\n'
-                        tmps += "泄露DATA包内含的SID: " + NewSid + '\n'
-                        tmps += "泄露DATA包的目的NID: " + f"{NewCtrlPkt.CusNid:032x}"
+                        tmps = "泄露DATA包的节点源IP:\n" + NewCtrlPkt.ProxyIP + '\n'
+                        tmps += "泄露DATA包内含的SID:\n" + NewSid + '\n'
+                        tmps += "泄露DATA包的目的NID:\n" + f"{NewCtrlPkt.CusNid:032x}" + '\n'
                         self.signals.output.emit(2, tmps)
                     elif (NewCtrlPkt.tag == 18):
                         # 外部攻击警告

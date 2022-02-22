@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\CodeHub\CoLoRagent\PageUI\mainPage.ui'
+# Form implementation generated from reading ui file 'd:\codehub\CoLoRagent\src\PageUI\mainPage.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -164,7 +164,7 @@ class Ui_MainWindow(object):
         self.pktReceive_label.setText(_translate("MainWindow", "收包信息"))
         self.dataPktReceive.headerItem().setText(1, _translate("MainWindow", "大小"))
         self.dataPktReceive.headerItem().setText(2, _translate("MainWindow", "数据"))
-        self.speed_label.setText(_translate("MainWindow", "收包速率"))
+        self.speed_label.setText(_translate("MainWindow", "收包速度(字节)"))
         self.menu.setTitle(_translate("MainWindow", "菜单"))
         self.menu_2.setTitle(_translate("MainWindow", "编辑"))
         self.menu_3.setTitle(_translate("MainWindow", "主题"))

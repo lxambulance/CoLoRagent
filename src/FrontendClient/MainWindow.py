@@ -17,7 +17,7 @@ from AddItemWindow import AddItemWindow
 from GraphicWindow import GraphicWindow
 from videoWindow import videoWindow
 from cmdWindow import cmdWindow
-from mainPage import Ui_MainWindow
+from FrontendClient.mainPage import Ui_MainWindow
 import pyqtgraph as pg
 
 from PyQt5.QtGui import QIcon, QPalette
@@ -85,6 +85,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         color = self.palette().color(QPalette.Background).name()
         color = '#ffffff' if color == '#f0f0f0' else color
         self.speedGraph.setBackground(color)
+        self.speedGraph.setYRange(0, 1000000)
         self.speed_line = self.speedGraph.plot(
             self.speed_x, self.speed_y, pen=speedpen)
 
@@ -301,19 +302,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 [f"来源nid={nid:032x}", str(size), "PIDs="+path_str]))
             self.graphicwindow.graphics_global.setMatchedPIDs(
                 path_str, flag=False, size=size)
-            self.totalsize += size  # 统计总收包大小，speedline需要使用
         elif (type & 0xff) == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem(
                 [f"包片段{num+1}", str(size), "PIDs="+path_str]))
             self.graphicwindow.graphics_global.setMatchedPIDs(
                 path_str, flag=False, pkttype=1, size=size)
-            totsize = int(item.text(1))
-            item.setText(1, str(totsize+size))
-            self.totalsize += size  # 统计总收包大小，speedline需要使用
         else:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"包片段{num+1}", str(size), ""]))
+        totsize = int(item.text(1))
+        item.setText(1, str(totsize+size))
+        self.totalsize += size  # 统计总收包大小，speedline需要使用
 
     def showMatchedPIDs(self, item, column):
         ''' docstring: 选中物体，显示匹配 '''
@@ -754,8 +754,8 @@ if __name__ == '__main__':
     window.show()
 
     # 测试收包匹配功能
-    window.getPathFromPkt(0x72, '123', [0x11222695], 100, 0x12)
-    window.getPathFromPkt(0x72, '123', [0x33446217, 0x11222695], 1500, 0x23)
+    window.getPathFromPkt(0x72, '123', [0x11222695], 100, int("b0cd69ef142db5a471676ad710eebf3a", 16))
+    window.getPathFromPkt(0x72, '123', [0x33446217, 0x11222695], 1500, int("d23454d19f307d8b98ff2da277c0b546", 16))
     window.getPathFromPkt(
         0x73, 'abc', [0x11222695, 0x11221211, 0x33446217, 0x55661234], 1000, 0)
     window.getPathFromPkt(0x173, 'abc', [0x11222695, 0x55661234], 1000, 0)

@@ -108,7 +108,7 @@
          <item>
           <widget class="QLabel" name="speed_label">
            <property name="text">
-            <string>收包速率</string>
+            <string>收包速度(字节)</string>
            </property>
           </widget>
          </item>
@@ -299,7 +299,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../Icon/resource.qrc"/>
+  <include location="../../asset/resource.qrc"/>
  </resources>
  <connections/>
 </ui>

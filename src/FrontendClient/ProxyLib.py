@@ -304,7 +304,7 @@ class ControlPkt():
                     pointer += 1
                     AttackCount = 0
                     for j in range(4):
-                        AttackCount += Pkt[pointer] << (8*i)
+                        AttackCount += Pkt[pointer] << (8*j)
                         pointer += 1
                     self.Attacks[ASNum] = AttackCount
         elif(flag == 1):
