@@ -10,8 +10,8 @@ if __name__ == '__main__':
     from CoLoRProtocol.CoLoRpacket import ColorData
     from scapy.all import IP, send
     from os import urandom
-    import time
-    pkt = IP(dst = "192.168.0.2", src = "192.168.0.1")
+
+    pkt = IP(dst="192.168.0.2", src="192.168.0.1")
 
     cd = ColorData()
     cd.N_sid = b'\x00'*16

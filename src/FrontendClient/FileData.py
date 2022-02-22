@@ -4,7 +4,7 @@
 # 添加文件路径../
 import os
 import sys
-__BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
+__BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
 

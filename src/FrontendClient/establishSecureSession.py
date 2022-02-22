@@ -16,6 +16,10 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+import sys
+__BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
+sys.path.append(__BASE_DIR)
+from CoLoRProtocol.CoLoRpacket import ColorData
 
 
 class ESSsignals(QObject):
@@ -135,6 +139,7 @@ class Session():
         self.mainKey = None
         self.remote_ECDH_public_key_bytes = None
         self.remote_public_key_bytes = None
+        self.randomnum = None
 
     def sendFirstHandshake(self, nid=None, sid=None, pids=None, ip=None):
         ''' docstring: 发送第一个握手包 '''
@@ -226,14 +231,22 @@ class Session():
 
     def ensureSend(self, ip, pkt, num):
         ''' docstring: 保证可靠传输。TODO:信号存在问题，暂时不用，假定传输可靠 '''
+        if self.randomnum is not None:
+            tmppkt = ColorData(pkt)
+            tmppkt.checksum = None
+            tmppkt.Flags.C = True
+            tmppkt.HMAC = self.randomnum
+            tmppkt.header_length = None
+            tmppkt.pkg_length = None
+            pkt = tmppkt
         PL.SendIpv4(ip, pkt)
-        for i in range(3):
-            time.sleep(RTO)
-            if self.myStatus == num:
-                ESSsignal.output.emit(0, f'第{num}次握手包，第{i+1}次重传')
-                PL.SendIpv4(ip, pkt)
-            else:
-                break
+        # for i in range(3):
+        #     time.sleep(RTO)
+        #     if self.myStatus == num:
+        #         ESSsignal.output.emit(0, f'第{num}次握手包，第{i+1}次重传')
+        #         PL.SendIpv4(ip, pkt)
+        #     else:
+        #         break
 
     def calcSharedKey(self):
         ''' docstring: 计算共享密钥和会话主秘钥 '''
@@ -277,7 +290,7 @@ def Decrypt(nid, sid, load):
     decryptor.authenticate_additional_data(session.random_client + session.random_server)
     return decryptor.update(load[32:]) + decryptor.finalize()
 
-def newSession(nid:int, sid:str, pids:list, ip:str, flag = True, loads = b'', pkt = None):
+def newSession(nid:int, sid:str, pids:list, ip:str, flag = True, loads = b'', pkt = None, randomnum = None):
     ''' docstring: 建立一个新的会话 '''
     ESSsignal.output.emit(0, f"文件（{sid}）\n建立加密会话\n")
     nid_str = f"{nid:032x}"
@@ -291,6 +304,7 @@ def newSession(nid:int, sid:str, pids:list, ip:str, flag = True, loads = b'', pk
     # 开始握手
     if flag:
         newsession.pkt = pkt
+        newsession.randomnum = randomnum
         newsession.sendFirstHandshake(nid=nid)
     else:
         newsession.myStatus = 2
@@ -335,7 +349,7 @@ def sessionReady(nid, sid):
         return False
     return session.myStatus == 6
 
-def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None, SegID = 0):
+def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None, SegID = 0, randomnum = None):
     ''' docstring: session状态转移函数 '''
     if not checkSession(nid, sid):
         # 特殊sid转化为真实sid
@@ -356,6 +370,7 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
         session.sendGet(SegID)
     elif session.myStatus == 2:
         session.myStatus = 4
+        session.randomnum = randomnum
         session.sendSecondHandshake(nid, sid_origin, pids, ip)
     elif session.myStatus == 3:
         session.myStatus = 5

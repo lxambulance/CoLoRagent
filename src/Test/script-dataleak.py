@@ -1,16 +1,17 @@
 ''' docstring: 数据泄露攻击 '''
 
+
+from scapy.all import IP, send
 import os
 import sys
 __BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 
+
 if __name__ == '__main__':
     from CoLoRProtocol.CoLoRpacket import ColorData
-    from scapy.all import IP, send
-    import os
-    pkt = IP(dst = "10.0.1.1", src = "10.0.1.99")
+    pkt = IP(dst="10.0.1.2", src="10.0.1.99")
 
     cd = ColorData()
     cd.N_sid = bytes.fromhex("d23454d19f307d8b98ff2da277c0b546")

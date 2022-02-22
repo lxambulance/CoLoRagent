@@ -17,7 +17,8 @@ from PyQt5.QtCore import QObject, pyqtSignal
 import establishSecureSession as ESS
 import os
 import sys
-__BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
+__BASE_DIR = os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData
 
@@ -80,7 +81,7 @@ class PktHandler(threading.Thread):
         # TODO：异常情况调用traceback模块输出信息
         self.signals = pktSignals()
 
-    def video_provider(self, Sid, NidCus, PIDs, LoadLength, ReturnIP):
+    def video_provider(self, Sid, NidCus, PIDs, LoadLength, ReturnIP, randomnum):
         FrameCount = 0  # 帧序号，每15帧设定第一片的标志位R为1（需要重传ACK）
         # 校验视频传输GET包后，调用流视频传输进程
         capture = cv2.VideoCapture(0)
@@ -119,7 +120,16 @@ class PktHandler(threading.Thread):
                         WaitingACK[NidCus] += 1
                     Lock_WaitingACK.release()
                 Tar = NewDataPkt.packing()
-                PL.SendIpv4(ReturnIP, Tar)
+                if randomnum is None:
+                    PL.SendIpv4(ReturnIP, Tar)
+                else:
+                    tmptar = ColorData(Tar)
+                    tmptar.checksum = None
+                    tmptar.Flags.C = True
+                    tmptar.HMAC = randomnum
+                    tmptar.header_length = None
+                    tmptar.pkg_length = None
+                    PL.SendIpv4(ReturnIP, tmptar)
                 ChipCount += 1
             # 读取下一帧
             ret, frame = capture.read()
@@ -161,9 +171,10 @@ class PktHandler(threading.Thread):
         return result
 
     def run(self):
-        if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
+        self.packet.show()
+        if (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
             # self.packet.show()
-            data = bytes(self.packet['Raw'])  # 存入二进制字符串
+            data = bytes(self.packet[IP].payload)  # 存入二进制字符串
             PktLength = len(data)
             if(PL.RegFlag == 0):
                 # 注册中状态
@@ -245,12 +256,12 @@ class PktHandler(threading.Thread):
                         if SidPath == 1:
                             # 视频服务
                             self.video_provider(
-                                NewSid, NidCus, PIDs, SidLoadLength, ReturnIP)
+                                NewSid, NidCus, PIDs, SidLoadLength, ReturnIP, randomnum)
                             return
                         elif (SidPath & 0xff) == 2:
                             # 安全链接服务
                             ESS.gotoNextStatus(
-                                NidCus, NewSid, pids=PIDs, ip=ReturnIP)
+                                NidCus, NewSid, pids=PIDs, ip=ReturnIP, randomnum = randomnum)
                             return
                         elif SidPath == 3:
                             # 数据库查询服务
@@ -290,7 +301,7 @@ class PktHandler(threading.Thread):
                     if int(SidUnitLevel) > 5:
                         if not ESSflag:
                             ESS.newSession(NidCus, NewSid, PIDs,
-                                           ReturnIP, pkt=self.packet)
+                                           ReturnIP, pkt=self.packet, randomnum = randomnum)
                             return
                         elif not ESS.sessionReady(NidCus, NewSid):
                             self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
@@ -658,7 +669,7 @@ class PktHandler(threading.Thread):
                                 tmptar = ColorData(Tar)
                                 tmptar.checksum = None
                                 tmptar.Flags.C = True
-                                tmptar.HMAC = randomnum
+                                tmptar.HMAC = SendingSid[NewSid][6]
                                 tmptar.header_length = None
                                 tmptar.pkg_length = None
                                 PL.SendIpv4(ReturnIP, tmptar)
@@ -810,4 +821,6 @@ class Monitor(threading.Thread):
         VideoCus = video_customer()
         VideoCus.start()
         # sniff(filter="ip", iface = "VirtualBox Host-Only Network", prn=self.parser, count=0)
+        # sniff(filter="ip", iface = "Intel(R) Ethernet Connection (2) I219-LM", prn=self.parser, count=0)
+        # sniff(filter="ip", iface = "Realtek PCIe GbE Family Controller", prn=self.parser, count=0)
         sniff(filter="ip", prn=self.parser, count=0)
