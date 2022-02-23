@@ -10,11 +10,11 @@ sys.path.append(__BASE_DIR)
 
 
 getpkt_bytes = bytes.fromhex(
-    "72404800d94c000002080000ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a50123456798765432")
+    "72404800d94c000002080000ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a56745230132547698")
 getpkt_RN_bytes = bytes.fromhex(
     "72404c00ffad0000020c0000d23454d19f307d8b98ff2da277c0b546fc12850558c3e2719d6a6e297b4a61002ea408f3b0cd69ef142db5a471676ad710eebf3a012345679876543212345678")
 datpkt_bytes = bytes.fromhex(
-    "73404a008b544a000300ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5000000009876543201234567")
+    "73404a008b544a000300ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5325476986745230100000000")
 datpkt_hmac_bytes = bytes.fromhex(
     "ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a55a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a00000000000000009876543201234567")
 datpkt_postbuild_bytes = bytes.fromhex(
@@ -55,11 +55,11 @@ def test_ColorPacketDissect():
     from scapy.all import IP
     from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorAnn, ColorControl, IP_NID, ASinfo, AttackInfo
     cg = ColorGet(getpkt_bytes)
-    assert cg.PIDs[0] == b'\x01\x23\x45\x67'
+    assert cg.PIDs[0] == int('01234567', 16)
     cg = ColorGet(getpkt_RN_bytes)
     assert cg.Random_num == b'\x12\x34\x56\x78'
     cd = ColorData(datpkt_bytes)
-    assert cd.PIDs[1] == b'\x98\x76\x54\x32'
+    assert cd.PIDs[0] == int('98765432', 16)
     ca = ColorAnn(annpkt_bytes)
     assert ca.Announce_unit_list[1].Strategy_unit_list[1].value == b'\x12'
     cc = ColorControl(ctlpkt_proxyregister_bytes)

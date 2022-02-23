@@ -96,7 +96,7 @@ class ColorGet(Packet):
             LEIntField("Seg_ID", None),
             lambda pkt:pkt.Flags.S == True),
         FieldListField(
-            "PIDs", None, StrFixedLenField("", "", 4),
+            "PIDs", None, LEIntField("", None),
             count_from=lambda pkt:pkt.PID_num),
         ConditionalField(
             StrFixedLenField("Random_num", "", 4),
@@ -147,7 +147,7 @@ class ColorData(Packet):
                          lambda pkt:pkt.Flags.C == True),
         ConditionalField(LEIntField("Seg_ID", None),
                          lambda pkt:pkt.Flags.S == True),
-        FieldListField("PIDs", [""], StrFixedLenField("", "", 4),
+        FieldListField("PIDs", [0], LEIntField("", None),
                        count_from=lambda pkt:pkt.PID_num+(pkt.Flags.R == True))
     ]
 
@@ -419,14 +419,14 @@ if __name__ == '__main__':
     cg.N_sid = b'\xff'*16
     cg.L_sid = b'\x01'*20
     cg.nid = b'\xa5'*16
-    cg.PIDs = [b'\x01\x23\x45\x67', b'\x98\x76\x54\x32']
+    cg.PIDs = [int('01234567', 16), int('98765432', 16)]
     send(pkt/cg, verbose=0)
 
     cg = ColorGet()
     cg.N_sid = bytes.fromhex("d23454d19f307d8b98ff2da277c0b546")
     cg.L_sid = bytes.fromhex("a9dd379c69638ad6656b2df1dec4804ce760106a")
     cg.nid = bytes.fromhex("b0cd69ef142db5a471676ad710eebf3a")
-    cg.PIDs = [b'\x01\x23\x45\x67', b'\x98\x76\x54\x32']
+    cg.PIDs = [int('01234567', 16), int('98765432', 16)]
     cg.Flags.R = True
     cg.Random_num = bytes.fromhex("12345678")
     send(pkt/cg, verbose = 0)
@@ -436,7 +436,7 @@ if __name__ == '__main__':
     cd.L_sid = b'\x01'*20
     cd.nid_cus = b'\xa5'*16
     cd.nid_pro = b'\x5a'*16
-    cd.PIDs = [b'\x00\x00\x00\x00', b'\x98\x76\x54\x32', b'\x01\x23\x45\x67']
+    cd.PIDs = [int('98765432', 16), int('01234567', 16), 0]
     send(pkt/cd, verbose=0)
 
     # 测试hmac计算
@@ -448,7 +448,7 @@ if __name__ == '__main__':
     cd.Flags.R = True
     cd.Flags.C = True
     cd.HMAC = b'\x12\x34\x56\x78'
-    cd.PIDs = [b'\x00\x00\x00\x00', b'\x98\x76\x54\x32', b'\x01\x23\x45\x67']
+    cd.PIDs = [int('98765432', 16), int('01234567', 16), 0]
     send(pkt/cd, verbose=0)
 
     su = Strategy_unit(tag=1, length=1, value=b"\x12")

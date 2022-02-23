@@ -108,7 +108,7 @@
          <item>
           <widget class="QLabel" name="speed_label">
            <property name="text">
-            <string>收包速度(字节)</string>
+            <string>收包速度(千字节/秒)</string>
            </property>
           </widget>
          </item>

@@ -63,7 +63,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 用于统计频率和AS统计
         self.timer = QTimer()
         self.timer_message = QTimer()
-        self.timer.setInterval(3000)
+        self.timer.setInterval(1000)
         self.messagebox = None
 
         # 用于收包显示的变量
@@ -85,7 +85,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         color = self.palette().color(QPalette.Background).name()
         color = '#ffffff' if color == '#f0f0f0' else color
         self.speedGraph.setBackground(color)
-        self.speedGraph.setYRange(0, 1000000)
         self.speed_line = self.speedGraph.plot(
             self.speed_x, self.speed_y, pen=speedpen)
 
@@ -257,15 +256,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.graphicwindow.hide()
 
     def updateSpeedLine(self):
-        ''' docstring: 设置折线图显示，3秒刷新一次 '''
+        ''' docstring: 设置折线图显示，1秒刷新一次 '''
         self.speed_x = self.speed_x[1:]
-        self.speed_x.append(self.speed_x[-1] + 3)
+        self.speed_x.append(self.speed_x[-1] + 1)
         self.speed_y = self.speed_y[1:]
-        self.speed_y.append(self.totalsize)
+        self.speed_y.append(self.totalsize/1000)
         if self.totalsize:
             self.logWidget.addLog(
                 "<统计> 收包大小", f"Size = {self.totalsize} 字节", True)
         self.totalsize = 0
+        speed_max = 0
+        for i in range(len(self.speed_y)):
+            speed_max = max(speed_max, self.speed_y[i])
+        speed_max = (speed_max // 10 + 1)*10
+        self.speedGraph.setYRange(0, speed_max)
         self.speed_line.setData(self.speed_x, self.speed_y)
         # 测试拖动条效果
         # bar = self.logWidget.scrollarea.verticalScrollBar()
@@ -302,12 +306,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 [f"来源nid={nid:032x}", str(size), "PIDs="+path_str]))
             self.graphicwindow.graphics_global.setMatchedPIDs(
                 path_str, flag=False, size=size)
+            self.graphicwindow.graphics_global.getASid(path_str, False, size)
         elif (type & 0xff) == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem(
                 [f"包片段{num+1}", str(size), "PIDs="+path_str]))
             self.graphicwindow.graphics_global.setMatchedPIDs(
                 path_str, flag=False, pkttype=1, size=size)
+            self.graphicwindow.graphics_global.getASid(path_str, True, size)
         else:
             num = item.childCount()
             item.addChild(QTreeWidgetItem([f"包片段{num+1}", str(size), ""]))

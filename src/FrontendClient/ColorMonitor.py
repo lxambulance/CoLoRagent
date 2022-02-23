@@ -20,7 +20,7 @@ import sys
 __BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
-from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData
+from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
 
 
 # 文件传输相关全局变量
@@ -67,7 +67,7 @@ class pktSignals(QObject):
     # output用于输出信号
     output = pyqtSignal(int, object)
     # pathdata用于输出路径相关信息
-    pathdata = pyqtSignal(int, str, list, int, int)
+    pathdata = pyqtSignal(int, str, list, int, str)
 
 
 class PktHandler(threading.Thread):
@@ -219,7 +219,7 @@ class PktHandler(threading.Thread):
                         NewSid += hex(NewGetPkt.L_sid).replace('0x',
                                                                '').zfill(40)
                     self.signals.pathdata.emit(
-                        0x72, NewSid, NewGetPkt.PIDs, NewGetPkt.PktLength, NewGetPkt.nid)
+                        0x72, NewSid, NewGetPkt.PIDs, NewGetPkt.PktLength, f'{NewGetPkt.nid:032x}')
                     PL.Lock_AnnSidUnits.acquire()
                     if NewSid not in PL.AnnSidUnits.keys():
                         PL.Lock_AnnSidUnits.release()
@@ -383,7 +383,7 @@ class PktHandler(threading.Thread):
                                                                  '').zfill(40)
                     # 暂时将全部收到的校验和正确的data包显示出来
                     self.signals.pathdata.emit(
-                        0x73 | (RecvDataPkt.B << 8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, 0)
+                        0x73 | (RecvDataPkt.B << 8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, '0'*32)
                     if(RecvDataPkt.B == 0):
                         # 收到数据包
                         # 判断是否为当前代理请求内容
@@ -715,8 +715,9 @@ class PktHandler(threading.Thread):
                         return
                     # 解析报文内容
                     NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
+                    controlpkt_v2 = ColorControl(data)
                     self.signals.pathdata.emit(
-                        0x74, "", [], NewCtrlPkt.HeaderLength + NewCtrlPkt.DataLength, 0)
+                        0x74, "", [], NewCtrlPkt.HeaderLength + NewCtrlPkt.DataLength, '0'*32)
                     if (NewCtrlPkt.tag == 8):
                         # 新proxy信息
                         if NewCtrlPkt.ProxyNid != PL.Nid:
@@ -731,9 +732,12 @@ class PktHandler(threading.Thread):
                         if NewCtrlPkt.L_sid != 0:
                             NewSid += hex(NewCtrlPkt.L_sid).replace('0x',
                                                                     '').zfill(40)
-                        tmps = "泄露DATA包的节点源IP:\n" + NewCtrlPkt.ProxyIP + '\n'
-                        tmps += "泄露DATA包内含的SID:\n" + NewSid + '\n'
-                        tmps += "泄露DATA包的目的NID:\n" + f"{NewCtrlPkt.CusNid:032x}" + '\n'
+                        paths = controlpkt_v2[IP].payload.PIDs
+                        path_str = '-'.join(map(lambda x: f"<{x:08x}>", paths))
+                        tmps = f"泄露DATA包的节点源IP:\n{NewCtrlPkt.ProxyIP}\n"
+                        tmps += f"泄露DATA包内含的SID:\n{NewSid}\n"
+                        tmps += f"泄露DATA包的目的NID:\n{NewCtrlPkt.CusNid:032x}\n"
+                        tmps += f"泄露DATA包的PID序列:\n{path_str}\n"
                         self.signals.output.emit(2, tmps)
                     elif (NewCtrlPkt.tag == 18):
                         # 外部攻击警告
