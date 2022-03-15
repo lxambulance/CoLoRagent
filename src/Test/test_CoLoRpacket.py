@@ -1,12 +1,8 @@
 
 ''' docstring: color协议包模块单元测试 '''
 
-import os
-import sys
+import importsrc
 import pytest
-__BASE_DIR = os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))).replace('\\', '/')
-sys.path.append(__BASE_DIR)
 
 
 getpkt_bytes = bytes.fromhex(

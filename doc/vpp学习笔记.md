@@ -2,7 +2,7 @@
 
 ## 0 简介
 
-当前机器已经有能力解决C10K问题，由于不同平台有不同的函数接口，推荐使用流行跨平台库，如libuv，libev等。
+当前机器已经有能力解决C10K问题，由于不同平台有不同的函数接口，推荐使用跨平台库，如libuv，libev等。
 
 问题来到C10M，此时系统协议栈将成为阻碍，因此需要绕过。
 
@@ -14,13 +14,11 @@ DPDK(Data plane development kit)是一个比较优秀的工具，但是直接操
 
 ## 1 安装
 
-教程节选自[官方文档](https://s3-docs.fd.io/vpp/22.02/index.html) ，有部分参考[官方wiki](https://wiki.fd.io/view/VPP)
+教程节选自[官方文档](https://s3-docs.fd.io/vpp/22.02/index.html)
 
-PS：事实上这两玩意应该一致，但是wiki有些文章未放到文档中，非常迷惑。
+### 下载官方编译包
 
-### 下载官方安装包
-
-> 此方法一般用于vpp直接部署，依赖cli和配置文件修改运行逻辑，不涉及新协议。
+> 此方法一般用于vpp容器使用，依赖cli和配置文件修改运行功能。
 
 在文件源 **/etc/apt/sources.list.d/99fd.io.list** 中添加
 
@@ -34,7 +32,7 @@ deb [trusted=yes] https://packagecloud.io/fdio/master/ubuntu bionic main
 curl -L https://packagecloud.io/fdio/master/gpgkey | sudo apt-key add -
 ```
 
-然后更新源并安装，最后一行为卸载包命令，其中vpp-api-python包看起来找不到（目测是python2停止使用），但不影响使用。
+然后更新源并安装，最后一行为卸载包命令，其中vpp-api-python包看起来找不到，但不影响使用。
 
 ```shell
 sudo apt-get update
@@ -52,8 +50,6 @@ sudo apt-get remove --purge "vpp*"
 ```shell
 git clone https://gerrit.fd.io/r/vpp
 cd vpp
-# 使用较为稳定的v21.10.1版本
-git checkout -b test v21.10.1
 ```
 
 确保没有安装vpp和dpdk，如果有先 **apt-get remove**
@@ -75,17 +71,22 @@ sudo dpkg -i *.deb # 在build-root文件夹下安装编译后的包
 
 运行一般不会一次成功，按照提示运行相关命令或者重新编译。
 
-##### 踩坑记录
+#### 安装踩坑
 
-系统选择ubuntu20.04，当前vpp版本22.02，避免部分包在低版本找不到或没法编译
+系统选择ubuntu20.04，当前vpp版本采用21.10.1，避免部分包在低版本找不到或没法编译
 
 大部分安装不通过是网络问题，请确保连通github，然后指令重复run几遍一般就好了
 
 小部分安装不通过是未达到编译要求内存8GB
 
+```shell
+# 关于部分软件包缺少信息源可以在/etc/apt/sources.list中添加
+deb http://th.archive.ubuntu.com/ubuntu focal main universe
+```
+
 ## 2 结构
 
-### vpp整体结构
+vpp整体结构图
 
 ![vpp-layer](https://raw.githubusercontent.com/lxambulance/cloudimg/master/img/VPP_Layering.png)
 
@@ -95,84 +96,179 @@ sudo dpkg -i *.deb # 在build-root文件夹下安装编译后的包
 
 3. vnet：网络协议栈库，包含平台、设备无关的协议栈，2、3、4层矢量包处理节点，流量管理，控制面接口，设备接口
 
-4. plugins：插件库，包含丰富功能的集合
-
-> 狭义的vpp仅仅是一个数据面软件，一切为了达到极致的转发效率。当然考虑到方便开发和调试，vpp提供api和cli的控制面管理功能。
-
-### feature&feature arc
-
-> A ‘feature’ in this context is any subsystem/module/etc that wants to see/modify/fiddle with the packet as it traverses the switch-path.
-> 
-> A feature arc is a sub-graph of nodes – maybe graph is too flexible a word in this context as it’s really only an ordered linear set, or pipeline, of nodes.
-
-以上为特性与特性弧的[官方wiki](https://wiki.fd.io/view/VPP/Feature_Arcs)定义。虽然wiki也简单地交代了其由来和功能，但是仍然存在诸多困惑。最大的问题是为什么特性弧只有十几个？按照个人理解至少每个节点一个。
-
-```markdown
-            |    Arc Name      |
-            |------------------|
-            | device-input     |
-            | ethernet-output  |
-            | interface-output |
-            | ip4-drop         |
-            | ip4-local        |
-            | ip4-multicast    |
-            | ip4-output       |
-            | ip4-punt         |
-            | ip4-unicast      |
-            | ip6-drop         |
-            | ip6-local        |
-            | ip6-multicast    |
-            | ip6-output       |
-            | ip6-punt         |
-            | ip6-unicast      |
-            | mpls-input       |
-            | mpls-output      |
-            | nsh-output       |
-```
-
-最终该问题在一篇网络[博客](https://blog.actorsfit.com/a?ID=01000-c174f31c-9566-45fb-a7c4-d0aca03a0d7f)中得到解答。早期vpp节点框架是固定的，修改或添加新特性就不容易，因此添加特性机制，主要描述的就是节点中可以在运行时通过命令改变的一些功能。一个特性落实到一个节点上，一个节点可以有多个特性（个人推测，未证实），多个特性组合形成特性弧。只有高变化、可配置的数据路径才有特性弧，固定数据路径没有特征弧，因此总数量只有十几个。
-
-#### 添加新节点
-
-添加新节点可以通过添加特征的方式修改数据流向，唯一需要注意的就是特征弧的选择。
-
-当然也可以**不依赖特征弧**，这时候需要在初始化的时候调用节点提供的重定向函数或是彻底重载部分函数，将固定连边转接到新节点上。
-
-> ### L1
-> 
-> vnet_hw_interface_rx_redirect_to_node (vnet_main_t *vnm, u32 hw_if_index, u32 node_index) Redirect the rx data of a hw interface to a node, node_index is the index index of the node
-> 
-> ### L2, L3
-> 
-> ethernet_register_input_type (vlib_main_t *vm, ethernet_type_t type, u32 node_index) will insert a specific type of node after the "ethernet-input" node,  where type includes ethernet_type (0x806, ARP), ethernet_type (0x8100, VLAN), ethernet_type (0x800, IP4) such as two, three protocol  
-> specific support of the relevant agreements, see src/vnet/ethernet/types.def file.
-> 
-> ### L4
-> 
-> ip4_register_protocol (u32 protocol, u32 node_index) will insert a specific protocol node after the "ip4-local" node, where the protocol includes ip_protocol (6, TCP), ip_protocol (17, UDP) and other four-layer protocols.  See the src/vnet/ip/protocols.def file for specific supported protocols.
-> 
-> ### L5
-> 
-> udp_register_dst_port (vlib_main_t * vm, udp_dst_port_t dst_port, u32 node_index, u8 is_ip4) will insert a specific dst_port node after the "ip4-udp-lookup" node, where dst_port includes five-layer application ports such as ip_port (WWW, 80).  See the src/vnet/ip/ports.def file for the specific supported ports.
-
-由于color协议的固定性，这里推荐L4注册新协议的办法。
+4. plugins：插件库，包含丰富功能的集合。
 
 ## 3 使用
 
-### 运行
+### 生产环境
 
-自行编译运行可以编译出deb包，然后正常安装，这样路径位置与直接安装编译包位置一致；若仅编译调试，相关api文件路径位置在build-root文件夹下，后续操作需要**留意并修改**
+#### 场景1
+
+>   简单描述：ssh连接一台主机，开启一个或多个vpp实例，主机通过虚拟网口与vpp实例相连，主机发包测试。
 
 ```shell
-# 运行默认vpp，配置文件位于/etc/vpp/startup.conf
-sudo service vpp start/stop
-# 运行新配置文件
-sudo /usr/bin/vpp -c ./your_startup_file
+# 关闭系统默认vpp服务
+service vpp stop
+# 启动自定义vpp实例
+sudo /usr/bin/vpp -c startup1.conf
+## startup1.conf 基础配置脚本
+## unix {cli-listen /run/vpp/cli-vpp1.sock}
+## api-segment { prefix vpp1 }
+## plugins { plugin dpdk_plugin.so { disable } }
+# 显示vpp进程
+ps -eaf | grep vpp
+# 创建连接主机的虚拟接口
+sudo ip link add name vpp1out type veth peer name vpp1host
+sudo ip link set dev vpp1out up
+sudo ip link set dev vpp1host up
+sudo ip addr add 10.10.1.1/24 dev vpp1host
+# vpp实例中设置连接
+sudo vppctl -s /run/vpp/cli-vpp1.sock
+create host-interface name vpp1out
+set int state host-vpp1out up
+set int ip address host-vpp1out 10.10.1.2/24
+show int addr
+q
+# 开启第二个vpp实例并建立memory share连接，第一个vpp实例作为路由中转
+sudo /usr/bin/vpp -c startup2.conf
+sudo vppctl -s /run/vpp/cli-vpp1.sock
+create interface memif id 0 master
+set int state memif0/0 up
+set int ip address memif0/0 10.10.2.1/24
+show int addr
+q
+sudo vppctl -s /run/vpp/cli-vpp2.sock
+create interface memif id 0 slave
+set int state memif0/0 up
+set int ip address memif0/0 10.10.2.2/24
+show int addr
+q
+# 配置ip路由表使第二个vpp与主机连通
+sudo ip route add 10.10.2.0/24 via 10.10.1.2
+ip route
+sudo vppctl -s /run/vpp/cli-vpp2.sock
+ip route add 10.10.1.0/24  via 10.10.2.1
+q
+
+
+# 删除已有vpp配置实例
+ps -ef | grep vpp | awk '{print $2}'| xargs sudo kill
+sudo ip link del dev vpp1host
+# do the next command if you are cleaning up from this example
+sudo ip link del dev vpp1vpp2
+# 重新设置第一个vpp实例作为二层交换机中转
+sudo ip link add name vpp1out type veth peer name vpp1host
+sudo ip link add name vpp1vpp2 type veth peer name vpp2vpp1
+sudo vppctl -s /run/vpp/cli-vpp1.sock
+create host-interface name vpp1out
+set int state host-vpp1out up
+create host-interface name vpp1vpp2
+set int state host-vpp1vpp2 up
+q
+sudo vppctl -s /run/vpp/cli-vpp2.sock
+create host-interface name vpp2vpp1
+set int state host-vpp1vpp2 up
+q
+# 设置二层网桥域
+sudo vppctl -s /run/vpp/cli-vpp1.sock
+show bridge-domain
+set int l2 bridge host-vpp1out 1
+set int l2 bridge host-vpp1vpp2 1
+show bridge-domain 1 detail
+q
+# 设置回环接口
+sudo vppctl -s /run/vpp/cli-vpp2.sock
+create loopback interface
+set int state loop0 up
+set int ip address loop0 10.10.1.2/24
+set int l2 bridge loop0 1 bvi
+set int l2 bridge host-vpp2vpp1  1
+s
 ```
 
-#### 配置文件说明
+#### 场景2
 
-startup.conf 参数说明
+>   简单描述：ssh连接两台主机，各自开启一个vpp，在内网相互发包测试
+
+#### 场景3
+
+>   简单描述：单个vpp进程与主机通信
+
+```shell
+sudo /usr/bin/vpp -c startup1.conf
+sudo ip link add name vpp1out type veth peer name vpp1host
+sudo ip link set dev vpp1out up
+sudo ip link set dev vpp1host up
+sudo ip addr add 10.10.1.1/24 dev vpp1host
+sudo vppctl -s /run/vpp/cli-vpp1.sock
+create host-interface name vpp1out
+set int state host-vpp1out up
+set int ip address host-vpp1out 10.10.1.2/24
+show int addr
+trace add af-packet-input 10
+```
+
+>   基础效果：color get包通过color lookup节点检查，color-input节点上传到应用，color-output节点接收应用返回数据，填写校验和等参数，由ip4-lookup点配置输出。
+
+```
+Packet 2
+
+00:00:11:199599: af-packet-input
+  af_packet: hw_if_index 1 next-index 4
+    tpacket2_hdr:
+      status 0x20000001 len 106 snaplen 106 mac 66 net 80
+      sec 0x622b2885 nsec 0x335fdbc0 vlan 0 vlan_tpid 0
+00:00:11:199843: ethernet-input
+  IP4: ba:5e:ca:48:31:ea -> 02:fe:a8:80:bf:70
+00:00:11:199848: ip4-input
+  unknown 150: 10.10.1.1 -> 10.10.1.2
+    tos 0x00, ttl 64, length 92, checksum 0x63f5 dscp CS0 ecn NON_ECN
+    fragment id 0x0001
+00:00:11:199857: ip4-lookup
+  fib 0 dpo-idx 7 flow hash: 0x00000000
+  unknown 150: 10.10.1.1 -> 10.10.1.2
+    tos 0x00, ttl 64, length 92, checksum 0x63f5 dscp CS0 ecn NON_ECN
+    fragment id 0x0001
+00:00:11:199864: ip4-local
+    unknown 150: 10.10.1.1 -> 10.10.1.2
+      tos 0x00, ttl 64, length 92, checksum 0x63f5 dscp CS0 ecn NON_ECN
+      fragment id 0x0001
+00:00:11:199868: CoLoR-lookup
+  CoLoR protocol
+origin string:72404800d94c000002080000ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a567452301325476980000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000000000000000000
+Version 7, Type GET
+  ttl 64, packet_length 72, checksum 0x4cd9
+00:00:11:199872: CoLoR-input
+  CoLoR protocol
+origin string:72404800d94c000002080000ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a567452301325476980000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000000000000000000
+Version 7, Type GET
+  ttl 64, packet_length 72, checksum 0x4cd9
+
+00:00:11:199876: CoLoR-output
+  CoLoR protocol
+origin string:72404800d94c000002080000ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a567452301325476980000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000000000000000000
+Version 7, Type GET
+  ttl 64, packet_length 72, checksum 0x4cd9
+
+00:00:11:199877: ip4-lookup
+  fib 0 dpo-idx 2 flow hash: 0x00000000
+  unknown 150: 10.10.1.2 -> 10.10.1.1
+    tos 0x00, ttl 64, length 92, checksum 0x63f5 dscp CS0 ecn NON_ECN
+    fragment id 0x0001
+00:00:11:199879: ip4-rewrite
+  tx_sw_if_index 1 dpo-idx 2 : ipv4 via 10.10.1.1 host-vpp1out: mtu:9000 next:3 flags:[] ba5eca4831ea02fea880bf700800 flow hash: 0x00000000
+  00000000: ba5eca4831ea02fea880bf7008004500005c000100003f9664f50a0a01020a0a
+  00000020: 010172404800d94c000002080000ffffffffffffffffffffffffffff
+00:00:11:199882: host-vpp1out-output
+  host-vpp1out 
+  IP4: 02:fe:a8:80:bf:70 -> ba:5e:ca:48:31:ea
+  unknown 150: 10.10.1.2 -> 10.10.1.1
+    tos 0x00, ttl 63, length 92, checksum 0x64f5 dscp CS0 ecn NON_ECN
+    fragment id 0x0001
+```
 
 ### 调试
 
@@ -183,156 +279,149 @@ make run
 # 带gdb运行
 make debug-release
 make debug
-# gdb模式下可以输入配置文件运行
-run -c /etc/vpp/startup.conf
 ```
 
-### api简介
+### trace命令
 
-vpp api模块通过共享内存的方式提供交流接口，一般适用于自动化管理。
-
-插件中定义的接口在编译阶段转变为c语言头文件和标准JSON格式，外部高级语言可以通过解析JSON文件并调用c语言头文件实现与vpp绑定。
-
-#### c语言api
-
-详细说明请参考[How to use the C API](https://wiki.fd.io/view/VPP/How_To_Use_The_C_API)，该教程结合源码介绍了Capi一些基础规定，对后续理解非常有帮助。
-
-由于vpp本身采用C语言编写，所以c api最大的优势是可以直接调用c函数。
-
-> 关于API定义，参见后文[VPP API 语言](#api-language)
-> 
-> 按照编写规定，request/reply 类型消息request名可以任意（但不要用dump结尾），reply会在对应request名后添加**\_reply**；dump/details 类型消息dump名以**\_dump** 结尾，返回消息details以 **\_details** 结尾。另外dump/details为了区分多条details是否结束，最后会返回一条**control\_ping**消息。
-
-c/c++语言api头文件（由安装包 **vpp-dev\*.deb** 提供）一般位于路径 **/usr/include/vapi** ，包含自定义插件。
-
-#### c++语言api绑定
-
-c++
-
-#### python语言api绑定
-
-python语言绑定需要安装**python3-vpp-api\*.deb**，并且需要JSON文件路径作为索引。目测高级语言绑定都通过socket(/run/vpp/api.sock)，仅c/c++底层使用共享内存，故效率上有明显区别。
-
-##### 踩坑记录
-
-官方文档中的python绑定使用python2，但是在vpp21.10.1中已经没有python2了，全部改用python3。因此需要参照源码 **\vpp\src\vpp-api\python\vpp_papi\vpp_papi.py** 对实例代码做出一点微调。
-
-主要修改部分：
-
-1. import VPP修改为VPPApiClient
-
-2. load_json_api_files路径修改
-
-```python
-#!/usr/bin/env python
-
-from __future__ import print_function
-
-import os
-import fnmatch
-
-from vpp_papi import VPPApiClient
-
-CLIENT_ID = "client"
-VPP_JSON_DIR = '/usr/share/vpp/api/'
-API_FILE_SUFFIX = '*.api.json'
-
-def load_json_api_files(json_dir=VPP_JSON_DIR, suffix=API_FILE_SUFFIX):
-    jsonfiles = []
-    for root, dirnames, filenames in os.walk(json_dir):
-        # print(root, dirnames, filenames)
-        for filename in fnmatch.filter(filenames, suffix):
-            jsonfiles.append(os.path.join(root, filename))
-
-    if not jsonfiles:
-        print('Error: no json api files found')
-        exit(-1)
-
-    # print(jsonfiles)
-
-    return jsonfiles
-
-
-def connect_vpp(jsonfiles):
-    vpp = VPPApiClient(apifiles=jsonfiles)
-    r = vpp.connect(CLIENT_ID)
-    print("VPPApiClient opened with code: %s" % r)
-    return vpp
-
-
-def dump_interfaces():
-    print("Sending dump interfaces. Msg id: sw_interface_dump")
-    for intf in vpp.api.sw_interface_dump():
-        print("\tInterface, message id: sw_interface_details, interface index: %s" % intf.interface_name)
-
-
-def dump_bds():
-    print("Sending dump bridge domains. Msg id: bridge_domain_dump")
-    for intf in vpp.api.bridge_domain_dump(bd_id = int("ffffffff", 16)):
-        print("\tBridge domain, message id: bridge_domain_details, bd index: %s" % intf.bd_id)
-
-
-def create_loopback():
-    print("Sending create loopback. Msg id: create_loopback_interface")
-    vpp.api.create_loopback()
-
-
-def create_bd():
-    print("Sending create loopback. Msg id: create_loopback_interface")
-    vpp.api.bridge_domain_add_del(is_add = 1, bd_id = 99)
-
-
-# Python apis need json definitions to interpret messages
-vpp = connect_vpp(load_json_api_files())
-# Dump interfaces
-dump_interfaces()
-# Create loopback
-create_loopback()
-# Dump interfaces
-dump_interfaces()
-# Dump bridge-domains
-dump_bds()
-# Create bridge domain
-create_bd()
-# Dump bridge-domains
-dump_bds()
-
-exit(vpp.disconnect())
-```
-
-### cli简介
-
-cli一般适用于人工操作，不适合自动化管理。
+>   trace是vpp提供的包跟踪功能模块，可以监控通过vpp某些节点的包流向。
 
 ```shell
-# 默认配置vpp可以直接连接
-sudo vppctl <cli-command>
+trace add af-packet-input 10
+# 监控通过af-packet-input的10个数据包, memif接口使用memif-input
+# ping from host to vpp
+show trace
+clear trace
+# 显示arp表
+show ip neighbors
+# 显示路由表
+show ip fib
 ```
 
-cli支持网络telnet连接或者本机socket连接，telnet连接需要配置文件中在unix结构下添加 **cli-listen localhost:5002** ；socket连接需要添加 **cli-listen /run/vpp/cli.sock**
+### api使用
 
-> **warning**：telnet通信不加密，注意安全风险
+vpp api模块通过共享内存的方式提供交流接口。插件中定义的接口在编译阶段通过python的转换脚本转变为C或C++文件，外部程序可以通过这些文件与vpp交互。
 
-```shell
-# 通过socket连接vpp
-sudo vppctl -s /run/vpp/cli.sock
-# 通过网络连接vpp
-telnet localhost 5002
-```
+c语言api缺少详细说明，暂时无视。（相关编译后代码位于vpp/build-root/build-vpp_debug-native/vpp/bin，可以对照源码学习）
 
-连接配置：
+c++语言api **TODO：文件研究中**
 
-- 横幅可以通过配置文件unix结构添加 **cli-no-banner** 去除
+### cli使用
 
-- 命令行提示符可以通过unix结构添加 **cli-prompt <string>** 设置
+cli
 
-- 输出分页可以通过unix结构添加 **cli-no-pager** 去除，或者通过 **cli-pager-buffer-limit 5000** 设置缓存上限
+### 容器使用
 
-### 容器简介
+>   PS：vpp实例本身使用就类似一个容器
 
 container
 
-## 4 编写
+### vpp代码格式
+
+vpp支持代码自动格式化
+
+```shell
+make checkstyle
+make fixstyle
+```
+
+
+
+## 4 修改
+
+>   整理此部分内容正是本次学习笔记的起因。官方文档对于如何编写代码的描述简直惜字如金，多数步骤一笔带过，对于初学者来说难度极大。同时缺少对关键代码逻辑的描述，需要交叉对比多个教程自行理解。
+
+### 修改包处理图路径
+
+#### 4-1. 每个接口直接转
+
+```c
+ vnet_hw_interface_rx_redirect_to_node 
+ (vnet_main, hw_if_index, my_graph_node.index /* redirect to my_graph_node */);
+ vnet_hw_interface_rx_redirect_to_node 
+ (vnet_main, hw_if_index, ~0 /* disable redirection */);
+```
+
+#### 4-2. 抓特定类型Ether包
+
+```c
+ ethernet_register_input_type (vm, ETHERNET_TYPE_CDP, cdp_input_node.index);
+```
+
+#### 4-3. 添加新IP协议包
+
+>   本次color实现采用方法
+
+```c
+ ip4_register_protocol (IP_PROTOCOL_GRE, gre_input_node.index);
+ ip6_register_protocol (IP_PROTOCOL_L2TP, l2t_decap_node.index);
+```
+
+#### 4-4. 抓特定端口的UDP包
+
+```c
+udp_register_dst_port (vm, UDP_DST_PORT_vxlan, 
+                       vxlan_input_node.index, 1 /* is_ip4 */);
+```
+
+#### 4-5. 使用DPO类型配置转发表
+
+vpp内置DPO类型专门用于转发表动作，具体操作参考[博客](https://www.asumu.xyz/blog/tags/vpp.html)
+
+### 添加feature 与 feature arc
+
+feature是一个抽象概念，区别于报文流图中具体的节点。
+
+它提出来的目的是解决在报文流图中灵活处理连边，因为在此之前vpp将连边硬编码在节点内，如果想要修改处理流，需要重新编写代码。feature arc是目前使用的机制，它将多个feature串接在一起，一个feature一般对应一个node，通过node中不同的判断可以实现feature arc上的灵活转向，此外每个feature可以配置功能是否开启，进一步增强灵活性。
+
+```mermaid
+graph TD
+    A[old style] --> B[old style]
+    C[new style] --> D1{check 1}
+    D1 -->|No| D2{check 2}
+    D2 -->|No| D3{check 3}
+    D3 -->|No| E[new style]
+    D1 -->|Yes| E1[other node1]
+    D2 -->|Yes| E2[other node2]
+    D3 -->|Yes| E3[other node3]
+```
+
+要添加一个feature arc非常容易，在arc起始node中用VNET_FEATURE_ARC_INIT注册arc，用vnet_feature_arc_start启动该feature arc。
+
+feature arc中feature的顺序通过初始化时的偏序关系排出一个满足条件的执行序，无法满足会拒绝执行。
+
+```c
+//初始化feature arc代码
+VNET_FEATURE_ARC_INIT (device_input, static) =
+{
+  .arc_name  = "device-input",
+  .start_nodes = VNET_FEATURES ("device-input"),
+  .arc_index_ptr = &feature_main.device_input_feature_arc_index,
+};
+// 再初始化这个arc下的feature，通过.runs_before来控制feature的先后关系，当然也有runs_after
+VNET_FEATURE_INIT (worker_handoff, static) = {
+  .arc_name = "device-input",
+  .node_name = "worker-handoff",
+  .runs_before = VNET_FEATURES ("ethernet-input"),
+};
+
+VNET_FEATURE_INIT (span_input, static) = {
+  .arc_name = "device-input",
+  .node_name = "span-input",
+  .runs_before = VNET_FEATURES ("ethernet-input"),
+};
+
+VNET_FEATURE_INIT (ethernet_input, static) = {
+  .arc_name = "device-input",
+  .node_name = "ethernet-input",
+  .runs_before = 0, /* not before any other features */
+};
+// 编译阶段把这些node都挂在对应的构造函数上，在初始化的时候就会调用
+// 初始化vnet_feature_arc_init时会根据之前的配置，将各feature的先后关系排列好，此时只是排列好顺序，并未插入feature_arc中，也就是不会被调用到。
+// 调用vnet_feature_enable_disable，此时才是将要用到的feature真正的插入feature_arc中
+// 最后在初始节点调用vnet_feature_arc_start开始feature arc逻辑
+```
+
+简而言之，feature机制改变了节点的报文输出逻辑，更容易灵活配置，特别适合于开发一些扩展节点。
 
 ### 插入一个插件
 
@@ -347,39 +436,126 @@ cd ./src/plugins
 
 #### vpp plugin文件结构与内容
 
-CMakeLists.txt
-
-- SOURCES: 一系列c语言源文件
-- API_FILES: 一系列API接口定义文件
-- MULTIARCH_SOURCES: 主要影响性能的图节点文件
-- API_TEST_SOURCES: api接口测试文件
-
-按照需要修改CMakeList配置
+##### CMakeLists.txt
 
 ```cmake
 add_vpp_plugin (myplugin
 SOURCES
-myplugin.c
-node.c
-myplugin_periodic.c
-myplugin.h
+    myplugin.c
+    node.c
+    myplugin_periodic.c
+    myplugin.h
 
 MULTIARCH_SOURCES
-node.c
+    node.c
 
 API_FILES
-myplugin.api
+	myplugin.api
 
 API_TEST_SOURCES
-myplugin_test.c
+	myplugin_test.c
 )
 ```
 
-myplugin.api
+- SOURCES: 一系列c语言源文件
+- API_FILES: API定义文件，主要用于与vpp交互
+- MULTIARCH_SOURCES: 主要影响性能的图节点文件
+- API_TEST_SOURCES: API测试文件
 
-- 约定API消息接口。消息可以是阻塞或非阻塞模式。消息用于与VPP引擎沟通，配置修改数据处理路径。
+按照需要修改CMakeList配置。
+
+>   另外除了myplugin.h在项目编译阶段myplugin.api会被翻译成myplugin.api_types.h和myplugin.api_enum.h两个头文件供其他c代码使用，对于python语言，api文件会翻译一份json格式的文件供其解析使用。
+
+##### myplugin.api
+
+- 约定API消息接口。消息用于与VPP引擎沟通，可以是阻塞或非阻塞模式，可以配置修改数据处理路径或打开某些功能。
 
 具体语言格式参见[VPP API 语言](#api-language)
+
+##### node.c
+
+- 实际逻辑处理节点
+
+```c
+VLIB_NODE_FN (myplugin_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
+                             vlib_frame_t * frame);
+//结点功能实现
+
+VLIB_REGISTER_NODE (myplugin_node);
+//注册结点结构体
+```
+
+##### myplugin.c
+
+- 插件的定义和初始化
+
+```c
+//注册插件名称及描述
+VLIB_PLUGIN_REGISTER () =
+{
+  .version = VPP_BUILD_VER,
+  /*.default_disabled = 1,*/
+  .description = "myplugin plugin description goes here",
+};
+/* API definitions */
+#include <myplugin/myplugin.api.c>
+//插件初始化
+static clib_error_t * myplugin_init (vlib_main_t * vm)
+{
+  myplugin_main_t * mmp = &myplugin_main;
+  clib_error_t * error = 0;
+
+  mmp->vlib_main = vm;
+  mmp->vnet_main = vnet_get_main();
+
+  /* Add our API messages to the global name_crc hash table */
+  mmp->msg_id_base = setup_message_id_table ();
+
+  return error;
+}
+//注册结点特征
+VNET_FEATURE_INIT (myplugin, static) =
+{
+  .arc_name = "device-input",
+  .node_name = "myplugin",
+  .runs_before = VNET_FEATURES ("ethernet-input"),
+};
+//注册结点命令
+VLIB_CLI_COMMAND (myplugin_enable_disable_command, static) =
+{
+  .path = "myplugin enable-disable",
+  .short_help =
+  "myplugin enable-disable <interface-name> [disable]",
+  .function = myplugin_enable_disable_command_fn,
+};
+```
+
+##### myplugin_periodic.c
+
+- 常驻监听线程
+
+```c
+void myplugin_create_periodic_process (myplugin_main_t *mmp)
+{
+  /* Already created the process node? */
+  if (mmp->periodic_node_index > 0)
+    return;
+
+  /* No, create it now and make a note of the node index */
+  mmp->periodic_node_index = vlib_process_create (mmp->vlib_main,
+    "myplugin-periodic-process",
+    myplugin_periodic_process, 16 /* log2_n_stack_bytes */);
+}
+//创建监听线程响应事件
+```
+
+#### vpp plugin基本逻辑
+
+![vpp-plugin](https://github.com/lxambulance/cloudimg/raw/master/img/%E6%8F%92%E4%BB%B6%E6%A1%86%E6%9E%B6%E6%B5%81%E7%A8%8B%E5%9B%BE.jpg)
+
+### api接口定义
+
+<span id="api-language"></span>
 
 ```c
 option version = "0.1.0";
@@ -400,93 +576,11 @@ autoreply define sample_macswap_enable_disable {
 };
 ```
 
-myplugin.c
-
-- 插件的定义和初始化
-
-```c
-VLIB_PLUGIN_REGISTER () =
-{
-  .version = VPP_BUILD_VER,
-  /*.default_disabled = 1,*/
-  .description = "myplugin plugin description goes here",
-};
-//注册插件名称及描述
-/* API definitions */
-#include <myplugin/myplugin.api.c>
-
-static clib_error_t * myplugin_init (vlib_main_t * vm)
-{
-  myplugin_main_t * mmp = &myplugin_main;
-  clib_error_t * error = 0;
-
-  mmp->vlib_main = vm;
-  mmp->vnet_main = vnet_get_main();
-
-  /* Add our API messages to the global name_crc hash table */
-  mmp->msg_id_base = setup_message_id_table ();
-
-  return error;
-}
-//注册结点初始化1
-VNET_FEATURE_INIT (myplugin, static) =
-{
-  .arc_name = "device-input",
-  .node_name = "myplugin",
-  .runs_before = VNET_FEATURES ("ethernet-input"),
-};
-//注册结点初始化2
-VLIB_CLI_COMMAND (myplugin_enable_disable_command, static) =
-{
-  .path = "myplugin enable-disable",
-  .short_help =
-  "myplugin enable-disable <interface-name> [disable]",
-  .function = myplugin_enable_disable_command_fn,
-};
-//注册结点CLI命令
-```
-
-myplugin_periodic.c
-
-- 常驻监听线程
-
-```c
-void myplugin_create_periodic_process (myplugin_main_t *mmp)
-{
-  /* Already created the process node? */
-  if (mmp->periodic_node_index > 0)
-    return;
-
-  /* No, create it now and make a note of the node index */
-  mmp->periodic_node_index = vlib_process_create (mmp->vlib_main,
-    "myplugin-periodic-process",
-    myplugin_periodic_process, 16 /* log2_n_stack_bytes */);
-}
-//创建监听线程响应事件
-```
-
-node.c
-
-- 实际处理节点
-
-```c
-VLIB_NODE_FN (myplugin_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
-                             vlib_frame_t * frame);
-//结点功能实现
-
-VLIB_REGISTER_NODE (myplugin_node);
-//注册结点结构体
-```
-
-### api接口定义
-
-<span id="api-language"></span>
-
 采用了vpp自定义的一种类c风格语言，主要有三种类型的消息
 
-- Request/Reply(1-1)：调用端程序发送request消息，vpp引擎返回一条简单reply消息
-- Dump/Detail(1-n)：批量消息请求与返回，与前者的差别目测是一条和多条...
-- event(1-1-n)：异步消息响应，用于调用端程序监视vpp一些接口状态的改变，首先需要注册，会返回一条简单reply消息，然后等待事件触发，返回多次所需消息
+- Request/Reply：调用端程序发送request消息，vpp引擎返回一条简单reply消息
+- Dump/Detail：批量消息请求与返回，与前者的差别目测是一条和多条...
+- event：异步消息响应，用于调用端程序监视vpp一些接口状态的改变
 
 #### define
 
@@ -632,10 +726,23 @@ events : ID
 
 详细信息参见[文档](https://s3-docs.fd.io/vpp/22.02/interfacing/binapi/vpp_api_language.html)
 
-### 启动配置文件
+### 节点间数据流
 
-## 5 实例
+#### 数据结构
 
-#### 如何编写c应用程序调用vpp
+TODO：buffer frame
 
-实操部分推荐博客[c api使用](https://www.marosmars.com/blog/managing-vpp-c-edition)，目测由于版本不同存在问题，建议使用 **/src/vpp-api/client/** 路径下vac封装。
+#### 传递方式
+
+vpp自行定义了vector类型，包含内容类型和数量；中间节点传递传vector中的序号（并非指针）
+
+### libmemif使用
+
+1.   初始化
+2.   收发包
+3.   0拷贝
+
+#### python c混合编程
+
+暂定python 调用 ctype库
+
