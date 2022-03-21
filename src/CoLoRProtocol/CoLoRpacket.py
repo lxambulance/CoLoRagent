@@ -2,10 +2,10 @@
 
 
 from scapy.all import (
-    Packet, BitField, ByteField, ShortField, XShortField, LEShortField,
+    Packet, BitField, ByteField, XShortField, LEShortField, XLEIntField,
     FieldLenField, FlagsField, StrFixedLenField, FieldListField,
     PacketListField, XStrFixedLenField, ConditionalField, StrLenField,
-    IntField, LEIntField, ByteEnumField, bind_layers, IP
+    LEIntField, ByteEnumField, bind_layers, IP
 )
 
 
@@ -96,7 +96,7 @@ class ColorGet(Packet):
             LEIntField("Seg_ID", None),
             lambda pkt:pkt.Flags.S == True),
         FieldListField(
-            "PIDs", None, LEIntField("", None),
+            "PIDs", None, XLEIntField("", None),
             count_from=lambda pkt:pkt.PID_num),
         ConditionalField(
             StrFixedLenField("Random_num", "", 4),
@@ -147,7 +147,7 @@ class ColorData(Packet):
                          lambda pkt:pkt.Flags.C == True),
         ConditionalField(LEIntField("Seg_ID", None),
                          lambda pkt:pkt.Flags.S == True),
-        FieldListField("PIDs", [0], LEIntField("", None),
+        FieldListField("PIDs", [0], XLEIntField("", None),
                        count_from=lambda pkt:pkt.PID_num+(pkt.Flags.R == True))
     ]
 
@@ -429,7 +429,7 @@ if __name__ == '__main__':
     cg.PIDs = [int('01234567', 16), int('98765432', 16)]
     cg.Flags.R = True
     cg.Random_num = bytes.fromhex("12345678")
-    send(pkt/cg, verbose = 0)
+    send(pkt/cg, verbose=0)
 
     cd = ColorData()
     cd.N_sid = b'\xff'*16
@@ -457,7 +457,7 @@ if __name__ == '__main__':
     au.L_sid = b'\x02'*20
     au.nid = b'\x03'*16
     ca = ColorAnn(Announce_unit_list=[au, au])
-    # ca.show2()
+    ca.show2()
     send(pkt/ca, verbose=0)
 
     ipniditem = IP_NID(IP=Ipv42Int("192.168.50.62"), nid=b"\xf0"*16)
