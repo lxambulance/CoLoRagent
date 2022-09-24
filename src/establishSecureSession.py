@@ -31,7 +31,7 @@ class MyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 class keys():
-    ''' docstring: 密钥类，存储自身密钥 '''
+    """ docstring: 密钥类，存储自身密钥 """
     def __init__(self):
         self.private_key = None
         self.public_key = None
@@ -63,7 +63,7 @@ class keys():
             json.dump(data, f, cls=MyEncoder)
 
     def regenerate(self):
-        ''' docstring: 重新生成一次密钥对 '''
+        """ docstring: 重新生成一次密钥对 """
         self.private_key = Ed25519PrivateKey.generate()
         self.public_key = self.private_key.public_key()
         self.public_key_bytes = self.public_key.public_bytes(
@@ -120,7 +120,7 @@ specsid2sid = {} # key:sid, value:sid
 RTO = 2 # 超时重传时间默认设置为两秒
 
 class Session():
-    ''' docstring: 会话类，主要的存储对象 '''
+    """ docstring: 会话类，主要的存储对象 """
     def __init__(self, nid, sid, pids, ip):
         self.nid = nid
         self.sid = sid
@@ -137,7 +137,7 @@ class Session():
         self.remote_public_key_bytes = None
 
     def sendFirstHandshake(self, nid=None, sid=None, pids=None, ip=None):
-        ''' docstring: 发送第一个握手包 '''
+        """ docstring: 发送第一个握手包 """
         self.random_server = os.urandom(20)
         ECDH_public_key_bytes = self.ECDH_private_key_self.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
@@ -167,7 +167,7 @@ class Session():
         self.ensureSend(ip if ip else self.ip, colordatapkt, 1)
 
     def sendSecondHandshake(self, nid=None, sid=None, pids=None, ip=None):
-        ''' docstring: 发送第二个握手包 '''
+        """ docstring: 发送第二个握手包 """
         self.random_client = os.urandom(20)
         ECDH_public_key_bytes = self.ECDH_private_key_self.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
@@ -198,7 +198,7 @@ class Session():
         self.ensureSend(ip if ip else self.ip, colordatapkt, 4)
 
     def sendThirdHandshake(self, nid=None, sid=None, pids=None, ip=None):
-        ''' docstring: 发送第三个握手包 '''
+        """ docstring: 发送第三个握手包 """
         session_id = os.urandom(8)
         self.sessionId = session_id
         signature = Agent.private_key.sign(str.encode("finished") + session_id)
@@ -225,7 +225,7 @@ class Session():
         # TODO: 需要重传确认
 
     def ensureSend(self, ip, pkt, num):
-        ''' docstring: 保证可靠传输。TODO:信号存在问题，暂时不用，假定传输可靠 '''
+        """ docstring: 保证可靠传输。TODO:信号存在问题，暂时不用，假定传输可靠 """
         PL.SendIpv4(ip, pkt)
         for i in range(3):
             time.sleep(RTO)
@@ -236,7 +236,7 @@ class Session():
                 break
 
     def calcSharedKey(self):
-        ''' docstring: 计算共享密钥和会话主秘钥 '''
+        """ docstring: 计算共享密钥和会话主秘钥 """
         remote_ECDH_public_key = ec.EllipticCurvePublicKey.from_encoded_point(
             ec.SECP384R1(),
             self.remote_ECDH_public_key_bytes
@@ -256,7 +256,7 @@ class Session():
         # print(self.mainKey)
 
 def Encrypt(nid, sid, text):
-    ''' docstring: 对特定服务做加密，返回值是CoLoR_data_load加密包格式的bytes串 '''
+    """ docstring: 对特定服务做加密，返回值是CoLoR_data_load加密包格式的bytes串 """
     session = sessionlist.get(f"{nid:032x}" + sid, None)
     iv = os.urandom(16)
     encryptor = Cipher(algorithms.AES(session.mainKey), modes.GCM(iv)).encryptor()
@@ -267,7 +267,7 @@ def Encrypt(nid, sid, text):
     return iv + encryptor.tag + ciphertext
 
 def Decrypt(nid, sid, load):
-    ''' docstring: 对特定服务做解密，返回值明文bytes串 '''
+    """ docstring: 对特定服务做解密，返回值明文bytes串 """
     session = sessionlist.get(f"{nid:032x}" + sid, None)
     iv = load[:16]
     tag = load[16:32]
@@ -278,7 +278,7 @@ def Decrypt(nid, sid, load):
     return decryptor.update(load[32:]) + decryptor.finalize()
 
 def newSession(nid:int, sid:str, pids:list, ip:str, flag = True, loads = b'', pkt = None):
-    ''' docstring: 建立一个新的会话 '''
+    """ docstring: 建立一个新的会话 """
     ESSsignal.output.emit(0, f"文件（{sid}）\n建立加密会话\n")
     nid_str = f"{nid:032x}"
     session_key = nid_str+sid
@@ -336,7 +336,7 @@ def sessionReady(nid, sid):
     return session.myStatus == 6
 
 def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None, SegID = 0):
-    ''' docstring: session状态转移函数 '''
+    """ docstring: session状态转移函数 """
     if not checkSession(nid, sid):
         # 特殊sid转化为真实sid
         sid_origin = sid

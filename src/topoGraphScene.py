@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: scene/view模型框架 '''
+""" docstring: scene/view模型框架 """
 
 from random import shuffle
 from math import pi, fabs, sin, cos
@@ -13,7 +13,7 @@ import resource_rc
 
 
 class topoGraphScene(QGraphicsScene):
-    ''' docstring: 场景模型类 '''
+    """ docstring: 场景模型类 """
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -82,7 +82,7 @@ class topoGraphScene(QGraphicsScene):
         self.data = {}
 
     def addEdge(self, n1, n2, edge):
-        ''' docstring: 向nextedges字典中添加点-边映射（无向边） '''
+        """ docstring: 向nextedges字典中添加点-边映射（无向边） """
         tmplist = self.nextedges.get(n1.id, [])
         tmplist.append((n2, edge))
         self.nextedges[n1.id] = tmplist
@@ -94,12 +94,12 @@ class topoGraphScene(QGraphicsScene):
         edge.node2 = n2
 
     def delEdge(self, n1, n2, edge):
-        ''' docstring: 与上面操作相反 '''
+        """ docstring: 与上面操作相反 """
         self.nextedges[n1.id].remove((n2, edge))
         self.nextedges[n2.id].remove((n1, edge))
 
     def findPath(self, dest):
-        ''' docstring: 选择最短路径，以观察节点为起点，返回到目标节点的路径（nid序列） '''
+        """ docstring: 选择最短路径，以观察节点为起点，返回到目标节点的路径（nid序列） """
         if self.node_me == None:
             return None
         # print('init')
@@ -154,7 +154,7 @@ class topoGraphScene(QGraphicsScene):
             nodelist.append(asitem)
 
     def initTopo(self, path):
-        ''' docstring: 初始化拓扑为配置文件信息 '''
+        """ docstring: 初始化拓扑为配置文件信息 """
         with open(path, 'r') as f:
             self.data = load(f)
             self.topo = self.data.get('topo map', {})
@@ -233,7 +233,7 @@ class topoGraphScene(QGraphicsScene):
                     item.throughputlabel.show()
 
     def saveTopo(self, path):
-        ''' docstring: 存储拓扑图 '''
+        """ docstring: 存储拓扑图 """
         with open(path, 'r') as f:
             self.data = load(f)
         self.topo = {}

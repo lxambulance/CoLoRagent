@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: scene/view模型框架 '''
+""" docstring: scene/view模型框架 """
 
 from GraphicsItem import Node, Edge, Text
 from PyQt5.QtWidgets import QGraphicsView
@@ -8,7 +8,7 @@ from PyQt5.QtGui import QPainter, QColor
 
 
 class topoGraphView(QGraphicsView):
-    ''' docstring: 视图显示类 '''
+    """ docstring: 视图显示类 """
 
     def __init__(self, scene, parent=None):
         super().__init__(parent)
@@ -44,7 +44,7 @@ class topoGraphView(QGraphicsView):
         self.setBackgroundBrush(self._color_background)
 
     def getItemAtClick(self, event):
-        ''' docstring: 返回点击的物体 '''
+        """ docstring: 返回点击的物体 """
         pos = event.pos()
         item = self.itemAt(pos)
         tmppos = self.mapToScene(pos)
@@ -52,7 +52,7 @@ class topoGraphView(QGraphicsView):
         return item
 
     def removeNode(self, item):
-        ''' docstring: 删除节点，步骤较繁琐，主要要考虑对所有参数的影响 '''
+        """ docstring: 删除节点，步骤较繁琐，主要要考虑对所有参数的影响 """
         # print(item.name, item.id)
         if not isinstance(item, Node) or item.myType == 0 and len(self.scene().ASinfo[item.id]) > 1: # 内部含有东西的AS不能直接删除
             # print([x.id for x in self.scene().ASinfo[item.id]])
@@ -82,7 +82,7 @@ class topoGraphView(QGraphicsView):
         self.scene().removeItem(item)
 
     def mousePressEvent(self, event):
-        ''' docstring: 鼠标按下事件 '''
+        """ docstring: 鼠标按下事件 """
         item = self.getItemAtClick(event)
         if event.button() == Qt.RightButton:
             if isinstance(item, Text) and item.parent:
@@ -162,7 +162,7 @@ class topoGraphView(QGraphicsView):
                 self.selectedText = None
 
     def mouseMoveEvent(self, event):
-        ''' docstring: 鼠标移动事件 '''
+        """ docstring: 鼠标移动事件 """
         pos = self.mapToScene(event.pos())
         if self.parent().addedgeenable and self.scene().tmpedge:
             newpos = QPointF((pos.x()*99+self.tmppos.x())/100,(pos.y()*99+self.tmppos.y())/100)
@@ -182,7 +182,7 @@ class topoGraphView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        ''' docstring: 鼠标释放事件 '''
+        """ docstring: 鼠标释放事件 """
         if self.parent().addedgeenable:
             self.parent().addedgeenable = False
             item = self.getItemAtClick(event)
@@ -237,7 +237,7 @@ class topoGraphView(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event):
-        ''' docstring: 键盘按下事件 '''
+        """ docstring: 键盘按下事件 """
         key = event.key()
         if key == Qt.Key_Plus: # 键盘加，作用同鼠标滚轮
             self.scaleView(1.2)
@@ -259,11 +259,11 @@ class topoGraphView(QGraphicsView):
             super().keyPressEvent(event)
 
     def wheelEvent(self, event):
-        ''' docstring: 鼠标滚轮事件，缩放 '''
+        """ docstring: 鼠标滚轮事件，缩放 """
         self.scaleView(pow(2.0, event.angleDelta().y() / 240.0))
 
     def scaleView(self, scaleFactor):
-        ''' docstring: 按比例调整视图大小 '''
+        """ docstring: 按比例调整视图大小 """
         factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
         # 对于单位矩阵宽度超出阈值的缩放行为不与响应
         if factor > 0.05 and factor < 20:

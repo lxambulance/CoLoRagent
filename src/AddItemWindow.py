@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: CoLoR 添加条目对话 '''
+""" docstring: CoLoR 添加条目对话 """
 
 # 添加文件路径../
 import os
@@ -20,7 +20,7 @@ import resource_rc
 import sys
 
 class AddItemWindow(QDialog, Ui_Dialog):
-    ''' docstring: class addItemDialog '''
+    """ docstring: class addItemDialog """
     def __init__(self, filedata, parent = None):
         super().__init__(parent)
         self.setupUi(self)
@@ -62,7 +62,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
             self.choosePath.setText(fpath[0])
     
     def addItem(self):
-        ''' docstring: 添加文件项到数据库结构 '''
+        """ docstring: 添加文件项到数据库结构 """
         nowIndex = self.tabWidget.currentIndex()
         if nowIndex == 1:
             # 检测文件名

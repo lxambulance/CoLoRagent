@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: Get包格式 '''
+""" docstring: Get包格式 """
 
 from scapy.all import (
     Packet,BitField,ByteField,ShortField,XShortField,LEShortField,

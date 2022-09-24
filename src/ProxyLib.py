@@ -1,5 +1,5 @@
 # coding=utf-8
-''' CoLoR代理功能函数库，供交互线程及监听线程调用 '''
+""" CoLoR代理功能函数库，供交互线程及监听线程调用 """
 
 from scapy.all import *
 import hashlib
@@ -32,14 +32,14 @@ PXs = {}  # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符
 
 
 def AnnProxy():
-    ''' docstring: 向RM注册当前代理，获取域内信息 '''
+    """ docstring: 向RM注册当前代理，获取域内信息 """
     NewPkt = ControlPkt(1)
     Tar = NewPkt.packing()
     SendIpv4(GetRMip(), Tar)
 
 
 def Sha1Hash(path):
-    ''' docstring: 计算特定文件160位hash值(Sha1) path: 新文件路径 '''
+    """ docstring: 计算特定文件160位hash值(Sha1) path: 新文件路径 """
     block_size = 64 * 1024  # 分块计算hash，减少内存占用
     with open(path, 'rb') as f:
         sha1 = hashlib.sha1()
@@ -53,7 +53,7 @@ def Sha1Hash(path):
 
 
 def AddCacheSidUnit(path, AM, N, L, I, level=-1, WhiteList=[]):
-    ''' docstring: 生成单个SID通告单元 '''
+    """ docstring: 生成单个SID通告单元 """
     Strategy_units = {}
     # 增添策略字段
     if(level >= 1 and level <= 10):
@@ -82,14 +82,14 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1, WhiteList=[]):
 
 
 def DeleteCacheSidUnit(path):
-    ''' docstring: 删除已生成但未通告的SID策略单元 '''
+    """ docstring: 删除已生成但未通告的SID策略单元 """
     Lock_CacheSidUnits.acquire()
     CacheSidUnits.pop(path)
     Lock_CacheSidUnits.release()
 
 
 def SidAnn(ttl=64, PublicKey='', P=0):
-    ''' docstring: 整合已生成的SID策略单元，发送ANN报文 '''
+    """ docstring: 整合已生成的SID策略单元，发送ANN报文 """
     # PublicKey格式为16进制字符串(不含0x前缀)
     if(RegFlag == 1):
         # 变量整理
@@ -153,7 +153,7 @@ def SidAnn(ttl=64, PublicKey='', P=0):
 
 
 def Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1):
-    ''' docstring: 生成完整的Get报文，只发送，不管收 '''
+    """ docstring: 生成完整的Get报文，只发送，不管收 """
     # SID：目标SID(N_sid+L_sid)的16进制字符串，path：本地存储路径（含文件名）
     if (RegFlag == 1):
         NewPkt = GetPkt(1, SID, ttl, PublicKey, QoS, SegID, A)
@@ -167,7 +167,7 @@ def Get(SID, path, ttl=64, PublicKey='', QoS='', SegID=-1, A=1):
 
 
 def ConvertFile(path, lpointer=0, rpointer=-1):
-    ''' docstring: 将任意文件编码为二进制 '''
+    """ docstring: 将任意文件编码为二进制 """
     with open(path, 'rb') as f:
         tar = f.read()
     if (rpointer == -1):
@@ -176,7 +176,7 @@ def ConvertFile(path, lpointer=0, rpointer=-1):
 
 
 def ConvertByte(tar, path):
-    ''' docstring: 将二进制编码写入到文件 '''
+    """ docstring: 将二进制编码写入到文件 """
     with open(path, 'ab') as f:  # 'ab'为追加写入，覆盖写入为'wb'
         f.write(tar)
 
@@ -790,19 +790,19 @@ class GetPkt():
 
 
 def ConvertInt2Bytes(data, length):
-    ''' docstring: 将int类型转成bytes类型（大端存储）
-    data: 目标数字，length: 目标字节数 '''
+    """ docstring: 将int类型转成bytes类型（大端存储）
+    data: 目标数字，length: 目标字节数 """
     return data.to_bytes(length, byteorder='big')
 
 
 def ConvertInt2Bytes_LE(data, length):
-    ''' docstring: 将int类型转成bytes类型（小端存储）
-    data：目标数字，length：目标字节数 '''
+    """ docstring: 将int类型转成bytes类型（小端存储）
+    data：目标数字，length：目标字节数 """
     return data.to_bytes(length, byteorder='little')
 
 
 def CalculateCS(tar):
-    ''' docstring: 校验和计算 tar: bytes字符串 '''
+    """ docstring: 校验和计算 tar: bytes字符串 """
     length = len(tar)
     pointer = 0
     sum = 0
@@ -822,8 +822,8 @@ def CalculateCS(tar):
 
 
 def SendIpv4(ipdst, data):
-    ''' docstring: 封装IPv4网络包并发送
-    ipdst: 目标IP地址，data: IP包正文内容，proto: 约定值150 '''
+    """ docstring: 封装IPv4网络包并发送
+    ipdst: 目标IP地址，data: IP包正文内容，proto: 约定值150 """
     pkt = IP(dst=ipdst, proto=150) / data
     # print(ipdst, data)
     # pkt.show()
@@ -831,7 +831,7 @@ def SendIpv4(ipdst, data):
 
 
 def GetRMip():
-    ''' docstring: 读配置文件获取RM所在IP地址(适用IPv4) '''
+    """ docstring: 读配置文件获取RM所在IP地址(适用IPv4) """
     # TODO: 修改为与RM交互获取数据
     return rmIPv4
 

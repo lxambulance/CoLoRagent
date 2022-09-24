@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: CoLoR Pan主页 '''
+""" docstring: CoLoR Pan主页 """
 
 import time
 import json
@@ -40,7 +40,7 @@ LOG_PATH = HOME_DIR + f'/{starttime}.log'
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-    ''' docstring: class MainWindow '''
+    """ docstring: class MainWindow """
 
     def __init__(self):
         super().__init__()
@@ -214,7 +214,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         CM.PL.SidAnn()
 
     def openCmdWindow(self):
-        ''' docstring: 打开命令行窗口 '''
+        """ docstring: 打开命令行窗口 """
         if not self.cmdwindow:
             self.cmdwindow = cmdWindow()
         else:
@@ -223,7 +223,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.logWidget.addLog("<动作> 打开视频窗口", f"Geo = {self.cmdwindow.geometry()}", False)
 
     def openVideoWindow(self):
-        ''' docstring: 打开视频窗口 '''
+        """ docstring: 打开视频窗口 """
         if not self.videowindow:
             self.videowindow = videoWindow()
         else:
@@ -232,7 +232,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.logWidget.addLog("<动作> 打开视频窗口", f"Geo = {self.videowindow.geometry()}", False)
 
     def showTopo(self, status):
-        ''' docstring: 显示(status==True)/隐藏(False) 拓扑图函数 '''
+        """ docstring: 显示(status==True)/隐藏(False) 拓扑图函数 """
         if status:
             geo = self.graphicwindow.geometry()
             if geo.left() or geo.top():
@@ -250,7 +250,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.graphicwindow.hide()
 
     def updateSpeedLine(self):
-        ''' docstring: 设置折线图显示，3秒刷新一次 '''
+        """ docstring: 设置折线图显示，3秒刷新一次 """
         self.speed_x = self.speed_x[1:]
         self.speed_x.append(self.speed_x[-1] + 3)
         self.speed_y = self.speed_y[1:]
@@ -264,7 +264,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # print(bar.value(), bar.maximum())
 
     def getPathFromPkt(self, type, SID, paths, size, nid):
-        ''' docstring: 收包信息分类显示 '''
+        """ docstring: 收包信息分类显示 """
         name = 'Unknown packet'
         for i in range(self.fd.rowCount()):
             if SID == self.fd.getData(i,2):
@@ -305,7 +305,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             item.addChild(QTreeWidgetItem([f"包片段{num+1}", str(size), ""]))
 
     def showMatchedPIDs(self, item, column):
-        ''' docstring: 选中物体，显示匹配 '''
+        """ docstring: 选中物体，显示匹配 """
         # print(item.text(column))
         pitem = item.parent()
         if not pitem or 'Control' in pitem.text(0):
@@ -317,7 +317,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.setStatus('匹配失败')
 
     def handleMessageFromPkt(self, messageType, message):
-        ''' docstring: 显示后端发送的信息，添加log记录 '''
+        """ docstring: 显示后端发送的信息，添加log记录 """
         if messageType == 0:
             # 收到hint
             self.logWidget.addLog("<消息> 后端提示", f"消息码={messageType}\n消息内容\n{message}\n", True)
@@ -339,7 +339,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.setStatus('无效的后端信息')
 
     def setSelectItem(self, items):
-        ''' docstring: 通过列表和表格多选信号返回选择条目对象 '''
+        """ docstring: 通过列表和表格多选信号返回选择条目对象 """
         if len(items) == 0:
             self.selectItems = []
         else:
@@ -351,16 +351,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.setStatus(status)
 
     def modelViewUpdate(self):
-        ''' docstring: 强制刷新视图 '''
+        """ docstring: 强制刷新视图 """
         self.listmodel.layoutChanged.emit()
         self.tablemodel.layoutChanged.emit()
 
     def setStatus(self, s):
-        ''' docstring: 状态栏信息显示 '''
+        """ docstring: 状态栏信息显示 """
         self.statusbar.showMessage(s)
 
     def addItem(self):
-        ''' docstring: 添加条目（仅支持单体添加） '''
+        """ docstring: 添加条目（仅支持单体添加） """
         self.additemwindow = AddItemWindow(self.fd, self)
         ret = self.additemwindow.exec_()
         row = self.additemwindow.newitemrow
@@ -385,7 +385,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.regItem()
 
     def addItems(self, items):
-        ''' docstring: 批量拖入文件，TODO：拉起额外线程处理 '''
+        """ docstring: 批量拖入文件，TODO：拉起额外线程处理 """
         nowitems = items.copy()
         tmplog = ''
         if len(nowitems):
@@ -410,7 +410,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.threadpool.start(hashworker)
 
     def calcHashRet(self, row):
-        ''' docstring: 计算hash并更新视图（这是一个返回函数的函数） '''
+        """ docstring: 计算hash并更新视图（这是一个返回函数的函数） """
         def result(s):
             s = self.nid + s
             # print(s)
@@ -420,7 +420,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return result
 
     def delItem(self):
-        ''' docstring: 删除选中条目（拉起额外线程处理） '''
+        """ docstring: 删除选中条目（拉起额外线程处理） """
         if len(self.selectItems) == 0:
             self.setStatus('未选中任何条目')
         else:
@@ -432,7 +432,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.threadpool.start(delitemworker)
 
     def delItem_multi(self, items, message_callback, **kwargs):
-        ''' docstring: 删除条目线程实际处理函数 '''
+        """ docstring: 删除条目线程实际处理函数 """
         items.sort(reverse=True)
         for item in items:
             if not self.fd.getData(item, 0):
@@ -444,7 +444,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.selectItems.remove(item)
 
     def dowItem(self):
-        ''' docstring: 从远端下载数据（拉起额外线程处理） '''
+        """ docstring: 从远端下载数据（拉起额外线程处理） """
         if len(self.selectItems) == 0:
             self.setStatus('未选中任何条目')
         else:
@@ -459,7 +459,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.threadpool.start(dowitemworker)
 
     def dowItem_multi(self, items, progress_callback, message_callback):
-        ''' docstring: 下载数据线程实际处理函数 '''
+        """ docstring: 下载数据线程实际处理函数 """
         total = len(items)
         now = 0
         wait_list = []
@@ -485,7 +485,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # TODO：涉及进度条完成状态需要通过color monitor精确判断
 
     def regItem(self):
-        ''' docstring: 文件通告（拉起额外线程处理） '''
+        """ docstring: 文件通告（拉起额外线程处理） """
         if len(self.selectItems) == 0:
             self.setStatus('未选中条目')
         else:
@@ -500,7 +500,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.threadpool.start(regitemworker)
 
     def showAdvancedReg(self):
-        ''' docstring: 高级通告页面跳转 '''
+        """ docstring: 高级通告页面跳转 """
         if len(self.selectItems) == 0:
             self.setStatus('未选中条目')
         elif len(self.selectItems) > 1:
@@ -517,7 +517,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.graphicwindow.pushButtonAdvancedReg.click()
 
     def advancedRegItem(self, nowSelectItem):
-        ''' docstring: 高级通告（拉起额外线程处理，单体） '''
+        """ docstring: 高级通告（拉起额外线程处理，单体） """
         if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
             return
         filepath = self.fd.getData(nowSelectItem, 1)
@@ -535,7 +535,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(regitemworker)
 
     def regItem_multi(self, items, progress_callback, message_callback):
-        ''' docstring: 文件通告线程实际处理函数 '''
+        """ docstring: 文件通告线程实际处理函数 """
         total = len(items)
         now = 0
         for item in items:
@@ -554,7 +554,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         progress_callback.emit(100)
 
     def undoRegItem(self):
-        ''' docstring: 取消通告（拉起额外线程处理） '''
+        """ docstring: 取消通告（拉起额外线程处理） """
         if len(self.selectItems) == 0:
             self.setStatus('未选中条目')
         else:
@@ -569,7 +569,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.threadpool.start(undoregworker)
 
     def undoRegItem_multi(self, items, progress_callback, message_callback):
-        ''' docstring: 取消通告线程实际处理函数 TODO：没有考虑高级通告的处理参数 '''
+        """ docstring: 取消通告线程实际处理函数 TODO：没有考虑高级通告的处理参数 """
         total = len(items)
         now = total
         for item in items:
@@ -588,7 +588,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         progress_callback.emit(0)
 
     def updateProgress(self, row, column):
-        ''' docstring: 进度条刷新显示函数（返回函数） '''
+        """ docstring: 进度条刷新显示函数（返回函数） """
         def main(value):
             self.fd.setData(row, column, value)
             a = self.tablemodel.createIndex(row, column)
@@ -596,7 +596,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return main
 
     def switchView(self):
-        ''' docstring: 切换视图按钮 '''
+        """ docstring: 切换视图按钮 """
         self.switchlistortable ^= 1
         if self.switchlistortable:
             self.listView.hide()
@@ -608,19 +608,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.setStatus('切换到图标视图')
 
     def resetView(self):
-        ''' docstring: 恢复初始视图格式 '''
+        """ docstring: 恢复初始视图格式 """
         if not self.toolBar.toggleViewAction().isChecked():
             self.toolBar.toggleViewAction().trigger()
         self.splitter_horizontal.setSizes([200, 200, 500])
         self.splitter_vertical.setSizes([350, 450])
 
     def openHub(self):
-        ''' docstring: 打开本地仓库 '''
+        """ docstring: 打开本地仓库 """
         openhubworker = worker(0, os.startfile, HOME_DIR)
         self.threadpool.start(openhubworker)
 
     def openFolder(self):
-        ''' docstring: 打开所选文件所在文件夹（拉起额外线程处理） '''
+        """ docstring: 打开所选文件所在文件夹（拉起额外线程处理） """
         nowSelectItem = self.selectItems.copy()
         if len(nowSelectItem) == 0:
             self.setStatus('未选中文件')
@@ -641,7 +641,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(openfolderworker)
 
     def importData(self):
-        ''' docstring: 导入其他数据文件 '''
+        """ docstring: 导入其他数据文件 """
         fpath = QFileDialog.getOpenFileName(self, '打开文件', HOME_DIR)
         if fpath[0]:
             lastlen = self.fd.rowCount()
@@ -656,7 +656,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     # self.logText.append(f'<add> file {filename}\n')
 
     def closeEvent(self, event):
-        ''' docstring: 关闭窗口时弹出警告 '''
+        """ docstring: 关闭窗口时弹出警告 """
         status = QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel
         reply = QMessageBox.question(self, '警告：是否保存数据', '保存并退出?', status)
         if reply == QMessageBox.Yes:
@@ -677,14 +677,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             event.ignore()
 
     def saveLog(self):
-        ''' docstring: 保存日志文件 '''
+        """ docstring: 保存日志文件 """
         with open(LOG_PATH, 'w', encoding='utf-8') as f:
             # s = self.logText.toPlainText()
             # f.write(s)
             pass
 
     def viewInfo(self, index):
-        ''' docstring: 双击条目显示文件内容 '''
+        """ docstring: 双击条目显示文件内容 """
         filepath = self.fd.getData(index.row(), 1)
         filename = self.fd.getData(index.row(), 0)
         filepid = self.fd.getData(index.row(), 2)
@@ -693,7 +693,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(viewjsonworker)
 
     def viewJson(self, filename, filepath, filepid):
-        ''' docstring: 双击显示Json格式文件 '''
+        """ docstring: 双击显示Json格式文件 """
         ret = f'<double click> {filename} (SID:{filepid}) = '
         if not os.path.exists(filepath):
             return ret + '本地文件不存在\n'
@@ -714,7 +714,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return ret
 
     def timerMessageClear(self):
-        ''' docstring: 告警窗清空 '''
+        """ docstring: 告警窗清空 """
         self.timer_message.stop()
         self.messagebox.done(1)
         self.messagebox = None

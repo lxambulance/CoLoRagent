@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: CoLoR拓扑图窗口 '''
+""" docstring: CoLoR拓扑图窗口 """
 
 
 from PyQt5.QtCore import QObject, Qt, pyqtSignal
@@ -10,14 +10,14 @@ from GraphicsItem import Node, Edge, Text
 
 
 class GraphicSignals(QObject):
-    ''' docstring: 拓扑图专用信号组 '''
+    """ docstring: 拓扑图专用信号组 """
     hide_window_signal = pyqtSignal(bool)
     message_signal = pyqtSignal(int, str)
     advencedRegrow_signal = pyqtSignal(int)
 
 
 class GraphicWindow(QMainWindow, Ui_MainWindow):
-    ''' docstring: CoLoR拓扑图窗口类 '''
+    """ docstring: CoLoR拓扑图窗口类 """
 
     def __init__(self, fd, parent=None):
         super().__init__(parent)
@@ -89,7 +89,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
             self.GS.message_signal.emit(2, "信息显示框")
 
     def showInfoText(self, flag):
-        ''' docstring: 显示基础信息框 '''
+        """ docstring: 显示基础信息框 """
         if flag:
             self.graphics_global.scene.baseinfo.show()
             self.graphics_global.view.resetNodeInfoPos()
@@ -97,7 +97,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
             self.graphics_global.scene.baseinfo.hide()
 
     def resetToolbar(self):
-        ''' docstring: 还原工具栏位置，采用删除后重填加的方式 '''
+        """ docstring: 还原工具栏位置，采用删除后重填加的方式 """
         self.removeDockWidget(self.Toolbar)
         if not self.Toolbar.isVisible(): # visible是自身属性，可以直接修改
             self.Toolbar.toggleViewAction().trigger()
@@ -106,14 +106,14 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
             self.Toolbar.setFloating(False)
 
     def closeEvent(self, event):
-        ''' docstring: 自定义关闭事件信号 '''
+        """ docstring: 自定义关闭事件信号 """
         self.GS.hide_window_signal.emit(False)
         if self.Toolbar.isFloating():
             self.removeDockWidget(self.Toolbar)
         super().closeEvent(event)
 
     def keyPressEvent(self, event):
-        ''' docstring: 自定义键盘按事件 '''
+        """ docstring: 自定义键盘按事件 """
         key = event.key()
         if key == Qt.Key_M:
             self.flagModifyTopo = not self.flagModifyTopo
@@ -121,7 +121,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonModifyTopo.setVisible(self.flagModifyTopo)
     
     def showModifyButton(self, flag):
-        ''' docstring: 显示拓扑修改相关按钮 '''
+        """ docstring: 显示拓扑修改相关按钮 """
         # print(flag) # 测试输出
         self.pushButtonAddSolidLine.setVisible(flag)
         self.pushButtonAddDottedLine.setVisible(flag)
@@ -135,7 +135,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.line2.setVisible(flag)
 
     def showAdvancedReg(self, flag):
-        ''' docstring: 显示高级通告相关按钮 '''
+        """ docstring: 显示高级通告相关按钮 """
         self.chooseFile.setVisible(flag)
         self.secretLevel.setVisible(flag)
         self.ASlist.setVisible(flag)
@@ -144,7 +144,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.line3.setVisible(flag)
 
     def messageTest(self, mType, message):
-        ''' docstring: 测试消息信号 '''
+        """ docstring: 测试消息信号 """
         if mType == 1:
             self.setStatus(message)
         elif mType == 2:
@@ -154,16 +154,16 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
             print("unexpected message<", mType, ">", message)
 
     def loadTopo(self, path):
-        ''' docstring: 载入拓扑 '''
+        """ docstring: 载入拓扑 """
         self.graphics_global.scene.initTopo(path)
         self.graphics_global.view.scaleView(0.45)
 
     def saveTopo(self, path):
-        ''' docstring: 保存拓扑 '''
+        """ docstring: 保存拓扑 """
         self.graphics_global.scene.saveTopo(path)
 
     def showAdvancedRegrow(self, row):
-        ''' docstring: 高级通告条目切换 '''
+        """ docstring: 高级通告条目切换 """
         if row<0 and row>=self.chooseFile.count():
             return
         level = self.fd.getData(row, 5)
@@ -177,7 +177,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         self.Toolbar.setVisible(flag)
 
     def changeAdvancedReg(self, nowSelectItem, level=None, whitelist=None):
-        ''' docstring: 修改高级通告策略 '''
+        """ docstring: 修改高级通告策略 """
         if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
             return
         newItem = self.fd.getItem(nowSelectItem)
@@ -191,11 +191,11 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
             self.fd.setItem(nowSelectItem, newItem)
 
     def setStatus(self, s):
-        ''' docstring: 状态栏信息显示 '''
+        """ docstring: 状态栏信息显示 """
         self.statusBar.showMessage(s)
 
     def chooseASs(self, flag):
-        '''docstring: 高级通告选择 '''
+        """docstring: 高级通告选择 """
         row = self.chooseFile.currentIndex()
         # print(row, flag)
         if row == -1:
@@ -213,7 +213,7 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
 
 
 if __name__ == "__main__":
-    ''' 模块测试将所有能开启的按钮全部打开，方便展示 '''
+    """ 模块测试将所有能开启的按钮全部打开，方便展示 """
 
     from PyQt5.QtWidgets import QApplication
     import os

@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: scene/view模型框架 '''
+""" docstring: scene/view模型框架 """
 
 from math import floor
 from GraphicsItem import Node, Edge, Text
@@ -13,7 +13,7 @@ from topoGraphScene import topoGraphScene
 
 
 class GraphicWidget(QWidget):
-    ''' docstring: 拓扑图窗口类 '''
+    """ docstring: 拓扑图窗口类 """
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -51,7 +51,7 @@ class GraphicWidget(QWidget):
         self.animation.finished.connect(self.setnowpos)
 
     def setnowpos(self):
-        ''' docstring: 循环次数减一，为0时结束 '''
+        """ docstring: 循环次数减一，为0时结束 """
         self.loop_num -= 1
         if not self.loop_num:
             self.poslist = None
@@ -61,12 +61,12 @@ class GraphicWidget(QWidget):
 
     @pyqtProperty(float)
     def handle_factor(self):
-        ''' docstring: 参数获取函数 '''
+        """ docstring: 参数获取函数 """
         return self._handle_factor
     
     @handle_factor.setter
     def handle_factor(self, nowfactor):
-        ''' docstring: 参数修改函数 '''
+        """ docstring: 参数修改函数 """
         self._handle_factor = nowfactor
         # 修改参数时，重新计算点坐标位置
         if self.poslist:
@@ -79,25 +79,25 @@ class GraphicWidget(QWidget):
             self.scene.node_file.setPos(p0)
 
     def dragEnterEvent(self, event):
-        ''' docstring: 拖动进入事件 '''
+        """ docstring: 拖动进入事件 """
         if event.mimeData().hasFormat('application/x-qabstractitemmodeldatalist'):
             event.accept()
         else:
             event.ignore()
 
     def dragMoveEvent(self, event):
-        ''' docstring: 拖动移动事件 '''
+        """ docstring: 拖动移动事件 """
         if event.mimeData().hasFormat('application/x-qabstractitemmodeldatalist'):
             event.accept()
         else:
             event.ignore()
 
     def dragLeaveEvent(self, event):
-        ''' docstring: 拖动离开事件 '''
+        """ docstring: 拖动离开事件 """
         pass
 
     def dropEvent(self, event):
-        ''' docstring: 拖动放事件 '''
+        """ docstring: 拖动放事件 """
         if event.mimeData().hasFormat('application/x-qabstractitemmodeldatalist'):
             data = event.mimeData()
             source_item = QStandardItemModel()
@@ -142,16 +142,16 @@ class GraphicWidget(QWidget):
                 node.label.hide()
 
     def setBackground(self, colorstr):
-        ''' docstring: 修改拓扑背景颜色以适配风格修改 '''
+        """ docstring: 修改拓扑背景颜色以适配风格修改 """
         self.view._color_background = QColor(colorstr)
         self.view.setBackgroundBrush(self.view._color_background)
 
     def setNid(self, nid):
-        ''' docstring: 设置观察节点nid，由主程序登录后调用 '''
+        """ docstring: 设置观察节点nid，由主程序登录后调用 """
         self.scene.nid_me = nid
 
     def modifyItem(self, itemname=None, itemnid=None, itemas=None):
-        ''' docstring: 修改item一般属性 '''
+        """ docstring: 修改item一般属性 """
         if not self.chooseItem:
             return
         if isinstance(self.chooseItem, Node):
@@ -185,7 +185,7 @@ class GraphicWidget(QWidget):
                     self.chooseItem.label.hide()
 
     def startChooseAS(self, tmplist):
-        ''' docstring: 开启选择AS模式 '''
+        """ docstring: 开启选择AS模式 """
         # 先尝试载入已有选择
         try:
             tmpASlist = list(map(int,tmplist.split(',')))
@@ -210,7 +210,7 @@ class GraphicWidget(QWidget):
             self.scene.node_me.setFlag(self.scene.node_me.ItemIsMovable, False)
 
     def endChooseAS(self):
-        ''' docstring: 结束AS选择模式 '''
+        """ docstring: 结束AS选择模式 """
         self.chooseASenable = False
         if self.scene.node_me:
             self.scene.node_me.setFlag(self.scene.node_me.ItemIsMovable, True)
@@ -234,7 +234,7 @@ class GraphicWidget(QWidget):
         return ",".join(list(map(str, tmpASlist))) # 最后返回所选结果字符串
 
     def setMatchedPIDs(self, PIDs, flag=True, pkttype=0, size=0):
-        ''' docstring: 显示一次PID匹配 '''
+        """ docstring: 显示一次PID匹配 """
         if self.poslist or not self.scene.node_me:
             # 匹配过快或node_me没有设置
             return False
@@ -284,7 +284,7 @@ class GraphicWidget(QWidget):
         return True
 
     def showAnimation(self, poslist):
-        ''' docstring: 显示收包动画 '''
+        """ docstring: 显示收包动画 """
         if self.poslist:
             return
         self.poslist = poslist.copy()
@@ -297,7 +297,7 @@ class GraphicWidget(QWidget):
         self.animation.start()
 
     def getASid(self, PIDs, Type, size):
-        ''' docstring: 获取所对应PIDs序列末端节点所属AS号，顺便存储各AS收发包参数 '''
+        """ docstring: 获取所对应PIDs序列末端节点所属AS号，顺便存储各AS收发包参数 """
         # TODO: 可以和上面匹配过程合并起来并保存，这样每条路径只需要匹配一遍
         posl = PIDs.find('<')
         posr = PIDs.find('>')
@@ -343,7 +343,7 @@ class GraphicWidget(QWidget):
                 return None
 
     def setMessageSignal(self, signal):
-        ''' docstring: 设置信号向主窗体直接连接 '''
+        """ docstring: 设置信号向主窗体直接连接 """
         self.signal_to_mainwindow = signal
         self.view.signal_to_mainwindow = signal
         self.scene.signal_to_mainwindow = signal

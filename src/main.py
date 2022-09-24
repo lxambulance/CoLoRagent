@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: 主程序 '''
+""" docstring: 主程序 """
 
 
 import sys
@@ -25,10 +25,10 @@ except ImportError:
 
 
 class CoLoRApp(QApplication):
-    ''' docstring: CoLoR应用类 '''
+    """ docstring: CoLoR应用类 """
 
     def __init__(self, argv):
-        ''' docstring: 初始化应用 '''
+        """ docstring: 初始化应用 """
         super().__init__(argv)
         self.setStyle('Fusion')
 
@@ -77,7 +77,7 @@ class CoLoRApp(QApplication):
         # CM.GetSql(nid, "SELECT * from employee;")
 
     def _setStyle(self):
-        ''' docstring: 切换qss格式 '''
+        """ docstring: 切换qss格式 """
         # 取消qss格式
         self.setStyleSheet('')
         self.window.graphicwindow.setStyleSheet('')

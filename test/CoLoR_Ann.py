@@ -1,5 +1,5 @@
 # coding = utf-8
-''' docstring: 注册包格式 '''
+""" docstring: 注册包格式 """
 
 
 from scapy.all import (

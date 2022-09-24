@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: CoLoR监听线程，负责与网络组件的报文交互 '''
+""" docstring: CoLoR监听线程，负责与网络组件的报文交互 """
 
 from scapy.all import *
 import threading
@@ -54,7 +54,7 @@ def GetSql(ServerNid, command):
 
 
 class pktSignals(QObject):
-    ''' docstring: 包处理的信号 '''
+    """ docstring: 包处理的信号 """
     # finished用于任务结束信号
     finished = pyqtSignal()
     # output用于输出信号
@@ -64,7 +64,7 @@ class pktSignals(QObject):
 
 
 class PktHandler(threading.Thread):
-    ''' docstring: 收包处理程序 '''
+    """ docstring: 收包处理程序 """
     packet = ''
 
     def __init__(self, packet):
@@ -751,7 +751,7 @@ class video_customer(threading.Thread):
 
 
 class Monitor(threading.Thread):
-    ''' docstring: 自行实现的监听线程类，继承自线程类 '''
+    """ docstring: 自行实现的监听线程类，继承自线程类 """
 
     def __init__(self, message=None, path=None):
         threading.Thread.__init__(self)
@@ -760,7 +760,7 @@ class Monitor(threading.Thread):
         self.path = path
 
     def parser(self, packet):
-        ''' docstring: 调用通用语法解析器线程 '''
+        """ docstring: 调用通用语法解析器线程 """
         GeneralHandler = PktHandler(packet)
         # 绑定输出到目标函数
         GeneralHandler.signals.output.connect(self.message)
