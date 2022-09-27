@@ -132,9 +132,9 @@ class ColorData(Packet):
                          lambda pkt:pkt.Flags.M),
         StrFixedLenField("N_sid", "", 16),
         StrFixedLenField("L_sid", "", 20),
-        StrFixedLenField("nid_cus", "", 16),
-        ConditionalField(StrFixedLenField("nid_pro", "", 16),
-                         lambda pkt:pkt.Flags.B == False and pkt.Flags.R == True),
+        StrFixedLenField("nid_dst", "", 16),
+        ConditionalField(StrFixedLenField("nid_src", "", 16),
+                         lambda pkt:pkt.Flags.B == True or pkt.Flags.R == True),
         ConditionalField(
             FieldLenField("QoS_len", None, fmt="B",
                           length_of="QoS_requirements"),
@@ -434,8 +434,8 @@ if __name__ == '__main__':
     cd = ColorData()
     cd.N_sid = b'\xff'*16
     cd.L_sid = b'\x01'*20
-    cd.nid_cus = b'\xa5'*16
-    cd.nid_pro = b'\x5a'*16
+    cd.nid_dst = b'\xa5'*16
+    cd.nid_src = b'\x5a'*16
     cd.PIDs = [int('98765432', 16), int('01234567', 16), 0]
     send(pkt/cd, verbose=0)
 
@@ -443,8 +443,8 @@ if __name__ == '__main__':
     cd = ColorData()
     cd.N_sid = b'\xff'*16
     cd.L_sid = b'\x01'*20
-    cd.nid_cus = b'\xa5'*16
-    cd.nid_pro = b'\x5a'*16
+    cd.nid_dst = b'\xa5'*16
+    cd.nid_src = b'\x5a'*16
     cd.Flags.R = True
     cd.Flags.C = True
     cd.HMAC = b'\x12\x34\x56\x78'
