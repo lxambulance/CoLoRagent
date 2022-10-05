@@ -277,6 +277,8 @@ mkdir -p extras/libmemif/build
 cd extras/libmemif/build
 cmake ..
 make install
+# 删除已有vpp配置实例
+ps -ef | grep vpp | awk '{print $2}'| xargs sudo kill
 # 启动vpp进程
 sudo /usr/bin/vpp -c startup1.conf
 # 进入vpp配置memif接口

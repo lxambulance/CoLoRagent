@@ -1,5 +1,5 @@
 /*
- * CoLoR.api - binary API skeleton
+ * color.api - binary API skeleton
  *
  * Copyright (c) <current-year> <your-organization>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
  */
 
 /**
- * @file CoLoR.api
+ * @file color.api
  * @brief VPP control-plane API messages.
  *
  * This file defines VPP control-plane binary API messages which are generally
@@ -28,14 +28,14 @@
 option version = "0.1.0";
 import "vnet/interface_types.api";
 
-/** @brief API to enable / disable CoLoR on an interface
+/** @brief API to enable / disable color on an interface
     @param client_index - opaque cookie to identify the sender
     @param context - sender context, to match reply w/ request
     @param enable_disable - 1 to enable, 0 to disable the feature
     @param sw_if_index - interface handle
 */
 
-autoreply define CoLoR_enable_disable
+autoreply define color_enable_disable
 {
   /* Client identifier, set from api_main.my_client_index */
   u32 client_index;

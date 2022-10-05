@@ -12,23 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_vpp_plugin(CoLoR
+add_vpp_plugin(color
   SOURCES
-  CoLoR.c
-  CoLoR_lookup.c
-  CoLoR_input.c
-  CoLoR_output.c
-  CoLoR_periodic.c
-  CoLoR.h
+  color_lookup.c
+  color_input.c
+  color_output.c
+  color_periodic.c
+  color.c
+  color.h
+  color_packet.c
+  color_packet.h
 
   MULTIARCH_SOURCES
-  CoLoR_lookup.c
-  CoLoR_input.c
-  CoLoR_output.c
+  color_lookup.c
+  color_input.c
+  color_output.c
 
   API_FILES
-  CoLoR.api
+  color.api
 
   API_TEST_SOURCES
-  CoLoR_test.c
+  color_test.c
 )
