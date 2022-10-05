@@ -2,6 +2,7 @@
 """ CoLoR代理功能函数库，供交互线程及监听线程调用 """
 
 from scapy.all import *
+from scapy.layers.inet import IP
 import hashlib
 import threading
 import time
@@ -438,14 +439,18 @@ class DataPkt():
     nid_pro = -1
     QoS = ''  # 格式为16进制字符串(不含0x前缀)
     HMAC = 0  # 暂不使用，待完善 #
-    SegID = -1
+    SegID = -1  # 分段使用：前 16bits 为 WND 字段，后 16bits 为 ACK 字段
+    #               Seg ID
+    # 31               15               0
+    # |----------------|----------------|
+    #    Window Size       ACK Pkt Num
     PIDs = None  # RES_PID包含其中
     load = b''
     Pkt = b''
 
     def __init__(self, flag, B=0, R=0, C=0, SID='', ttl=64, MinimalPidCp=-1, nid_cus=-1, nid_pro=-1, QoS='', SegID=-1, PIDs=[], load=b'', Pkt=b''):
         self.PIDs = []
-        if(flag == 0):
+        if flag == 0:
             # 解析Data包
             pointer = 1  # 当前解析字节指针，第0字节已在调用时验证
             self.Pkt = Pkt
@@ -469,7 +474,7 @@ class DataPkt():
             self.C = 1 if Pkt[pointer] & (1 << 2) > 0 else 0
             self.S = 1 if Pkt[pointer] & (1 << 1) > 0 else 0
             pointer += 1
-            if(self.M == 1):
+            if self.M == 1:
                 self.MinimalPidCp = Pkt[pointer]+(Pkt[pointer+1] << 8)
                 pointer += 2
             self.N_sid = 0
@@ -480,33 +485,33 @@ class DataPkt():
             for i in range(20):
                 self.L_sid = (self.L_sid << 8) + Pkt[pointer]
                 pointer += 1
-            if(self.B == 0):
+            if self.B == 0:
                 self.nid_cus = 0
                 for i in range(16):
                     self.nid_cus = (self.nid_cus << 8) + Pkt[pointer]
                     pointer += 1
-            if(self.B == 1 or self.R == 1):
+            if self.B == 1 or self.R == 1:
                 self.nid_pro = 0
                 for i in range(16):
                     self.nid_pro = (self.nid_pro << 8) + Pkt[pointer]
                     pointer += 1
-            if(self.B == 1):
+            if self.B == 1:
                 self.nid_cus = 0
                 for i in range(16):
                     self.nid_cus = (self.nid_cus << 8) + Pkt[pointer]
                     pointer += 1
-            if(self.Q == 1):
+            if self.Q == 1:
                 QosLen = Pkt[pointer]
                 pointer += 1
                 for i in range(QosLen):
                     self.QoS += hex(Pkt[pointer]).replace('0x', '')
                     pointer += 1
-            if(self.C == 1):
+            if self.C == 1:
                 self.HMAC = 0
                 for i in range(4):
                     self.HMAC += Pkt[pointer] << (8*i)
                     pointer += 1
-            if(self.S == 1):
+            if self.S == 1:
                 self.SegID = 0
                 for i in range(4):
                     self.SegID += Pkt[pointer] << (8*i)
@@ -518,10 +523,10 @@ class DataPkt():
                     tempPID += (Pkt[pointer] << (8*j))
                     pointer += 1
                 self.PIDs.append(tempPID)
-            while(pointer < len(Pkt)):
+            while pointer < len(Pkt):
                 self.load += ConvertInt2Bytes(Pkt[pointer], 1)
                 pointer += 1
-        elif(flag == 1):
+        elif flag == 1:
             # 新建Data包
             self.ttl = ttl
             self.PidPt = len(PIDs)
@@ -529,54 +534,54 @@ class DataPkt():
             self.B = B
             self.R = R
             self.MinimalPidCp = MinimalPidCp
-            if(MinimalPidCp == -1):
+            if MinimalPidCp == -1:
                 self.M = 0
             else:
                 self.MinimalPidCp = MinimalPidCp
                 self.M = 1
-            if(len(QoS) == 0):
+            if len(QoS) == 0:
                 self.Q = 0
             else:
                 self.Q = 1
                 self.QoS = QoS
             self.C = 0  # 暂不考虑MAC字段 #
-            if(SegID == -1):
+            if SegID == -1:
                 self.S = 0
             else:
                 self.S = 1
                 self.SegID = SegID
-            if(len(SID) == 72):
+            if len(SID) == 72:
                 self.N_sid = int(SID[0:32], 16)
                 self.L_sid = int(SID[32:], 16)
-            elif(len(SID) == 32):
+            elif len(SID) == 32:
                 self.N_sid = int(SID, 16)
-            elif(len(SID) == 40):
+            elif len(SID) == 40:
                 self.L_sid = int(SID, 16)
-            if(self.B == 0):
+            if self.B == 0:
                 # 普通数据报文
-                if(self.R == 1):
+                if self.R == 1:
                     self.nid_pro = Nid
                 self.nid_cus = nid_cus
-            elif(self.B == 1):
+            elif self.B == 1:
                 # ACK报文
                 self.nid_pro = nid_pro
                 self.nid_cus = Nid
             self.PIDs = PIDs.copy()
-            if(self.B == 0 and self.R == 1):
+            if self.B == 0 and self.R == 1:
                 self.PIDs.append(0)  # 预留字段
             self.load = load
             # 计算HeaderLength和PktLength
             self.HeaderLength = 10  # 固定长度（截止到Minimal_PID_CP前）
-            if(self.M == 1):
+            if self.M == 1:
                 self.HeaderLength += 2
             self.HeaderLength += 52
             if(self.B == 0 and self.R == 1) or (self.B == 1):
                 self.HeaderLength += 16  # 存在两个nid字段
-            if(self.Q == 1):
+            if self.Q == 1:
                 self.HeaderLength += 1 + len(self.QoS)/2
-            if(self.C == 1):
+            if self.C == 1:
                 self.HeaderLength += 4
-            if(self.S == 1):
+            if self.S == 1:
                 self.HeaderLength += 4
             self.HeaderLength += len(self.PIDs)*4
             self.PktLength = self.HeaderLength + len(self.load)
