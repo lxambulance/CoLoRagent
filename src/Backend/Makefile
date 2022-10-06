@@ -1,4 +1,6 @@
-main:main.cpp
-	g++ main.cpp -o main -lmemif -luv -std=c++17
-main-backup:main.c icmp_proto.c
-	gcc main.c icmp_proto.c -o main -lmemif -lpthread -I.
+main:main.cpp icmp_proto.o
+	g++ main.cpp icmp_proto.o -o main -lmemif -luv -std=c++17 -I.
+icmp_proto.o:icmp_proto.c
+	gcc -c icmp_proto.c -I.
+main_backup:main_backup.c icmp_proto.o
+	gcc main_backup.c icmp_proto.o -o main_backup -lmemif -lpthread -I.

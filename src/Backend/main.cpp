@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 #include <error.h>
+#include <icmp_proto.h>
 #include <libmemif.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -308,77 +309,76 @@ int control_fd_update(int fd, uint8_t events, void *ctx) {
 /* called when event is polled on interrupt file descriptor.
     there are packets in shared memory ready to be received */
 int on_interrupt(memif_conn_handle_t conn, void *private_ctx, uint16_t qid) {
-    //     long index = *((long *)private_ctx);
-    //     memif_connection_t *c = &memif_connection[index];
-    //     if (c->index != index) {
-    //         INFO("invalid context: %ld/%u", index, c->index);
-    //         return 0;
-    //     }
+    spdlog::debug("on_interrupt");
+    memif_connection_t *c = &memif_connection;
 
-    //     int err = MEMIF_ERR_SUCCESS, ret_val;
-    //     uint16_t rx = 0, tx = 0;
-    //     int i = 0; /* rx buffer iterator */
-    //     int j = 0; /* tx buffer iterator */
+    int err = MEMIF_ERR_SUCCESS, ret_val;
+    uint16_t rx = 0, tx = 0;
+    int i = 0; /* rx buffer iterator */
+    int j = 0; /* tx buffer iterator */
 
-    //     /* loop while there are packets in shm */
-    //     do {
-    //         /* receive data from shared memory buffers */
-    //         err = memif_rx_burst(c->conn, qid, c->rx_bufs, MAX_MEMIF_BUFS, &rx);
-    //         ret_val = err;
-    //         c->rx_counter += rx;
-    //         if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF)) {
-    //             INFO("memif_rx_burst: %s", memif_strerror(err));
-    //             goto error;
-    //         }
+    /* loop while there are packets in shm */
+    do {
+        /* receive data from shared memory buffers */
+        err = memif_rx_burst(c->conn, qid, c->rx_bufs, MAX_MEMIF_BUFS, &rx);
+        ret_val = err;
+        c->rx_counter += rx;
+        if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF)) {
+            spdlog::error("memif_rx_burst: {:}", memif_strerror(err));
+            goto error;
+        }
 
-    //         i = 0;
-    //         memset(c->tx_bufs, 0, sizeof(memif_buffer_t) * rx);
-    //         err = memif_buffer_alloc(c->conn, qid, c->tx_bufs, rx, &tx, 128);
-    //         if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF_RING)) {
-    //             INFO("memif_buffer_alloc: %s", memif_strerror(err));
-    //             goto error;
-    //         }
-    //         j = 0;
-    //         c->tx_err_counter += rx - tx;
+        i = 0;
+        memset(c->tx_bufs, 0, sizeof(memif_buffer_t) * rx);
+        err = memif_buffer_alloc(c->conn, qid, c->tx_bufs, rx, &tx, 128);
+        if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF_RING)) {
+            spdlog::error("memif_buffer_alloc: {:}", memif_strerror(err));
+            goto error;
+        }
+        j = 0;
+        c->tx_err_counter += rx - tx;
 
-    //         while (tx) {
-    //             resolve_packet((void *)(c->rx_bufs + i)->data,
-    //                            (c->rx_bufs + i)->len,
-    //                            (void *)(c->tx_bufs + j)->data,
-    //                            &(c->tx_bufs + j)->len, c->ip_addr);
-    //             i++;
-    //             j++;
-    //             tx--;
-    //         }
+        while (tx) {
+            spdlog::debug("receive packet len = {:d}, data = ", (c->rx_bufs + i)->len);
+            std::ostringstream s;
+            int clen = (c->rx_bufs + i)->len;
+            unsigned char * ch = static_cast<unsigned char *>((c->rx_bufs + i)->data);
+            for (int k = 0; k < clen; ++k)
+                s << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)*(ch + k);
+            spdlog::debug(s.str());
+            resolve_packet((void *)(c->rx_bufs + i)->data,
+                           (c->rx_bufs + i)->len,
+                           (void *)(c->tx_bufs + j)->data,
+                           &(c->tx_bufs + j)->len, c->ip_addr);
+            i++;
+            j++;
+            tx--;
+        }
 
-    //         err = memif_refill_queue(c->conn, qid, rx, ICMPR_HEADROOM);
-    //         if (err != MEMIF_ERR_SUCCESS)
-    //             INFO("memif_buffer_free: %s", memif_strerror(err));
-    //         rx -= rx;
+        err = memif_refill_queue(c->conn, qid, rx, ICMPR_HEADROOM);
+        if (err != MEMIF_ERR_SUCCESS)
+            spdlog::error("memif_buffer_free: {:}", memif_strerror(err));
+        rx -= rx;
 
-    //         DBG("%u/%u alloc/free buffers", rx, MAX_MEMIF_BUFS - rx);
+        spdlog::debug("{:d}/{:d} alloc/free buffers", rx, MAX_MEMIF_BUFS - rx);
 
-    //         err = memif_tx_burst(c->conn, qid, c->tx_bufs, j, &tx);
-    //         if (err != MEMIF_ERR_SUCCESS) {
-    //             INFO("memif_tx_burst: %s", memif_strerror(err));
-    //             goto error;
-    //         }
-    //         c->tx_counter += tx;
+        err = memif_tx_burst(c->conn, qid, c->tx_bufs, j, &tx);
+        if (err != MEMIF_ERR_SUCCESS) {
+            spdlog::error("memif_tx_burst: {:}", memif_strerror(err));
+            goto error;
+        }
+        c->tx_counter += tx;
 
-    //     } while (ret_val == MEMIF_ERR_NOBUF);
+    } while (ret_val == MEMIF_ERR_NOBUF);
 
-    //     return 0;
+    return 0;
 
-    // error:
-    //     err = memif_refill_queue(c->conn, qid, rx, ICMPR_HEADROOM);
-    //     if (err != MEMIF_ERR_SUCCESS)
-    //         INFO("memif_buffer_free: %s", memif_strerror(err));
-    //     c->rx_buf_num -= rx;
-    //     DBG("freed %d buffers. %u/%u alloc/free buffers",
-    //         rx, c->rx_buf_num, MAX_MEMIF_BUFS - c->rx_buf_num);
-
-    spdlog::info("on_interrupt");
-    exit(EXIT_FAILURE);
+error:
+    err = memif_refill_queue(c->conn, qid, rx, ICMPR_HEADROOM);
+    if (err != MEMIF_ERR_SUCCESS)
+        spdlog::error("memif_buffer_free: {:}", memif_strerror(err));
+    c->rx_buf_num -= rx;
+    spdlog::debug("freed {:d} buffers. {:d}/{:d} alloc/free buffers", rx, c->rx_buf_num, MAX_MEMIF_BUFS - c->rx_buf_num);
     return 0;
 }
 

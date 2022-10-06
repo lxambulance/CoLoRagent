@@ -202,6 +202,13 @@ int resolve_packet(void *in_pck, ssize_t in_size,
         return -1;
 
     eh = (struct ether_header *)in_pck;
+    // int i;
+    // puts("dst");
+    // for (i=0;i<6;++i) printf("%02x", eh->ether_dhost[i]);
+    // puts("");
+    // puts("src");
+    // for (i=0;i<6;++i) printf("%02x", eh->ether_shost[i]);
+    // puts("");
     *out_size = resolve_eth(eh, out_pck);
 
     if (eh->ether_type == 0x0608) {

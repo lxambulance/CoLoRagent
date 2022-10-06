@@ -8,6 +8,7 @@ src/PageUI/__pycache__
 .gitignore
 ./*.json
 *.log
+*.o
 .pytest_cache/*
 .vscode/*
 data.json

@@ -1,4 +1,4 @@
-# vpp学习笔记
+# VPP学习笔记
 
 ## 0 简介
 
@@ -20,13 +20,15 @@ DPDK(Data plane development kit)是一个比较优秀的工具，但是直接操
 
 > 此方法一般用于vpp容器使用，依赖cli和配置文件修改运行功能。
 
-在文件源 **/etc/apt/sources.list.d/99fd.io.list** 中添加
+当前版本已不需要一下两步操作，另外也可以直接从github上下载vpp源码
+
+~~在文件源 **/etc/apt/sources.list.d/99fd.io.list** 中添加~~
 
 ```textile
 deb [trusted=yes] https://packagecloud.io/fdio/master/ubuntu bionic main
 ```
 
-添加信任源
+~~添加信任源~~
 
 ```shell
 curl -L https://packagecloud.io/fdio/master/gpgkey | sudo apt-key add -
