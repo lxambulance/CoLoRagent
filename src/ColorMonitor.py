@@ -1,24 +1,35 @@
 # coding=utf-8
 """ docstring: CoLoR监听线程，负责与网络组件的报文交互 """
+from enum import IntEnum
+import queue
+import zlib
 
-from scapy.all import *
-from scapy.layers.inet import IP
-import threading
-from . import ProxyLib as PL
-import math
-import time
 import cv2
 import numpy as np
-import zlib
-import queue
-import pickle
-import pymysql
-
 from PyQt5.QtCore import QObject, pyqtSignal
+from bitmap import BitMap
+from scapy.all import *
+from scapy.layers.inet import IP
+
+from . import ProxyLib as PL
 from . import establishSecureSession as ESS
 
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
+
+
+class SendingSidField(IntEnum):
+    CHIP_NUM = 0
+    CHIP_LENGTH = 1
+    CHIP_NEXT = 2
+    NID_CUSTOMER = 3
+    PIDS = 4
+    ESS_FLAG = 5
+    SLIDE_WINDOW = 6
+
+    INVALID = -1
+
+
 RecvingSid = {}  # 记录内容接收情况，key:SID，value:下一片指针
 WaitingACK = {}  # 流视频提供者记录ACK回复情况，key:NID（customer），value:连续未收到ACK个数
 RTO = 1  # 超时重传时间
@@ -40,6 +51,85 @@ class pktSignals(QObject):
     output = pyqtSignal(int, object)
     # pathdata用于输出路径相关信息
     pathdata = pyqtSignal(int, str, list, int, int)
+
+
+# 滑动窗口相关
+class SlideWindow:
+    WINDOW_SIZE = 20
+    MAX_COUNT = 0xffff
+    __lock__ = threading.Lock()
+
+    def __init__(self, total_block, window_size=WINDOW_SIZE):
+        # 记录所有块
+        self.blocks = [*range(total_block)]
+        # 当前块
+        self.cur_block = 0
+        # 滑动窗口部分
+        self.window_size = min(window_size, self.MAX_COUNT)
+        self.left = 0
+        self.right = self.left + self.window_size
+        self.cur = self.left
+        # # 使用 BitMap 标记是否已经收到 ACK
+        self.bitmap = BitMap(min(total_block, self.MAX_COUNT))
+        # # 窗口大小更新相关
+        self.cur_window_size = self.window_size
+
+    def add_left(self) -> None:
+        """ 窗口下界后移 """
+        self.left += 1
+        self.left &= self.MAX_COUNT
+        self.cur_window_size -= 1
+        self.cur_block += 1
+
+    def add_right(self) -> None:
+        """ 窗口上界后移
+         在窗口缩小时不进行该操作以收缩窗口 """
+        if self.cur_window_size < self.window_size:
+            self.right += 1
+            self.right &= self.MAX_COUNT
+            self.cur_window_size += 1
+
+    def ack(self, ack_num, new_window_size=None) -> None:
+        """ 接受 ACK 包，更新窗口 """
+        with self.__lock__:
+            if isinstance(new_window_size, int):
+                self.window_size = new_window_size
+            self.bitmap.set(ack_num)
+            while self.bitmap.test(self.left):
+                self.bitmap.reset(self.left)
+                self.add_left()
+                self.add_right()
+
+    def send(self, num=1) -> []:
+        if num > self.MAX_COUNT or num <= 0:
+            return []
+        res = []
+        with self.__lock__:
+            while self.cur != self.right and len(res) < num:
+                offset = self.cur - self.left
+                if offset < 0:
+                    offset += self.MAX_COUNT
+                res.append((self.cur, self.cur_block + offset))
+                self.cur += 1
+                self.cur &= self.MAX_COUNT
+            return res
+
+    def send_all(self) -> []:
+        return self.send(self.cur_window_size)
+
+    def resend(self) -> []:
+        res = []
+        index = self.left
+        with self.__lock__:
+            while index != self.cur:
+                if not self.bitmap.test(index):
+                    offset = index - self.left
+                    if offset < 0:
+                        offset += self.MAX_COUNT
+                    res.append((index, self.cur_block + offset))
+                index += 1
+                index &= self.MAX_COUNT
+            return res
 
 
 class PktHandler(threading.Thread):
@@ -118,20 +208,6 @@ class PktHandler(threading.Thread):
                 break
             Lock_WaitingACK.release()
 
-    def SqlQuery(self, command):
-        # 打开数据库连接
-        db = pymysql.connect(host="localhost", user="root", password="Mysql233.", database="testdb")
-        # 使用 cursor() 方法创建一个游标对象 cursor
-        cursor = db.cursor()
-        result = -1
-        try:
-            cursor.execute(command)
-            result = cursor.fetchall()
-        except:
-            print("Error: unable to fecth data")
-        db.close()
-        return result
-    
     def run(self):
         if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
             # self.packet.show()
