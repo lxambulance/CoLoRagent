@@ -136,6 +136,10 @@ class PktHandler(threading.Thread):
     """ docstring: 收包处理程序 """
     packet = ''
 
+    class DataFlag(IntEnum):
+        ESS = 0x4
+        LAST = 0x1
+
     def __init__(self, packet):
         threading.Thread.__init__(self)
         self.packet = packet
@@ -208,40 +212,36 @@ class PktHandler(threading.Thread):
                 break
             Lock_WaitingACK.release()
 
-    def send_packet(self, data, sid, dst_ip, dst_nid, pids, ess_flag, sid_load_length=1200):
-
+    def send_packet(self, data, sid, dst_ip, dst_nid, pids, ess_flag, sid_load_len=1200):
         data_len = len(data)
+        data_flag = 0
+        end_flag = 0
         if ess_flag:
-            sid_load_length -= 32
-        if data_len <= sid_load_length:  # 直接传输
-            ChipNum = 1
-            ChipLength = data_len
-            load = PL.ConvertInt2Bytes(
-                5 if ess_flag else 1, 1) + (ESS.Encrypt(dst_nid, sid, data) if ess_flag else data)
-            end_flag = 1
-        else:  # 分片传输
-            ChipNum = math.ceil(data_len / sid_load_length)
-            ChipLength = sid_load_length
-            text = data[:sid_load_length]
-            load = PL.ConvertInt2Bytes(
-                4 if ess_flag else 0, 1) + (ESS.Encrypt(dst_nid, sid, text) if ess_flag else text)
-            end_flag = 0
-        SendingSid[sid] = [
-            ChipNum, ChipLength, 1, dst_nid, pids, ess_flag, SlideWindow(ChipNum)]
-        NewDataPkt = PL.DataPkt(
-            1, 0, 1, 0, sid, nid_cus=dst_nid, SegID=0, PIDs=pids, load=load)
-        Tar = NewDataPkt.packing()
-        PL.SendIpv4(dst_ip, Tar)
-
-        # 重传判断，待完善锁机制 #
-        for i in range(3):
-            time.sleep(RTO)
-            if (sid in SendingSid) and (SendingSid[sid][2] == 1):
-                self.signals.output.emit(0, '第' + str(SendingSid[sid]
-                                                       [2] - 1) + '片，第' + str(i + 1) + '次重传')
-                PL.SendIpv4(dst_ip, Tar)
+            sid_load_len -= 32
+            data_flag |= self.DataFlag.ESS
+        if sid not in SendingSid:  # 新建 SendingSid 表项
+            chip_num = math.ceil(data_len / sid_load_len)
+            chip_len = min(sid_load_len, data_len)
+            SendingSid[sid] = \
+                [chip_num, chip_len, 1, dst_nid, pids, ess_flag, SlideWindow(chip_num)]
+            #    分片数量  分片长度  下一片  目的NID PID 加密 滑动窗口
+        slide_window = SendingSid[sid][SendingSidField.SLIDE_WINDOW]
+        for (seg_id, chip_index) in slide_window.send_all():
+            chip_len = SendingSid[sid][SendingSidField.CHIP_LENGTH]
+            start = chip_index * chip_len
+            if chip_index + 1 == SendingSid[sid][SendingSidField.CHIP_NUM]:  # 最后一片
+                text = data[start:]
+                end_flag = 1
             else:
-                break
+                text = data[start:start + chip_len]
+            load = PL.ConvertInt2Bytes(
+                data_flag | end_flag, 1) + (ESS.Encrypt(dst_nid, sid, text) if ess_flag else text)
+            NewDataPkt = PL.DataPkt(
+                1, 0, 1, 0, sid, nid_cus=dst_nid, SegID=seg_id, PIDs=pids, load=load)
+            Tar = NewDataPkt.packing()
+            PL.SendIpv4(dst_ip, Tar)
+        # TODO: 重传实现：定时器？
+        return end_flag
 
     def run(self):
         if ('Raw' in self.packet) and (self.packet[IP].dst == PL.IPv4) and (self.packet[IP].proto == 150):
@@ -567,6 +567,9 @@ class PktHandler(threading.Thread):
                             else:
                                 return
                         # 返回ACK
+                        ack_num = RecvDataPkt.SegID & 0xffff
+                        wnd_size = SlideWindow.WINDOW_SIZE & 0xffff
+                        new_seg_id = wnd_size << 0x10 | ack_num
                         NewDataPkt = PL.DataPkt(
                             1, 1, 0, 0, NewSid, nid_pro=RecvDataPkt.nid_pro, SegID=new_seg_id,
                             PIDs=RecvDataPkt.PIDs[1:][::-1])
