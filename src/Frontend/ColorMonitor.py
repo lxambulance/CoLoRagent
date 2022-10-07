@@ -124,11 +124,11 @@ class PktHandler(threading.Thread):
                     PL.SendIpv4(ReturnIP, Tar)
                 else:
                     tmptar = ColorData(Tar)
-                    tmptar.checksum = None
+                    tmptar.Checksum = None
                     tmptar.Flags.C = True
                     tmptar.HMAC = randomnum
-                    tmptar.header_length = None
-                    tmptar.pkg_length = None
+                    tmptar.Header_Length = None
+                    tmptar.Packet_Length = None
                     PL.SendIpv4(ReturnIP, tmptar)
                 ChipCount += 1
             # 读取下一帧
@@ -208,7 +208,7 @@ class PktHandler(threading.Thread):
                         return
                     # 解析报文内容
                     getpktv2 = ColorGet(data)
-                    randomnum = None if not getpktv2.Flags.R else getpktv2.Random_num
+                    randomnum = None if not getpktv2.Flags.R else getpktv2.Random_Num
                     NewGetPkt = PL.GetPkt(0, Pkt=data)
                     # 判断是否为代理当前提供内容
                     NewSid = ''
@@ -331,11 +331,11 @@ class PktHandler(threading.Thread):
                         PL.SendIpv4(ReturnIP, Tar)
                     else:
                         tmptar = ColorData(Tar)
-                        tmptar.checksum = None
+                        tmptar.Checksum = None
                         tmptar.Flags.C = True
                         tmptar.HMAC = randomnum
-                        tmptar.header_length = None
-                        tmptar.pkg_length = None
+                        tmptar.Header_Length = None
+                        tmptar.Packet_Length = None
                         PL.SendIpv4(ReturnIP, tmptar)
                         Tar = tmptar
                     # 内容发送完成的特殊操作
@@ -670,11 +670,11 @@ class PktHandler(threading.Thread):
                                 PL.SendIpv4(ReturnIP, Tar)
                             else:
                                 tmptar = ColorData(Tar)
-                                tmptar.checksum = None
+                                tmptar.Checksum = None
                                 tmptar.Flags.C = True
                                 tmptar.HMAC = SendingSid[NewSid][6]
-                                tmptar.header_length = None
-                                tmptar.pkg_length = None
+                                tmptar.Header_Length = None
+                                tmptar.Packet_Length = None
                                 PL.SendIpv4(ReturnIP, tmptar)
                                 Tar = tmptar
                             # 内容发送完成的特殊操作
@@ -732,7 +732,7 @@ class PktHandler(threading.Thread):
                         if NewCtrlPkt.L_sid != 0:
                             NewSid += hex(NewCtrlPkt.L_sid).replace('0x',
                                                                     '').zfill(40)
-                        paths = controlpkt_v2[IP].payload.PIDs
+                        paths = controlpkt_v2[IP].payload.PID_List
                         path_str = '-'.join(map(lambda x: f"<{x:08x}>", paths))
                         tmps = f"泄露DATA包的节点源IP:\n{NewCtrlPkt.ProxyIP}\n"
                         tmps += f"泄露DATA包内含的SID:\n{NewSid}\n"

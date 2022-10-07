@@ -134,3 +134,19 @@ def do_dissect(self, s):
 想要添加新协议，需要搞清楚上述函数主要功能，重载需要改变的部分。
 
 scapy包的build过程也是一个类似的情况，具体推荐[官方教程](https://scapy.readthedocs.io/en/latest/build_dissect.html)
+
+## 包输出展示
+
+| 命令                    | 效果                                     |
+| :---------------------- | :--------------------------------------- |
+| str(pkt)                | 组装数据包                               |
+| hexdump(pkt)            | 十六进制转储                             |
+| ls(pkt)                 | 显示出字段值的列表                       |
+| pkt.summary()           | 一行摘要                                 |
+| pkt.show()              | 针对数据包的展开试图                     |
+| pkt.show2()             | 显示聚合的数据包（例如，计算好了校验和） |
+| pkt.sprintf()           | 用数据包字段填充格式字符串               |
+| pkt.decode_payload_as() | 改变payload的decode方式                  |
+| pkt.psdump()            | 绘制一个解释说明的PostScript图表         |
+| pkt.pdfdump()           | 绘制一个解释说明的PDF                    |
+| pkt.command()           | 返回可以生成数据包的Scapy命令            |
