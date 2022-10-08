@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: service table model to handle data '''
+""" docstring: service table model to handle data """
 
 # 添加文件路径../
 import os
@@ -17,13 +17,13 @@ import resource_rc
 COLUMN = ['文件名', '路径', 'SID', '是否通告', '是否下载']
 
 class serviceTableModel(QAbstractTableModel):
-    ''' docstring: service table model class '''
+    """ docstring: service table model class """
     def __init__(self, filedata, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.services = filedata
 
     def data(self, index, role):
-        ''' docstring: main function to get data as a role'''
+        """ docstring: main function to get data as a role"""
         if role == Qt.DisplayRole:
             value = self.services.getData(index.row(), index.column())
             if index.column() > 3:
@@ -54,7 +54,7 @@ class serviceTableModel(QAbstractTableModel):
         return len(COLUMN)
 
 class progressBarDelegate(QStyledItemDelegate):
-    ''' docstring: 模型进度条代理 '''
+    """ docstring: 模型进度条代理 """
     def __init__(self, parent = None):
         super().__init__(parent)
         self.parent = parent
@@ -89,7 +89,7 @@ class progressBarDelegate(QStyledItemDelegate):
             return super().paint(painter, option, index)
 
 class MyTableView(QTableView):
-    ''' docstring: class MyTableView '''
+    """ docstring: class MyTableView """
     signal_select = pyqtSignal(object)
     def __init__(self, parent = None):
         super().__init__(parent)

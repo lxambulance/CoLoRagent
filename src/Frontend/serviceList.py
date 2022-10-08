@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: service list model to handle data '''
+""" docstring: service list model to handle data """
 
 # 添加文件路径../
 import os
@@ -14,13 +14,13 @@ from PyQt5.QtGui import *
 import FileData
 
 class serviceListModel(QAbstractListModel):
-    ''' docstring: service model class '''
+    """ docstring: service model class """
     def __init__(self, filedata, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.services = filedata
 
     def data(self, index, role):
-        ''' docstring: main function to get data as a role '''
+        """ docstring: main function to get data as a role """
         if role == Qt.DisplayRole:
             value = self.services.getData(index.row())
             return str(value)
@@ -53,7 +53,7 @@ class serviceListModel(QAbstractListModel):
         return Qt.CopyAction | Qt.MoveAction
 
 class MyListView(QListView):
-    ''' docstring: class MyListView '''
+    """ docstring: class MyListView """
     signal_select = pyqtSignal(object)
     signal_add = pyqtSignal(object)
     def __init__(self, parent = None):

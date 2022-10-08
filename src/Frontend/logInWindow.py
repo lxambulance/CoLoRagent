@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: CoLoR 登录对话 '''
+""" docstring: CoLoR 登录对话 """
 
 import establishSecureSession as ESS
 from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog
@@ -15,7 +15,7 @@ sys.path.append(BASE_DIR)
 
 
 class logInWindow(QDialog, Ui_Dialog):
-    ''' docstring: 登录窗口类 '''
+    """ docstring: 登录窗口类 """
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -51,7 +51,7 @@ class logInWindow(QDialog, Ui_Dialog):
         self.rmIPv4 = text
 
     def checkInput(self):
-        ''' docstring: 将输入写回文件。TODO 验证输入合法性 '''
+        """ docstring: 将输入写回文件。TODO 验证输入合法性 """
         flag = True
         pass
         if flag:
@@ -66,7 +66,7 @@ class logInWindow(QDialog, Ui_Dialog):
             ESS.Agent.saveKey(self.configpath)
 
     def autoFillForm(self, path):
-        ''' docstring: 根据*.json文件内容填写表单剩余项 '''
+        """ docstring: 根据*.json文件内容填写表单剩余项 """
         self.configpath = path
         self.showpath_config.setText(self.configpath)
         with open(self.configpath, 'r') as f:

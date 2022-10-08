@@ -1,11 +1,12 @@
 # coding=utf-8
-''' docstring: long time task base class '''
+""" docstring: long time task base class """
 
 from PyQt5.QtCore import *
 import traceback, sys
 
+
 class workerSignals(QObject):
-    ''' docstring: worker signals class '''
+    """ docstring: worker signals class """
 
     # finished用于任务结束信号
     finished = pyqtSignal()
@@ -18,11 +19,12 @@ class workerSignals(QObject):
     # message用于中间消息显示
     message = pyqtSignal(str, str)
 
+
 class worker(QRunnable):
-    ''' docstring: worker class '''
+    """ docstring: worker class """
 
     def __init__(self, option, func, *args, **kwargs):
-        ''' docstring: store the initial val '''
+        """ docstring: store the initial val """
         super().__init__()
         self.f = func
         self.args = args
@@ -33,10 +35,10 @@ class worker(QRunnable):
             # 添加回调函数
             self.kwargs['progress_callback'] = self.signals.progress
             self.kwargs['message_callback'] = self.signals.message
-    
+
     @pyqtSlot()
     def run(self):
-        ''' docstring: do main work '''
+        """ docstring: do main work """
         try:
             result = self.f(*self.args, **self.kwargs)
         except:

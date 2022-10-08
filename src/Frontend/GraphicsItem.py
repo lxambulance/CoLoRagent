@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: scene/view模型框架的几个基类 '''
+""" docstring: scene/view模型框架的几个基类 """
 
 
 from math import fabs, atan2, pi, sin, cos, sqrt
@@ -15,7 +15,7 @@ import resource_rc
 
 
 class Node(QGraphicsPixmapItem):
-    ''' docstring: 图形点类 '''
+    """ docstring: 图形点类 """
     NodeTypeLen = 6
     NodeImageStr = [
         ':/topo/cloud', ':/topo/RM', ':/topo/BR',
@@ -70,7 +70,7 @@ class Node(QGraphicsPixmapItem):
             self.addStarMark()
 
     def addStarMark(self):
-        ''' docstring: 给代理节点添加了一个醒目星标记，颜色在绘制时确定 '''
+        """ docstring: 给代理节点添加了一个醒目星标记，颜色在绘制时确定 """
         self.polygon = QPolygonF()
         myconst = sin(pi*7/10)/sin(pi/10)
         for i in range(10):
@@ -84,7 +84,7 @@ class Node(QGraphicsPixmapItem):
             self.polygon.append(QPointF(x,y))
 
     def addClickTimes(self):
-        ''' docstring: 添加点击数，选择AS路径时使用 '''
+        """ docstring: 添加点击数，选择AS路径时使用 """
         self.clicktime += 1
         # print(self.name, self.clicktime)
         if self.clicktime & 1:
@@ -93,7 +93,7 @@ class Node(QGraphicsPixmapItem):
             self.setPixmap(QPixmap(Node.NodeImageStr[self.myType]).scaled(self.size, self.size))
 
     def updateLabel(self, name = None, nid = None, getsize = 0, datasize = 0):
-        ''' docstring: 更新标签 '''
+        """ docstring: 更新标签 """
         if name:
             self.name = name
             self.label.changeText(self.name)
@@ -123,7 +123,7 @@ class Node(QGraphicsPixmapItem):
         self.throughputlabel.setPos(-self.size/2, self.size/2)
 
     def modifyCount(self, value):
-        ''' docstring: 用于云动态改变大小 '''
+        """ docstring: 用于云动态改变大小 """
         # TODO：修改得更精细化
         if self.myType:
             return
@@ -136,7 +136,7 @@ class Node(QGraphicsPixmapItem):
         self.update()
 
     def mousePressEvent(self, event):
-        ''' docstring: 鼠标按下事件 '''
+        """ docstring: 鼠标按下事件 """
         super().mousePressEvent(event)
         # AS选中时选中其中所有点
         if self.isSelected() and not self.myType:
@@ -145,7 +145,7 @@ class Node(QGraphicsPixmapItem):
                 node.setSelected(True)
 
     def mouseMoveEvent(self, event):
-        ''' docstring: 鼠标移动事件 '''
+        """ docstring: 鼠标移动事件 """
         super().mouseMoveEvent(event)
         # 选中移动时更新所连边类
         for item in self.scene().selectedItems():
@@ -155,7 +155,7 @@ class Node(QGraphicsPixmapItem):
                     nextedge.updateEdge()
 
     def paint(self, painter, option, widget):
-        ''' docstring: 绘制类，重构了部分图形选中时轮廓和背景 '''
+        """ docstring: 绘制类，重构了部分图形选中时轮廓和背景 """
         if not self.myType:
             if not self.clicktime:
                 if self.isSelected():
@@ -181,7 +181,7 @@ class Node(QGraphicsPixmapItem):
 
 
 class Edge(QGraphicsLineItem):
-    ''' docstring: 边类 '''
+    """ docstring: 边类 """
 
     def __init__(self, node1, node2, linetype=0, linePX=None, font=None, color=None):
         super().__init__()
@@ -215,7 +215,7 @@ class Edge(QGraphicsLineItem):
         self.updateEdge()
 
     def calcLabelPos(self):
-        ''' docstring: 用于计算标签位置 '''
+        """ docstring: 用于计算标签位置 """
         n1 = self.node1.scenePos()
         n2 = self.node2.scenePos()
         if n1.x()>n2.x() or fabs(n1.x()-n2.x())<1e-8 and n1.y()>n2.y():
@@ -234,13 +234,13 @@ class Edge(QGraphicsLineItem):
         self.label.setRotation(alpha/pi*180)
 
     def updateLabel(self, linePX):
-        ''' docstring: 更新标签内容 '''
+        """ docstring: 更新标签内容 """
         self.PX = linePX
         self.label.setText(f"PX:{self.PX}")
         self.label.update()
 
     def updateEdge(self):
-        ''' docstring: 由于外部相关点修改导致边坐标需要重新计算 '''
+        """ docstring: 由于外部相关点修改导致边坐标需要重新计算 """
         n1 = self.node1.scenePos()
         n2 = self.node2.scenePos()
         self.setLine(QLineF(n1, n2))
@@ -248,7 +248,7 @@ class Edge(QGraphicsLineItem):
         self.update()
 
     def paint(self, painter, option, widget):
-        ''' docstring: 用于显示被选中的变化，并且去掉外边框 '''
+        """ docstring: 用于显示被选中的变化，并且去掉外边框 """
         if self.node1 and self.node2 and \
             (self.node1.isSelected() and self.node2.isSelected() or self.isSelected()):
             painter.setPen(QPen(QColor('#3e9405'), 6)) #85f83a ff99e5 66ff33
@@ -260,7 +260,7 @@ class Edge(QGraphicsLineItem):
 
 
 class Text(QGraphicsTextItem):
-    '''docstring: 文本类 '''
+    """docstring: 文本类 """
 
     def __init__(self, content, parent = None, font = None, color = None, setAutoResize = False):
         super().__init__(parent=parent)
@@ -269,8 +269,8 @@ class Text(QGraphicsTextItem):
         self.currentcolor = color or QColor("#000000")
         self.setFont(self.currentfont)
 
-        self.content = f'''<p align="center">{content}</p>'''
-        self.setHtml(f'''<font color="{self.currentcolor.name()}">{self.content}</font>''')
+        self.content = f"""<p align="center">{content}</p>"""
+        self.setHtml(f"""<font color="{self.currentcolor.name()}">{self.content}</font>""")
         if setAutoResize:
             self.adjustSize()
         
@@ -279,7 +279,7 @@ class Text(QGraphicsTextItem):
         # self.setTextInteractionFlags(Qt.TextEditorInteraction) # 设置可交互
 
     def changeFont(self):
-        ''' docstring: 修改字体 '''
+        """ docstring: 修改字体 """
         font, ok = QFontDialog.getFont(self.currentfont, caption="选择字体")
         if ok:
             self.setFont(font)
@@ -287,12 +287,12 @@ class Text(QGraphicsTextItem):
             self.adjustSize()
 
     def changeColor(self):
-        ''' docstring: 修改颜色 '''
+        """ docstring: 修改颜色 """
         color = QColorDialog.getColor(self.currentcolor)
-        self.setHtml(f'''<font color="{color.name()}">{self.content}</font>''')
+        self.setHtml(f"""<font color="{color.name()}">{self.content}</font>""")
         self.currentcolor = color
 
     def changeText(self, content):
-        ''' docstring: 修改内容 '''
-        self.content = f'''<p align="center">{content}</p>'''
-        self.setHtml(f'''<font color="{self.currentcolor.name()}">{self.content}</font>''')
+        """ docstring: 修改内容 """
+        self.content = f"""<p align="center">{content}</p>"""
+        self.setHtml(f"""<font color="{self.currentcolor.name()}">{self.content}</font>""")

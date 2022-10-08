@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: 视频窗口 '''
+""" docstring: 视频窗口 """
 
 from PyQt5.QtWidgets import QMainWindow
 
@@ -7,7 +7,7 @@ from videoPage import Ui_MainWindow
 
 
 class videoWindow(QMainWindow, Ui_MainWindow):
-    ''' docstring: 视频类 '''
+    """ docstring: 视频类 """
     def __init__(self, parent=None):
         super().__init__()
         self.setupUi(self)

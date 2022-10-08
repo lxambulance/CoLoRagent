@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
 
 
 class CollapsibleMessageBox(QWidget):
-    ''' docstring: 消息显示类，按钮触发折叠 '''
+    """ docstring: 消息显示类，按钮触发折叠 """
     
     def __init__(self, Title="", parent=None, defaultLayout=False, Message=None):
         super().__init__(parent)
@@ -57,14 +57,14 @@ class CollapsibleMessageBox(QWidget):
 
     @pyqtSlot()
     def on_pressed(self):
-        ''' docstring: 按钮函数，设置动画参数并触发 '''
+        """ docstring: 按钮函数，设置动画参数并触发 """
         checked = self.toggle_button.isChecked()
         self.toggle_button.setArrowType(Qt.DownArrow if not checked else Qt.RightArrow)
         self.toggle_animation.setDirection(QAbstractAnimation.Forward if not checked else QAbstractAnimation.Backward)
         self.toggle_animation.start()
 
     def setContentLayout(self, layout):
-        ''' docstring: 重新设置布局，并计算按钮动画参数 '''
+        """ docstring: 重新设置布局，并计算按钮动画参数 """
         lay = self.content_area.layout()
         del lay
         self.content_area.setLayout(layout)
@@ -82,7 +82,7 @@ class CollapsibleMessageBox(QWidget):
 
 
 class LogWidget(QWidget):
-    ''' docstring: 统一处理和显示折叠消息盒 '''
+    """ docstring: 统一处理和显示折叠消息盒 """
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -107,7 +107,7 @@ class LogWidget(QWidget):
             # print(bar.maximum(), bar.minimum(), bar.value(), self.modifytime)
 
     def addLog(self, title, message, flag=False):
-        ''' docstring: 添加日志消息，默认选项卡关闭 '''
+        """ docstring: 添加日志消息，默认选项卡关闭 """
         index = self.contentarea.count()
         box = CollapsibleMessageBox(Title=title, defaultLayout=True, Message=message)
         self.contentarea.insertWidget(index - 1, box)

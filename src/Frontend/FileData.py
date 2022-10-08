@@ -1,5 +1,5 @@
 # coding=utf-8
-''' docstring: data store '''
+""" docstring: data store """
 
 # 添加文件路径../
 import os
@@ -13,7 +13,7 @@ import json
 DATA_PATH = __BASE_DIR + '/data.json'
 
 class FileData:
-    ''' docstring: class FileData '''
+    """ docstring: class FileData """
 
     def __init__(self, *, initData = None, nid = None):
         self.__data = initData or []
@@ -22,30 +22,30 @@ class FileData:
         self.__raw_data = {}
 
     def getData(self, row, column = 0):
-        ''' docstring: 获取数据 '''
+        """ docstring: 获取数据 """
         if row<0 or row>=self.rowCount() or column<0 or column>=len(self.__data[row]):
             return None
         return self.__data[row][column]
 
     def setData(self, row, column = 0, newData = None):
-        ''' docstring: 写入数据 '''
+        """ docstring: 写入数据 """
         if row<0 or column<0 or row>=self.rowCount() or column>=self.columnCount():
             return
         self.__data[row][column] = newData
 
     def getItem(self, row):
-        ''' docstring: 获取整个条目 '''
+        """ docstring: 获取整个条目 """
         return self.__data[row]
 
     def setItem(self, row, item):
-        ''' docstring: 存入整个条目 '''
+        """ docstring: 存入整个条目 """
         if row < self.rowCount():
             self.__data[row] = item
         else:
             self.__data.append(item)
 
     def addItem(self, *, filename, filepath, isReg = 0, have = 1, **kwargs):
-        ''' docstring: 添加文件时的处理 '''
+        """ docstring: 添加文件时的处理 """
         filehash = kwargs.get('filehash', None)
         # TODO: 处理file addtion text
         item = [filename, filepath, filehash, isReg * 100, have * 100]
@@ -62,7 +62,7 @@ class FileData:
         return 5
 
     def load(self, Path = None):
-        ''' docstring: 从数据路径加载数据 '''
+        """ docstring: 从数据路径加载数据 """
         last = self.rowCount()
         if Path == None:
             Path = DATA_PATH
@@ -93,7 +93,7 @@ class FileData:
         return ''
 
     def save(self, Path = None):
-        ''' docstring: 将数据保存到数据路径中 '''
+        """ docstring: 将数据保存到数据路径中 """
         if Path == None:
             Path = DATA_PATH
         with open(Path, 'w') as f:
