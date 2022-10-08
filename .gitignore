@@ -1,9 +1,4 @@
-src/__pycache__
-src/CoLoRProtocol/__pycache__
-src/FrontendClient/__pycache__
-src/Test/__pycache__
-src/VPPPlugin/__pycache__
-src/PageUI/__pycache__
+*__pycache__
 .tmp
 .tmp/*
 .gitignore

@@ -4,8 +4,8 @@
 import os
 import json
 import time
-from . import ProxyLib as PL
-from . import ColorMonitor as CM
+import ProxyLib as PL
+import ColorMonitor as CM
 from threading import Thread
 from PyQt5.QtCore import pyqtSignal, QObject
 from cryptography.exceptions import InvalidSignature

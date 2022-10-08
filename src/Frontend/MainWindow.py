@@ -17,7 +17,7 @@ from AddItemWindow import AddItemWindow
 from GraphicWindow import GraphicWindow
 from videoWindow import videoWindow
 from cmdWindow import cmdWindow
-from FrontendClient.mainPage import Ui_MainWindow
+from mainPage import Ui_MainWindow
 import pyqtgraph as pg
 
 from PyQt5.QtGui import QIcon, QPalette

@@ -1,7 +1,6 @@
 # coding=utf-8
 """ docstring: CoLoR监听线程，负责与网络组件的报文交互 """
 import threading
-from builtins import function
 from enum import IntEnum
 import queue
 import zlib
@@ -13,8 +12,8 @@ from bitmap import BitMap
 from scapy.all import *
 from scapy.layers.inet import IP
 
-from . import ProxyLib as PL
-from . import establishSecureSession as ESS
+import ProxyLib as PL
+import establishSecureSession as ESS
 
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]

@@ -60,7 +60,8 @@ class CoLoRApp(QApplication):
             message=app.window.handleMessageFromPkt,
             path=app.window.getPathFromPkt
         )
-        thread_monitor.setDaemon(True)
+        # thread_monitor.setDaemon(True)
+        thread_monitor.daemon = True
         thread_monitor.start()
 
         # 测试

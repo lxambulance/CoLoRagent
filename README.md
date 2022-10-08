@@ -234,11 +234,16 @@ Value：目标存储路径(含文件名)，String类型。
 
 ## 项目文件夹说明
 
-- Icon包含一些图标文件
-- PageUI包含QT的ui文件
-- src包含代码源文件
-- test包含一些测试用文件，可以随意修改
-- doc包含几个文档
+- asset 图片素材
+- doc 学习文档
+- config 配置文件
+- src 代码源文件
+  - CoLoRProtocol 自定义color协议栈
+  - Backend 后端代码
+  - Frontend 前端代码
+    - PageUI QT绘制的界面
+  - Test 测试文件
+  - VPPPlugin vpp插件
 
 Icon/文件夹内有一个resource.qrc记录了图标文件，以及它们的重命名，这个文件主要用于qt，编译成二进制码后（src中的resource_rc.py文件）就可以摆脱主机图片格式的限制，便于运行和分发。
 

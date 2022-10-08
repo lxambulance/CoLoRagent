@@ -87,7 +87,7 @@ class logInWindow(QDialog, Ui_Dialog):
 
     def getConfigPath(self):
         configpath = QFileDialog.getOpenFileName(self, '请选择配置文件', BASE_DIR)
-        if configpath[0] and configpath[0][-3:] == '.json':
+        if configpath[0] and configpath[0][-5:] == '.json':
             self.autoFillForm(configpath[0])
 
     def getFiletmpPath(self):

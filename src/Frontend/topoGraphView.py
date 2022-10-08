@@ -288,5 +288,5 @@ class topoGraphView(QGraphicsView):
     def resetNodeInfoPos(self):
         h = self.viewport().height()
         h0 = self.scene().baseinfo.document().size().height()
-        pos = self.mapToScene(QPoint(0, h-h0))
+        pos = self.mapToScene(QPoint(0, int(h-h0)))
         self.scene().baseinfo.setPos(pos)
