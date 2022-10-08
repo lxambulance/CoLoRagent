@@ -4,10 +4,13 @@ src/FrontendClient/__pycache__
 src/Test/__pycache__
 src/VPPPlugin/__pycache__
 src/PageUI/__pycache__
+.tmp
 .tmp/*
 .gitignore
 ./*.json
 *.log
+*.o
+.pytest_cache/
 .pytest_cache/*
 .vscode/*
 data.json

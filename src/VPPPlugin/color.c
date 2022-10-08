@@ -1,5 +1,5 @@
 /*
- * CoLoR.c - skeleton vpp engine plug-in
+ * color.c - skeleton vpp engine plug-in
  *
  * Copyright (c) <current-year> <your-organization>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,53 +17,63 @@
 
 #include <vnet/vnet.h>
 #include <vnet/plugin/plugin.h>
-#include <CoLoR/CoLoR.h>
+#include <color/color.h>
 
 #include <vlibapi/api.h>
 #include <vlibmemory/api.h>
 #include <vpp/app/version.h>
 #include <stdbool.h>
 
-#include <CoLoR/CoLoR.api_enum.h>
-#include <CoLoR/CoLoR.api_types.h>
+#include <color/color.api_enum.h>
+#include <color/color.api_types.h>
 
 #define REPLY_MSG_ID_BASE Cmp->msg_id_base
 #include <vlibapi/api_helper_macros.h>
 
-CoLoR_main_t CoLoR_main;
+color_main_t color_main;
 
+/* this format need three args:
+  buffer pointer(color_header_t *),
+  max_buffer_length(u32),
+  valid_checksum(int) */
 u8 *
-format_CoLoR_header (u8 *s, va_list *args)
+format_color_header (u8 *s, va_list *args)
 {
-  CoLoR_header_t *ch = va_arg (*args, CoLoR_header_t *);
+  color_header_t *ch = va_arg (*args, color_header_t *);
   u32 max_header_length = va_arg (*args, u32);
+  u16 valid_checksum = va_arg (*args, int);
   u32 indent;
 
-  if (max_header_length < sizeof (CoLoR_header_t))
-    return format (s, "CoLoR header truncated");
+  if (max_header_length < sizeof (color_header_t))
+    return format (s, "color header truncated");
 
-  s = format (s, "CoLoR protocol\n");
+  indent = format_get_indent (s);
+  
+  s = format (s, "color protocol\n");
 
 #ifndef NDEBUG
   u8 *start = (u8 *) ch;
   int i;
-  s = format (s, "origin string:");
-  for (i = 0; i < max_header_length; ++i)
+  s = format (s, "%Uorigin string:", format_white_space, indent);
+  u32 slen = max_header_length < ch->packet_length ? max_header_length :
+							   ch->packet_length;
+  for (i = 0; i < slen; ++i)
     s = format (s, "%02x", start[i]);
   s = format (s, "\n");
 #endif
 
-  indent = format_get_indent (s);
-  u8 V = get_color_version (ch->CoLoR_version_and_packet_type);
-  u8 T = get_packet_type (ch->CoLoR_version_and_packet_type);
+  u8 V = get_color_version (ch->color_version_and_packet_type);
+  u8 T = get_packet_type (ch->color_version_and_packet_type);
   s = format (s, "%UVersion %d, Type %s\n", format_white_space, indent, V,
-	      CoLoR_packet_type_strings[T]);
+	      color_packet_type_strings[T]);
   indent += 2;
 
   s = format (s, "%Uttl %d, packet_length %d, checksum 0x%04x",
 	      format_white_space, indent, ch->ttl, ch->packet_length,
 	      ch->checksum);
-  /* TODO: Check and report invalid checksums. */
+  // ignore control packet for now
+  if (T != 3&&ch->checksum != valid_checksum)
+    s = format (s, "(should be 0x%04x)", valid_checksum);
 
   return s;
 }
@@ -71,7 +81,7 @@ format_CoLoR_header (u8 *s, va_list *args)
 /* Action function shared between message handler and debug CLI */
 
 int
-CoLoR_enable_disable (CoLoR_main_t *Cmp, u32 sw_if_index, int enable_disable)
+color_enable_disable (color_main_t *Cmp, u32 sw_if_index, int enable_disable)
 {
   vnet_sw_interface_t *sw;
   int rv = 0;
@@ -86,25 +96,25 @@ CoLoR_enable_disable (CoLoR_main_t *Cmp, u32 sw_if_index, int enable_disable)
   if (sw->type != VNET_SW_INTERFACE_TYPE_HARDWARE)
     return VNET_API_ERROR_INVALID_SW_IF_INDEX;
 
-  CoLoR_create_periodic_process (Cmp);
+  color_create_periodic_process (Cmp);
 
-  vnet_feature_enable_disable ("device-input", "CoLoR", sw_if_index,
+  vnet_feature_enable_disable ("device-input", "color", sw_if_index,
 			       enable_disable, 0, 0);
 
   /* Send an event to enable/disable the periodic scanner process */
-  vlib_process_signal_event (Cmp->vlib_main, Cmp->periodic_node_index,
-			     COLOR_EVENT_PERIODIC_ENABLE_DISABLE,
-			     (uword) enable_disable);
+  // vlib_process_signal_event (Cmp->vlib_main, Cmp->periodic_node_index,
+  // 		     COLOR_EVENT_PERIODIC_ENABLE_DISABLE,
+  // 		     (uword) enable_disable);
   vlib_process_signal_event (Cmp->vlib_main, Cmp->periodic_node_index,
 			     COLOR_EVENT1, (uword) 3);
   return rv;
 }
 
 static clib_error_t *
-CoLoR_enable_disable_command_fn (vlib_main_t *vm, unformat_input_t *input,
+color_enable_disable_command_fn (vlib_main_t *vm, unformat_input_t *input,
 				 vlib_cli_command_t *cmd)
 {
-  CoLoR_main_t *Cmp = &CoLoR_main;
+  color_main_t *Cmp = &color_main;
   u32 sw_if_index = ~0;
   int enable_disable = 1;
 
@@ -124,7 +134,7 @@ CoLoR_enable_disable_command_fn (vlib_main_t *vm, unformat_input_t *input,
   if (sw_if_index == ~0)
     return clib_error_return (0, "Please specify an interface...");
 
-  rv = CoLoR_enable_disable (Cmp, sw_if_index, enable_disable);
+  rv = color_enable_disable (Cmp, sw_if_index, enable_disable);
 
   switch (rv)
     {
@@ -142,40 +152,40 @@ CoLoR_enable_disable_command_fn (vlib_main_t *vm, unformat_input_t *input,
       break;
 
     default:
-      return clib_error_return (0, "CoLoR_enable_disable returned %d", rv);
+      return clib_error_return (0, "color_enable_disable returned %d", rv);
     }
   return 0;
 }
 
 /* *INDENT-OFF* */
-VLIB_CLI_COMMAND (CoLoR_enable_disable_command, static) = {
-  .path = "CoLoR enable-disable",
-  .short_help = "CoLoR enable-disable <interface-name> [disable]",
-  .function = CoLoR_enable_disable_command_fn,
+VLIB_CLI_COMMAND (color_enable_disable_command, static) = {
+  .path = "color enable-disable",
+  .short_help = "color enable-disable <interface-name> [disable]",
+  .function = color_enable_disable_command_fn,
 };
 /* *INDENT-ON* */
 
 /* API message handler */
 static void
-vl_api_CoLoR_enable_disable_t_handler (vl_api_CoLoR_enable_disable_t *mp)
+vl_api_color_enable_disable_t_handler (vl_api_color_enable_disable_t *mp)
 {
-  vl_api_CoLoR_enable_disable_reply_t *rmp;
-  CoLoR_main_t *Cmp = &CoLoR_main;
+  vl_api_color_enable_disable_reply_t *rmp;
+  color_main_t *Cmp = &color_main;
   int rv;
 
-  rv = CoLoR_enable_disable (Cmp, ntohl (mp->sw_if_index),
+  rv = color_enable_disable (Cmp, ntohl (mp->sw_if_index),
 			     (int) (mp->enable_disable));
 
   REPLY_MACRO (VL_API_COLOR_ENABLE_DISABLE_REPLY);
 }
 
 /* API definitions */
-#include <CoLoR/CoLoR.api.c>
+#include <color/color.api.c>
 
 static clib_error_t *
-CoLoR_init (vlib_main_t *vm)
+color_init (vlib_main_t *vm)
 {
-  CoLoR_main_t *Cmp = &CoLoR_main;
+  color_main_t *Cmp = &color_main;
   clib_error_t *error = 0;
 
   Cmp->vlib_main = vm;
@@ -184,17 +194,23 @@ CoLoR_init (vlib_main_t *vm)
   /* Add our API messages to the global name_crc hash table */
   Cmp->msg_id_base = setup_message_id_table ();
 
-  ip4_register_protocol (150, CoLoR_lookup_node.index);
+  /* register color protocol in ip4 node */
+  ip4_register_protocol (150, color_lookup_node.index);
+
+  /* set tx/rx buffers to NULL */
+  Cmp->tx_buffers = NULL;
+  Cmp->rx_fifo_queue = NULL;
+  clib_fifo_validate(Cmp->rx_fifo_queue, RX_LIMIT);
 
   return error;
 }
 
-VLIB_INIT_FUNCTION (CoLoR_init);
+VLIB_INIT_FUNCTION (color_init);
 
 /* *INDENT-OFF* */
 VLIB_PLUGIN_REGISTER () = {
   .version = VPP_BUILD_VER,
-  .description = "CoLoR protocol plugin, make your network secure at "
+  .description = "color protocol plugin, make your network secure and easy in "
 		 "inter-domain connection",
 };
 /* *INDENT-ON* */

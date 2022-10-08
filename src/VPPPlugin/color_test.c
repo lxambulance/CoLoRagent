@@ -1,5 +1,5 @@
 /*
- * CoLoR.c - CoLoR vpp-api-test plug-in
+ * color.c - color vpp-api-test plug-in
  *
  * Copyright (c) <current-year> <your-organization>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,31 +20,31 @@
 #include <vppinfra/error.h>
 #include <stdbool.h>
 
-#define __plugin_msg_base CoLoR_test_main.msg_id_base
+#define __plugin_msg_base color_test_main.msg_id_base
 #include <vlibapi/vat_helper_macros.h>
 
 uword unformat_sw_if_index (unformat_input_t *input, va_list *args);
 
 /* Declare message IDs */
-#include <CoLoR/CoLoR.api_enum.h>
-#include <CoLoR/CoLoR.api_types.h>
+#include <color/color.api_enum.h>
+#include <color/color.api_types.h>
 
 typedef struct
 {
   /* API message ID base */
   u16 msg_id_base;
   vat_main_t *vat_main;
-} CoLoR_test_main_t;
+} color_test_main_t;
 
-CoLoR_test_main_t CoLoR_test_main;
+color_test_main_t color_test_main;
 
 static int
-api_CoLoR_enable_disable (vat_main_t *vam)
+api_color_enable_disable (vat_main_t *vam)
 {
   unformat_input_t *i = vam->input;
   int enable_disable = 1;
   u32 sw_if_index = ~0;
-  vl_api_CoLoR_enable_disable_t *mp;
+  vl_api_color_enable_disable_t *mp;
   int ret;
 
   /* Parse args required to build the message */
@@ -80,10 +80,10 @@ api_CoLoR_enable_disable (vat_main_t *vam)
 }
 
 /*
- * List of messages that the CoLoR test plugin sends,
+ * List of messages that the color test plugin sends,
  * and that the data plane plugin processes
  */
-#include <CoLoR/CoLoR.api_test.c>
+#include <color/color.api_test.c>
 
 /*
  * fd.io coding-style-patch-verification: ON
