@@ -15,6 +15,10 @@ from scapy.layers.inet import IP
 import ProxyLib as PL
 import establishSecureSession as ESS
 
+
+from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
+
+
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
 
@@ -386,7 +390,7 @@ class PktHandler(threading.Thread):
                         elif (SidPath & 0xff) == 2:
                             # 安全链接服务
                             ESS.gotoNextStatus(
-                                NidCus, NewSid, pids=PIDs, ip=ReturnIP, randomnum = randomnum)
+                                NidCus, NewSid, pids=PIDs, ip=ReturnIP, randomnum=randomnum)
                             return
                         elif SidPath == 3:
                             pass
@@ -404,7 +408,7 @@ class PktHandler(threading.Thread):
                     if int(SidUnitLevel) > 5:
                         if not ESSflag:
                             ESS.newSession(NidCus, NewSid, PIDs,
-                                           ReturnIP, pkt=self.packet, randomnum = randomnum)
+                                           ReturnIP, pkt=self.packet, randomnum=randomnum)
                             return
                         elif not ESS.sessionReady(NidCus, NewSid):
                             self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
@@ -429,7 +433,7 @@ class PktHandler(threading.Thread):
                                                                  '').zfill(40)
                     # 暂时将全部收到的校验和正确的data包显示出来
                     self.signals.pathdata.emit(
-                        0x73 | (RecvDataPkt.B << 8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, 0)
+                        0x73 | (RecvDataPkt.B << 8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, f'{NewGetPkt.nid:032x}')
                     if RecvDataPkt.B == 0:
                         # 收到数据包
                         # 判断是否为当前代理请求内容
@@ -514,7 +518,7 @@ class PktHandler(threading.Thread):
                                     VideoCache[FrameCount] = {}
                                 VideoCache[FrameCount][ChipCount] = RecvDataPkt.load[1:]
                                 MergeFlag[FrameCount] = ChipCount + \
-                                                        1 if (RecvDataPkt.load[0] == 1) else 0
+                                    1 if (RecvDataPkt.load[0] == 1) else 0
                                 # 重置缓冲区
                                 pops = []
                                 for frame in VideoCache.keys():
@@ -535,7 +539,7 @@ class PktHandler(threading.Thread):
                             else:
                                 ESS.newSession(RecvDataPkt.nid_pro, NewSid,
                                                RecvDataPkt.PIDs[1:][::-
-                                               1], ReturnIP,
+                                                                    1], ReturnIP,
                                                flag=False, loads=RecvDataPkt.load, pkt=RecvDataPkt)
                         # 定长数据（包括普通文件，数据库查询结果等）
                         elif NewSid not in RecvingSid.keys():
@@ -651,7 +655,7 @@ class PktHandler(threading.Thread):
                     NewCtrlPkt = PL.ControlPkt(0, Pkt=data)
                     controlpkt_v2 = ColorControl(data)
                     self.signals.pathdata.emit(
-                        0x74, "", [], NewCtrlPkt.HeaderLength + NewCtrlPkt.DataLength, 0)
+                        0x74, "", [], NewCtrlPkt.HeaderLength + NewCtrlPkt.DataLength, "from intra-domain")
                     if NewCtrlPkt.tag == 8:
                         # 新proxy信息
                         if NewCtrlPkt.ProxyNid != PL.Nid:

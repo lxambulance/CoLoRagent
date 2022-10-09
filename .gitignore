@@ -8,4 +8,3 @@
 .pytest_cache/
 .pytest_cache/*
 .vscode/*
-data.json

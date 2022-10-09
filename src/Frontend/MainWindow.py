@@ -303,7 +303,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path_str = '-'.join(map(lambda x: f"<{x:08x}>", paths))
         if (type & 0xff) == 0x72:
             item.addChild(QTreeWidgetItem(
-                [f"来源nid={nid:032x}", str(size), "PIDs="+path_str]))
+                [f"来源nid={nid}", str(size), "PIDs="+path_str]))
             self.graphicwindow.graphics_global.setMatchedPIDs(
                 path_str, flag=False, size=size)
             self.graphicwindow.graphics_global.getASid(path_str, False, size)
