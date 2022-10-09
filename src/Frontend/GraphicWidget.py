@@ -297,54 +297,6 @@ class GraphicWidget(QWidget):
         self.animation.start()
 
     def getASid(self, PIDs, Type, size):
-        # """ docstring: 获取所对应PIDs序列末端节点所属AS号，顺便存储各AS收发包参数 """
-        # # TODO: 可以和上面匹配过程合并起来并保存，这样每条路径只需要匹配一遍
-        # # posl = PIDs.find('<')
-        # # posr = PIDs.find('>')
-        # # lastPID = PIDs[posl:posr]
-        # # target = None
-        # num = PIDs.count('<')
-        # tmpnode = [0 for _ in range()]
-        # # 做法比较蠢，统计了一遍匹配边端点出现次数，出现一次的非观察节点就是答案
-        # for item in self.scene.items():
-        #     item.setSelected(False)
-        #     if isinstance(item, Edge) and item.PX and ('<' + item.PX ) in PIDs: # 记录匹配边的两端节点
-        #         # item.setSelected(flag)
-        #         fr = PIDs.find('<'+item.PX)
-        #         id = PIDs[:fr+1].count('<')
-        #         # print(id)
-        #         tmpnode[id*2-2] = item.node1
-        #         tmpnode[id*2-1] = item.node2
-        # for node in tmpnode:
-        #     if not node: # 端节点不存在，匹配失败
-        #         return False
-        #     # self.scene.belongAS[node.id].setSelected(flag)
-        # lastnode = self.scene.belongAS[self.scene.node_me.id].id # 最后一个节点
-        # # print(lastnode)
-        # for i in range(num):
-        #     j = (num-1-i)*2
-        #     # print(self.scene.belongAS[tmpnode[j].id].id,
-        #     #     self.scene.belongAS[tmpnode[j+1].id].id)
-        #     if self.scene.belongAS[tmpnode[j+1].id].id != lastnode:
-        #         # 通过与当前列表中最后一个点比较，判断这条边上点的顺序
-        #         tmpnode[j], tmpnode[j+1] = tmpnode[j+1], tmpnode[j]
-        #     if self.scene.belongAS[tmpnode[j+1].id].id != lastnode:
-        #         # 路径顺序与拓扑图不符
-        #         return False
-        #     lastnode = self.scene.belongAS[tmpnode[j].id].id
-        # # poslist = [] # 获取节点位置序列
-        # # for i, node in enumerate(tmpnode):
-        # #     if not i or node.id != tmpnode[i-1].id:
-        # #         poslist.append(node.scenePos())
-        # # poslist.append(self.scene.node_me.scenePos())
-        # # self.showAnimation(poslist)
-        # ASnode = self.scene.belongAS[tmpnode[0].id]
-        # if Type:
-        #     ASnode.updateLabel(datasize=size)
-        # else:
-        #     ASnode.updateLabel(getsize=size)
-        # return True
-        # TODO: 存在bug，暂时使用下面代码
         """ docstring: 获取所对应PIDs序列末端节点所属AS号，顺便存储各AS收发包参数 """
         # TODO: 可以和上面匹配过程合并起来并保存，这样每条路径只需要匹配一遍
         posl = PIDs.find('<')
@@ -354,9 +306,9 @@ class GraphicWidget(QWidget):
         tmpAS = {}
         # 做法比较蠢，统计了一遍匹配边端点出现次数，出现一次的非观察节点就是答案
         for item in self.scene.items():
-            if isinstance(item, Edge) and ('<' + item.PX ) in lastPID:
+            if isinstance(item, Edge) and item.PX and ('<' + item.PX ) in lastPID:
                 target = item
-            if isinstance(item, Edge) and ('<' + item.PX ) in PIDs:
+            if isinstance(item, Edge) and item.PX and ('<' + item.PX ) in PIDs:
                 if not tmpAS.get(self.scene.belongAS[item.node1.id].name, None):
                     tmpAS[self.scene.belongAS[item.node1.id].name] = 0
                 tmpAS[self.scene.belongAS[item.node1.id].name] += 1

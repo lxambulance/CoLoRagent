@@ -241,7 +241,7 @@ class PktHandler(threading.Thread):
                 break
             Lock_WaitingACK.release()
 
-    def send_block_packets(self, data, sid: str, dst_ip: str, dst_nid: int, pids: list[int],
+    def send_block_packets(self, data, sid: str, dst_ip: str, dst_nid: int, pids: list,
                            ess_flag: bool, sid_load_len: int = 1200):
         """
         使用滑动窗口对定长数据（如文件） 进行可靠传输
