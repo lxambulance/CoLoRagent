@@ -107,7 +107,7 @@ class SlideWindow:
                 self.add_left()
                 self.add_right()
 
-    def send(self, num=1) -> []:
+    def send(self, num=1):
         if num > self.MAX_COUNT or num <= 0:
             return []
         res = []
@@ -121,10 +121,10 @@ class SlideWindow:
                 self.cur &= self.MAX_COUNT
             return res
 
-    def send_all(self) -> []:
+    def send_all(self):
         return self.send(self.cur_window_size)
 
-    def resend(self) -> []:
+    def resend(self):
         res = []
         index = self.left
         with self.__lock__:
@@ -759,10 +759,10 @@ class Monitor(threading.Thread):
         GeneralHandler.start()
 
     def run(self):
-        AnnSender = ControlPktSender()
-        AnnSender.signals.output.connect(self.message)
-        AnnSender.signals.output.emit(0, "开启报文监听")
-        AnnSender.start()
+        AgentRegisterSender = ControlPktSender()
+        AgentRegisterSender.signals.output.connect(self.message)
+        AgentRegisterSender.signals.output.emit(0, "开启报文监听")
+        AgentRegisterSender.start()
         VideoCus = video_customer()
         VideoCus.start()
         # sniff(filter="ip", iface = "VirtualBox Host-Only Network", prn=self.parser, count=0)

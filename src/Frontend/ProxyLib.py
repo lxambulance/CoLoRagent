@@ -332,10 +332,10 @@ class ControlPkt():
         TarRest += ConvertInt2Bytes(self.HeaderLength, 1)
         TarRest += ConvertInt2Bytes(self.tag, 1)
         TarRest += ConvertInt2Bytes_LE(self.DataLength, 2)
-        # TarRest += self.data
+        TarRest += self.data
         Tar = TarPre + TarCS + TarRest  # 校验和为0的字节串
         TarCS = ConvertInt2Bytes(CalculateCS(Tar), 2)
-        Tar = TarPre + TarCS + TarRest + self.data  # 计算出校验和的字节串
+        Tar = TarPre + TarCS + TarRest  # 计算出校验和的字节串
         # 封装并返回
         self.Pkt = Tar
         return self.Pkt
