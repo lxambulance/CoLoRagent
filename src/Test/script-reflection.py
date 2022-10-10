@@ -1,4 +1,4 @@
-''' docstring: get包反射攻击 '''
+""" docstring: get包反射攻击 """
 
 import os
 import sys
@@ -7,8 +7,9 @@ __BASE_DIR = os.path.dirname(os.path.dirname(
 sys.path.append(__BASE_DIR)
 
 if __name__ == '__main__':
-    from CoLoRProtocol.CoLoRpacket import ColorGet
-    from scapy.all import IP, send
+    from src.CoLoRProtocol.CoLoRpacket import ColorGet
+    from scapy.all import send
+    from scapy.layers.inet import IP
     pkt = IP(dst="10.0.0.1", src="10.0.0.99")
 
     cg = ColorGet()

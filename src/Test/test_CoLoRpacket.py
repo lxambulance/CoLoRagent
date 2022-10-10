@@ -1,12 +1,4 @@
-''' docstring: color协议包模块单元测试 '''
-
-
-import importsrc
-import CoLoRProtocol
-
-
-import pytest
-
+""" docstring: color协议包模块单元测试 """
 
 # color协议包解析测试，以下包常量由wireshark截获，测试断言请依据wireshark解析结果。
 getpkt_bytes = bytes.fromhex(
@@ -33,29 +25,17 @@ ip_control_pkt_bytes = bytes.fromhex(
     "45000038000000004096642b0a0001010a0001057480677908061c0001d23454d19f307d8b98ff2da277c0b5460501000a0144330201000a")
 
 
-def test_CalcChecksum():
-    ''' docstring: 测试计算校验和函数的正确性 '''
-    from CoLoRpacket import CalcChecksum
-    assert CalcChecksum(getpkt_bytes) == 0
-    assert CalcChecksum(datpkt_bytes) == 0
-    assert CalcChecksum(annpkt_bytes) == 0
-    assert CalcChecksum(ctlpkt_proxyregister_bytes) == 0
-    assert CalcChecksum(ctlpkt_proxyregisterreply_bytes) == 0
-    assert CalcChecksum(ctlpkt_attackwarning_bytes) == 0
-    assert CalcChecksum(ctlpkt_odcwarning_bytes) == 0
-
-
 def test_ipv4_int():
-    ''' docstring: 测试IPv4转int辅助函数正确性 '''
-    from CoLoRpacket import Ipv42Int, Int2Ipv4
+    """ docstring: 测试IPv4转int辅助函数正确性 """
+    from src.CoLoRProtocol.CoLoRpacket import Ipv42Int, Int2Ipv4
     assert Int2Ipv4(Ipv42Int("0.0.0.0")) == "0.0.0.0"
     assert Int2Ipv4(Ipv42Int("255.255.255.255")) == "255.255.255.255"
     assert Int2Ipv4(Ipv42Int("0.0.0.0")) != "255.255.255.255"
 
 
 def test_CalcHMAC():
-    ''' docstring: 测试计算HMAC函数正确性 '''
-    from CoLoRpacket import CalcHMAC, ColorData
+    """ docstring: 测试计算HMAC函数正确性 """
+    from src.CoLoRProtocol.CoLoRpacket import CalcHMAC, ColorData
     rn = b'\x12\x34\x56\x78'
     assert CalcHMAC(datpkt_hmac_bytes + rn)[-4:] == b'\x98\xee\xc0\x36'
     cd = ColorData(datpkt_postbuild_bytes)
@@ -64,17 +44,17 @@ def test_CalcHMAC():
 
 
 def test_IPguess():
-    ''' docstring: 测试IP包推测辅助函数正确性 '''
-    from scapy.all import IP
-    from CoLoRpacket import ColorControl
+    """ docstring: 测试IP包推测辅助函数正确性 """
+    from scapy.layers.inet import IP
+    from src.CoLoRProtocol.CoLoRpacket import ColorControl
     pkt = IP(ip_control_pkt_bytes)
     assert type(pkt.payload) == ColorControl
 
 
 def test_ColorPacketDissect():
-    ''' docstring: 测试各类型数据包解析正确性 '''
-    from scapy.all import IP
-    from CoLoRpacket import ColorGet, ColorData, ColorAnnounce, ColorControl, IP_NID, ASInfo, AttackInfo
+    """ docstring: 测试各类型数据包解析正确性 """
+    from scapy.layers.inet import IP
+    from src.CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorAnnounce, ColorControl, IP_NID, ASInfo, AttackInfo
     cg = ColorGet(getpkt_bytes)
     assert cg.PID_List[0] == int('01234567', 16)
     cg = ColorGet(getpkt_RN_bytes)
@@ -95,7 +75,6 @@ def test_ColorPacketDissect():
 
 
 if __name__ == '__main__':
-    test_CalcChecksum()
     test_ipv4_int()
     test_CalcHMAC()
     test_IPguess()

@@ -1,67 +1,48 @@
-''' docstring: CoLoR协议所有类型包格式 '''
+""" docstring: CoLoR协议所有类型包格式 """
 
-
+from cryptography.hazmat.primitives import hashes
 from scapy.all import (
     Packet, BitField, ByteField, XShortField, LEShortField,
     FieldLenField, FlagsField, StrFixedLenField, FieldListField,
     PacketListField, XStrFixedLenField, ConditionalField, StrLenField,
-    LEIntField, ByteEnumField, bind_layers, IP
+    LEIntField, ByteEnumField, bind_layers
 )
-
-
-from cryptography.hazmat.primitives import hashes
+from scapy.layers.inet import IP
+from src.Frontend.ProxyLib import CalculateCS
 
 
 def CalcHMAC(tar):
-    ''' docstring: 计算hmac tar: bytes字符串 ret: bytes字符串'''
+    """ docstring: 计算hmac tar: bytes字符串 ret: bytes字符串"""
     digest = hashes.Hash(hashes.MD5())
     digest.update(tar)
     return digest.finalize()
 
 
-def CalcChecksum(tar):
-    ''' docstring: 校验和计算 tar: bytes字符串 ret: int '''
-    length = len(tar)
-    pointer = 0
-    sum = 0
-    while (length - pointer > 1):
-        # 两字节相加
-        temp = tar[pointer] << 8
-        temp += tar[pointer+1]
-        pointer += 2
-        sum += temp
-    if (length - pointer > 0):
-        sum += tar[pointer] << 8  # 易出错步骤，注意！
-    sum = (sum >> 16) + (sum & 0xffff)
-    sum = (sum >> 16) + (sum & 0xffff)  # 防止上一步相加后结果大于16位
-    return (sum ^ 0xffff)  # 按位取反后返回
-
-
 def Int2Bytes(data, length):
-    ''' docstring: 将int类型转成bytes类型 (大端存储)
-    data: 目标数字; length: 目标字节数 '''
+    """ docstring: 将int类型转成bytes类型 (大端存储)
+    data: 目标数字; length: 目标字节数 """
     return data.to_bytes(length, byteorder='big')
 
 
 def Int2BytesLE(data, length):
-    ''' docstring: 将int类型转成bytes类型 (小端存储)
-    data: 目标数字; length: 目标字节数 '''
+    """ docstring: 将int类型转成bytes类型 (小端存储)
+    data: 目标数字; length: 目标字节数 """
     return data.to_bytes(length, byteorder='little')
 
 
 def Ipv42Int(data):
-    ''' docstring: 将ipv4转化为数字 '''
+    """ docstring: 将ipv4转化为数字 """
     parts = data.split('.')
     return (int(parts[0]) << 24) + (int(parts[1]) << 16) + (int(parts[2]) << 8) + int(parts[3])
 
 
 def Int2Ipv4(data):
-    ''' docstring: 将数字转化为ipv4'''
+    """ docstring: 将数字转化为ipv4"""
     return '.'.join([str(data >> (i << 3) & 0xFF) for i in range(4)[::-1]])
 
 
 class ColorGet(Packet):
-    ''' docstring: Get包格式 '''
+    """ docstring: Get包格式 """
     name = "ColorGet"
     fields_desc = [
         BitField("Version", 7, 4, tot_size=1),
@@ -114,13 +95,13 @@ class ColorGet(Packet):
             self.Packet_Length = len(pkt)
             pkt = pkt[:2] + Int2BytesLE(self.Packet_Length, 2) + pkt[4:]
         if self.Checksum is None:
-            self.Checksum = CalcChecksum(pkt)
+            self.Checksum = CalculateCS(pkt)
             pkt = pkt[:4] + Int2Bytes(self.Checksum, 2) + pkt[6:]
         return pkt + pay
 
 
 class ColorData(Packet):
-    ''' docstring: Data包格式 '''
+    """ docstring: Data包格式 """
     name = 'ColorData'
     fields_desc = [
         BitField("Version", 7, 4, tot_size=1),
@@ -172,14 +153,14 @@ class ColorData(Packet):
             self.HMAC = hmac_bytes[-4:]
             pkt = pkt[:hmac_offset] + self.HMAC + pkt[hmac_offset+4:]
         if self.Checksum is None:
-            self.Checksum = CalcChecksum(pkt)
+            self.Checksum = CalculateCS(pkt)
             pkt = pkt[:4] + Int2Bytes(self.Checksum, 2) + pkt[6:]
         # print(self.Checksum)
         return pkt + pay
 
 
 class Strategy_Unit(Packet):
-    ''' docstring: 通告策略单元 '''
+    """ docstring: 通告策略单元 """
     name = "Strategy_Unit"
     fields_desc = [
         ByteField("Type", 0),
@@ -192,7 +173,7 @@ class Strategy_Unit(Packet):
 
 
 class Announce_Unit(Packet):
-    ''' docstring: 通告单元 '''
+    """ docstring: 通告单元 """
     name = "Announce_Unit"
     fields_desc = [
         BitField("N", 1, 1, tot_size=1),
@@ -230,7 +211,7 @@ class Announce_Unit(Packet):
 
 
 class ColorAnnounce(Packet):
-    ''' docstring: 注册包格式 '''
+    """ docstring: 注册包格式 """
     name = "ColorAnnounce"
     fields_desc = [
         BitField("Version", 7, 4, tot_size=1),
@@ -272,13 +253,13 @@ class ColorAnnounce(Packet):
             pkt = pkt[:7] + Int2Bytes(self.Unit_Num <<
                                       4 | self.PX_Num, 1) + pkt[8:]
         if self.Checksum is None:
-            self.Checksum = CalcChecksum(pkt)
+            self.Checksum = CalculateCS(pkt)
             pkt = pkt[:4] + Int2Bytes(self.Checksum, 2) + pkt[6:]
         return pkt + pay
 
 
 class IP_NID(Packet):
-    ''' docstring: IP-NID映射条目 '''
+    """ docstring: IP-NID映射条目 """
     name = 'IP_NID'
     fields_desc = [
         LEIntField("IP", None),
@@ -290,7 +271,7 @@ class IP_NID(Packet):
 
 
 class PX_IP(Packet):
-    ''' docstring: PX-IP映射条目 '''
+    """ docstring: PX-IP映射条目 """
     name = 'PX_IP'
     fields_desc = [
         LEShortField("PX", None),
@@ -302,7 +283,7 @@ class PX_IP(Packet):
 
 
 class ASInfo(Packet):
-    ''' docstring: 域内信息同步表 '''
+    """ docstring: 域内信息同步表 """
     name = 'ASInfo'
     fields_desc = [
         FieldLenField("IP_NID_Num", None, count_of="IP_NID_List", fmt='B'),
@@ -313,7 +294,7 @@ class ASInfo(Packet):
 
 
 class AttackSummaryUnit(Packet):
-    ''' docstring: 攻击信息概要单元 '''
+    """ docstring: 攻击信息概要单元 """
     name = 'AttackSummaryUnit'
     fields_desc = [
         ByteField("ASID", None),
@@ -325,7 +306,7 @@ class AttackSummaryUnit(Packet):
 
 
 class AttackInfo(Packet):
-    ''' docstring: 攻击信息表 '''
+    """ docstring: 攻击信息表 """
     name = 'AttackInfo'
     fields_desc = [
         StrFixedLenField("BR_NID", "", 16),
@@ -335,7 +316,7 @@ class AttackInfo(Packet):
 
 
 class ColorControl(Packet):
-    ''' docstring: 控制包格式 '''
+    """ docstring: 控制包格式 """
     name = 'ColorControl'
     Subtypes = {
         1: "CONFIG_RM", 2: "CONFIG_RM_ACK", 3: "CONFIG_BR", 4: "CONFIG_BR_ACK",
@@ -359,7 +340,7 @@ class ColorControl(Packet):
             self.Packet_Length = len(pay)
             pkt = pkt[:6] + Int2BytesLE(self.Packet_Length, 2) + pkt[8:]
         if self.Checksum is None:
-            self.Checksum = CalcChecksum(pkt + pay)
+            self.Checksum = CalculateCS(pkt + pay)
             pkt = pkt[:2] + Int2Bytes(self.Checksum, 2) + pkt[4:]
         return pkt + pay
 
@@ -383,7 +364,7 @@ bind_layers(ColorControl, AttackInfo, {'Subtype': 18})
 
 
 def newIP_guess_payload_class(self, payload):
-    ''' docstring: 重载IP层负载猜测函数, 添加color协议 '''
+    """ docstring: 重载IP层负载猜测函数, 添加color协议 """
     if self.proto == 150:
         if payload[0] == 113:
             return ColorAnnounce

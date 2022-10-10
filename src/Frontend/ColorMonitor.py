@@ -1,6 +1,5 @@
 # coding=utf-8
 """ docstring: CoLoR监听线程，负责与网络组件的报文交互 """
-import threading
 from enum import IntEnum
 import queue
 import zlib
@@ -15,9 +14,7 @@ from scapy.layers.inet import IP
 import ProxyLib as PL
 import establishSecureSession as ESS
 
-
-from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
-
+from src.CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
 
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
@@ -72,7 +69,7 @@ class SlideWindow:
         # 滑动窗口部分
         self.window_size = min(window_size, self.MAX_COUNT)
         self.left = 0
-        self.right = self.left + self.window_size
+        self.right = min(self.left + self.window_size, self.blocks)
         self.cur = self.left
         # # 使用 BitMap 标记是否已经收到 ACK
         self.bitmap = BitMap(min(total_block, self.MAX_COUNT))
@@ -433,7 +430,8 @@ class PktHandler(threading.Thread):
                                                                  '').zfill(40)
                     # 暂时将全部收到的校验和正确的data包显示出来
                     self.signals.pathdata.emit(
-                        0x73 | (RecvDataPkt.B << 8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, f'{NewGetPkt.nid:032x}')
+                        0x73 | (RecvDataPkt.B << 8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength,
+                        f'{RecvDataPkt.nid_pro:032x}')
                     if RecvDataPkt.B == 0:
                         # 收到数据包
                         # 判断是否为当前代理请求内容
@@ -460,6 +458,8 @@ class PktHandler(threading.Thread):
                                 self.signals.output.emit(1, "未知的PX：" + hex(PX).replace('0x', '').zfill(4))
                         # 视频流数据
                         if isinstance(SavePath, int) and SavePath == 1:
+                            global VideoCache
+                            global MergeFlag
                             FrameCount = RecvDataPkt.SegID >> 16
                             ChipCount = RecvDataPkt.SegID % (1 << 16)
                             Lock_VideoCache.acquire()
@@ -518,7 +518,7 @@ class PktHandler(threading.Thread):
                                     VideoCache[FrameCount] = {}
                                 VideoCache[FrameCount][ChipCount] = RecvDataPkt.load[1:]
                                 MergeFlag[FrameCount] = ChipCount + \
-                                    1 if (RecvDataPkt.load[0] == 1) else 0
+                                                        1 if (RecvDataPkt.load[0] == 1) else 0
                                 # 重置缓冲区
                                 pops = []
                                 for frame in VideoCache.keys():
@@ -539,7 +539,7 @@ class PktHandler(threading.Thread):
                             else:
                                 ESS.newSession(RecvDataPkt.nid_pro, NewSid,
                                                RecvDataPkt.PIDs[1:][::-
-                                                                    1], ReturnIP,
+                                               1], ReturnIP,
                                                flag=False, loads=RecvDataPkt.load, pkt=RecvDataPkt)
                         # 定长数据（包括普通文件，数据库查询结果等）
                         elif NewSid not in RecvingSid.keys():
@@ -563,6 +563,7 @@ class PktHandler(threading.Thread):
                                 # ## DEPRECATED ##
                                 # DataBase Operations
                             else:
+                                # TODO: 按 SegID 进行存储
                                 PL.ConvertByte(text, SavePath)  # 存储数据
                         else:
                             # 此前收到过SID的数据包
@@ -585,6 +586,7 @@ class PktHandler(threading.Thread):
                                     # ## DEPRECATED ##
                                     # DataBase Operations
                                 else:
+                                    # TODO: 按 SegID 进行存储
                                     PL.ConvertByte(text, SavePath)  # 存储数据
                             elif (RecvDataPkt.S != 0) and (RecvDataPkt.SegID < RecvingSid[NewSid]):
                                 # 此前已收到数据包（可能是ACK丢失）,仅返回ACK
