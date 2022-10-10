@@ -1,18 +1,18 @@
 import unittest
-from Frontend.ColorMonitor import SlideWindow
+from Frontend.ColorMonitor import SendingWindow
 
 
 class MyTestCase(unittest.TestCase):
 
     def test_slide_window_small_size(self):
-        small_window = SlideWindow(10)
+        small_window = SendingWindow(10)
         res = small_window.send()
         self.assertEqual(len(res), 1)
         res = small_window.send_all()
         self.assertEqual(len(res), 9)
 
     def test_slide_window_normal_size(self):
-        window = SlideWindow(1024)
+        window = SendingWindow(1024)
         res = window.send()
         self.assertEqual(len(res), 1)
         res = window.send(10)
@@ -31,7 +31,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(res), 18)
 
     def test_slide_window_big_size(self):
-        window = SlideWindow(0x20000, window_size=0x10000)
+        window = SendingWindow(0x20000, window_size=0x10000)
         res = window.send(0xffff)
         self.assertEqual(len(res), 0xffff)
         for i in range(0xffff):
