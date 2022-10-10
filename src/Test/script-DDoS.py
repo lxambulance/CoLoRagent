@@ -7,7 +7,7 @@ __BASE_DIR = os.path.dirname(os.path.dirname(
 sys.path.append(__BASE_DIR)
 
 if __name__ == '__main__':
-    from src.CoLoRProtocol.CoLoRpacket import ColorData
+    from CoLoRProtocol.CoLoRpacket import ColorData
     from scapy.all import send
     from scapy.layers.inet import IP
     from os import urandom

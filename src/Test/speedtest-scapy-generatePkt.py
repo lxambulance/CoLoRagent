@@ -3,7 +3,7 @@
 
 import os
 import time
-from src.CoLoRProtocol.CoLoRpacket import ColorData
+from CoLoRProtocol.CoLoRpacket import ColorData
 
 
 if __name__ == '__main__':

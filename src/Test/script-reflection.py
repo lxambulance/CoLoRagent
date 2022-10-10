@@ -7,7 +7,7 @@ __BASE_DIR = os.path.dirname(os.path.dirname(
 sys.path.append(__BASE_DIR)
 
 if __name__ == '__main__':
-    from src.CoLoRProtocol.CoLoRpacket import ColorGet
+    from CoLoRProtocol.CoLoRpacket import ColorGet
     from scapy.all import send
     from scapy.layers.inet import IP
     pkt = IP(dst="10.0.0.1", src="10.0.0.99")

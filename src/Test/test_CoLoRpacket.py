@@ -28,7 +28,7 @@ ip_control_pkt_bytes = bytes.fromhex(
 
 def test_ipv4_int():
     """ docstring: 测试IPv4转int辅助函数正确性 """
-    from src.CoLoRProtocol.CoLoRpacket import Ipv42Int, Int2Ipv4
+    from CoLoRProtocol.CoLoRpacket import Ipv42Int, Int2Ipv4
     assert Int2Ipv4(Ipv42Int("0.0.0.0")) == "0.0.0.0"
     assert Int2Ipv4(Ipv42Int("255.255.255.255")) == "255.255.255.255"
     assert Int2Ipv4(Ipv42Int("0.0.0.0")) != "255.255.255.255"
@@ -36,7 +36,7 @@ def test_ipv4_int():
 
 def test_CalcHMAC():
     """ docstring: 测试计算HMAC函数正确性 """
-    from src.CoLoRProtocol.CoLoRpacket import CalcHMAC, ColorData
+    from CoLoRProtocol.CoLoRpacket import CalcHMAC, ColorData
     rn = b'\x12\x34\x56\x78'
     assert CalcHMAC(datpkt_hmac_bytes + rn)[-4:] == b'\x98\xee\xc0\x36'
     cd = ColorData(datpkt_postbuild_bytes)
@@ -47,7 +47,7 @@ def test_CalcHMAC():
 def test_IPguess():
     """ docstring: 测试IP包推测辅助函数正确性 """
     from scapy.layers.inet import IP
-    from src.CoLoRProtocol.CoLoRpacket import ColorControl
+    from CoLoRProtocol.CoLoRpacket import ColorControl
     pkt = IP(ip_control_pkt_bytes)
     assert type(pkt.payload) == ColorControl
 
@@ -55,7 +55,7 @@ def test_IPguess():
 def test_ColorPacketDissect():
     """ docstring: 测试各类型数据包解析正确性 """
     from scapy.layers.inet import IP
-    from src.CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorAnnounce, ColorControl, IP_NID, ASInfo, AttackInfo
+    from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorAnnounce, ColorControl, IP_NID, ASInfo, AttackInfo
     cg = ColorGet(getpkt_bytes)
     assert cg.PID_List[0] == int('01234567', 16)
     cg = ColorGet(getpkt_RN_bytes)

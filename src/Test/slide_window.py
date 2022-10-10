@@ -1,5 +1,5 @@
 import unittest
-from src.Frontend.ColorMonitor import SlideWindow
+from Frontend.ColorMonitor import SlideWindow
 
 
 class MyTestCase(unittest.TestCase):

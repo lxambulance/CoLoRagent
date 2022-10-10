@@ -11,7 +11,7 @@ sys.path.append(__BASE_DIR)
 
 
 if __name__ == '__main__':
-    from src.CoLoRProtocol.CoLoRpacket import ColorData
+    from CoLoRProtocol.CoLoRpacket import ColorData
     pkt = IP(dst="10.0.1.2", src="10.0.1.99")
 
     cd = ColorData()

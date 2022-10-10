@@ -14,7 +14,7 @@ from scapy.layers.inet import IP
 import ProxyLib as PL
 import establishSecureSession as ESS
 
-from src.CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
+from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
 
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
@@ -430,12 +430,8 @@ class PktHandler(threading.Thread):
                                                                  '').zfill(40)
                     # 暂时将全部收到的校验和正确的data包显示出来
                     self.signals.pathdata.emit(
-<<<<<<< HEAD
-                        0x73 | (RecvDataPkt.B << 8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength, f'{RecvDataPkt.nid_pro:032x}')
-=======
                         0x73 | (RecvDataPkt.B << 8), NewSid, RecvDataPkt.PIDs, RecvDataPkt.PktLength,
                         f'{RecvDataPkt.nid_pro:032x}')
->>>>>>> 1ce73fbd37c0cef629078cbf19698edcd07d940c
                     if RecvDataPkt.B == 0:
                         # 收到数据包
                         # 判断是否为当前代理请求内容
