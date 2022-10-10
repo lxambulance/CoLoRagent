@@ -7,4 +7,3 @@ import os
 
 FRONTEND_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(FRONTEND_DIR)
-# print('\n'.join(sys.path))

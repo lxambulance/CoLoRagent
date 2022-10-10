@@ -1,5 +1,6 @@
 """ docstring: color协议包模块单元测试 """
 
+
 # color协议包解析测试，以下包常量由wireshark截获，测试断言请依据wireshark解析结果。
 getpkt_bytes = bytes.fromhex(
     "72404800d94c000002080000ffffffffffffffffffffffffffffffff0101010101010101010101010101010101010101a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a56745230132547698")
