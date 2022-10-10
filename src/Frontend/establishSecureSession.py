@@ -3,7 +3,6 @@
 
 import os
 import json
-import time
 import ProxyLib as PL
 import ColorMonitor as CM
 from threading import Thread
@@ -17,13 +16,14 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import sys
+
 __BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
-from CoLoRProtocol.CoLoRpacket import ColorData
 
 
 class ESSsignals(QObject):
     output = pyqtSignal(int, object)
+
 
 ESSsignal = ESSsignals()
 
@@ -34,8 +34,10 @@ class MyEncoder(json.JSONEncoder):
             return obj.hex()
         return json.JSONEncoder.default(self, obj)
 
+
 class keys():
     """ docstring: 密钥类，存储自身密钥 """
+
     def __init__(self):
         self.private_key = None
         self.public_key = None
@@ -99,6 +101,7 @@ class keys():
         # print("public key:", self.public_key_bytes.hex())
         # print("nid:", self.nid.hex())
 
+
 def checkNidPublickey(nid, public_key_bytes):
     calcnid = HKDF(
         algorithm=hashes.SHA256(),
@@ -107,6 +110,7 @@ def checkNidPublickey(nid, public_key_bytes):
         info=None
     ).derive(public_key_bytes)
     return nid == calcnid.hex()
+
 
 def checkSignature(message, signature, public_key_bytes):
     public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
@@ -117,22 +121,25 @@ def checkSignature(message, signature, public_key_bytes):
     finally:
         return True
 
+
 Agent = keys()
-sessionlist = {} # key: nid+sid, value:Session()
-specsid2sid = {} # key:sid, value:sid
+sessionlist = {}  # key: nid+sid, value:Session()
+specsid2sid = {}  # key:sid, value:sid
 # TODO: 遗留问题，通过nid找sid，因为get包缺少第二个sid字段
-RTO = 2 # 超时重传时间默认设置为两秒
+RTO = 2  # 超时重传时间默认设置为两秒
+
 
 class Session():
     """ docstring: 会话类，主要的存储对象 """
+
     def __init__(self, nid, sid, pids, ip):
         self.nid = nid
         self.sid = sid
         self.pids = pids
         self.ip = ip
         self.myStatus = 0
-        self.sessionId = None # TODO: 处理快速连接
-        self.ECDH_private_key_self = ec.generate_private_key(ec.SECP384R1()) # 由于后续两端使用位置不一致，这里直接初始化
+        self.sessionId = None  # TODO: 处理快速连接
+        self.ECDH_private_key_self = ec.generate_private_key(ec.SECP384R1())  # 由于后续两端使用位置不一致，这里直接初始化
         self.ECDH_shared_key = None
         self.random_client = None
         self.random_server = None
@@ -155,18 +162,18 @@ class Session():
             Agent.public_key_bytes
         )
         data = {
-            "cypher_suite":"ECDHE_ECDSA_WITH_AES_256_GCM_SHA256",
-            "keyexchange_pare":ECDH_public_key_bytes,
-            "random":self.random_server,
-            "public_key":Agent.public_key_bytes,
-            "signature":signature
+            "cypher_suite": "ECDHE_ECDSA_WITH_AES_256_GCM_SHA256",
+            "keyexchange_pare": ECDH_public_key_bytes,
+            "random": self.random_server,
+            "public_key": Agent.public_key_bytes,
+            "signature": signature
         }
         loads = json.dumps(data, cls=MyEncoder)
         ESSsignal.output.emit(0, f"第一次握手信息{loads}")
         NewDataPkt = PL.DataPkt(1, 0, 1, 0,
-            sid if sid else self.sid,
-            nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=1,
-            PIDs=pids if pids else self.pids, load=b'\x02'+str.encode(loads))
+                                sid if sid else self.sid,
+                                nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=1,
+                                PIDs=pids if pids else self.pids, load=b'\x02' + str.encode(loads))
         colordatapkt = NewDataPkt.packing()
         self.myStatus = 1
         self.ensureSend(ip if ip else self.ip, colordatapkt, 1)
@@ -186,18 +193,18 @@ class Session():
             Agent.public_key_bytes
         )
         data = {
-            "cypher_suite":"ECDHE_ECDSA_WITH_AES_256_GCM_SHA256",
-            "keyexchange_pare":ECDH_public_key_bytes,
-            "random":self.random_client,
-            "public_key":Agent.public_key_bytes,
-            "signature":signature
+            "cypher_suite": "ECDHE_ECDSA_WITH_AES_256_GCM_SHA256",
+            "keyexchange_pare": ECDH_public_key_bytes,
+            "random": self.random_client,
+            "public_key": Agent.public_key_bytes,
+            "signature": signature
         }
         loads = json.dumps(data, cls=MyEncoder)
         ESSsignal.output.emit(0, f"第二次握手信息{loads}")
         NewDataPkt = PL.DataPkt(1, 0, 1, 0,
-            sid if sid else self.sid,
-            nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=2,
-            PIDs=pids if pids else self.pids, load=b'\x02' + str.encode(loads))
+                                sid if sid else self.sid,
+                                nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=2,
+                                PIDs=pids if pids else self.pids, load=b'\x02' + str.encode(loads))
         colordatapkt = NewDataPkt.packing()
         self.myStatus = 4
         self.ensureSend(ip if ip else self.ip, colordatapkt, 4)
@@ -215,16 +222,16 @@ class Session():
         loads = json.dumps(data, cls=MyEncoder)
         ESSsignal.output.emit(0, f"第三次握手信息{loads}")
         NewDataPkt = PL.DataPkt(1, 0, 1, 0,
-            sid if sid else self.sid,
-            nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=3,
-            PIDs=pids if pids else self.pids, load=b'\x02' + str.encode(loads))
+                                sid if sid else self.sid,
+                                nid_cus=nid if nid is not None else int(self.nid, base=16), SegID=3,
+                                PIDs=pids if pids else self.pids, load=b'\x02' + str.encode(loads))
         colordatapkt = NewDataPkt.packing()
         self.myStatus = 5
         self.ensureSend(ip if ip else self.ip, colordatapkt, 5)
 
     def sendGet(self, SegID):
         SegID_str = f"{SegID:08x}"
-        tmpsid = SegID_str[0:6] + "00"*16 + '02'
+        tmpsid = SegID_str[0:6] + "00" * 16 + '02'
         specsid2sid[self.nid + tmpsid] = self.sid
         PL.Get(self.nid + tmpsid, 2)
         # TODO: 需要重传确认
@@ -260,6 +267,7 @@ class Session():
         ).derive(prekey)
         # print(self.mainKey)
 
+
 def Encrypt(nid, sid, text):
     """ docstring: 对特定服务做加密，返回值是CoLoR_data_load加密包格式的bytes串 """
     session = sessionlist.get(f"{nid:032x}" + sid, None)
@@ -270,6 +278,7 @@ def Encrypt(nid, sid, text):
     # print(encryptor.tag, len(encryptor.tag))
     # print(session.mainKey, iv, session.random_client + session.random_server)
     return iv + encryptor.tag + ciphertext
+
 
 def Decrypt(nid, sid, load):
     """ docstring: 对特定服务做解密，返回值明文bytes串 """
@@ -282,11 +291,12 @@ def Decrypt(nid, sid, load):
     decryptor.authenticate_additional_data(session.random_client + session.random_server)
     return decryptor.update(load[32:]) + decryptor.finalize()
 
-def newSession(nid:int, sid:str, pids:list, ip:str, flag = True, loads = b'', pkt = None):
+
+def newSession(nid: int, sid: str, pids: list, ip: str, flag=True, loads=b'', pkt=None, randomnum=None):
     """ docstring: 建立一个新的会话 """
     ESSsignal.output.emit(0, f"文件（{sid}）\n建立加密会话\n")
     nid_str = f"{nid:032x}"
-    session_key = nid_str+sid
+    session_key = nid_str + sid
     newsession = sessionlist.get(session_key, None)
     if newsession:
         # TODO: 一次异常的重连
@@ -312,27 +322,29 @@ def newSession(nid:int, sid:str, pids:list, ip:str, flag = True, loads = b'', pk
             ESSsignal.output.emit(1, "公钥自证明错误，建立会话失败\n")
             return
         message = str.encode(data["cypher_suite"]) \
-            + newsession.remote_ECDH_public_key_bytes \
-            + newsession.random_server \
-            + newsession.remote_public_key_bytes
+                  + newsession.remote_ECDH_public_key_bytes \
+                  + newsession.random_server \
+                  + newsession.remote_public_key_bytes
         signature = bytes.fromhex(data["signature"])
         if not checkSignature(message, signature, newsession.remote_public_key_bytes):
             ESSsignal.output.emit(1, "公钥签名错误，建立会话失败\n")
             return
         # 发送特殊通告包
         specsid = os.urandom(3)
-        newSID = specsid.hex() + '00'*16 + '02'
+        newSID = specsid.hex() + '00' * 16 + '02'
         while specsid2sid.get(newSID, None):
             specsid = os.urandom(3)
-            newSID = specsid.hex() + '00'*16 + '02'
+            newSID = specsid.hex() + '00' * 16 + '02'
         specsid2sid[Agent.nid.hex() + newSID] = sid
-        pkt.SegID = int(specsid.hex()+'01', 16)
-        PL.AddCacheSidUnit(int(newSID,16),1,1,1,1)
+        pkt.SegID = int(specsid.hex() + '01', 16)
+        PL.AddCacheSidUnit(int(newSID, 16), 1, 1, 1, 1)
         PL.SidAnn()
+
 
 def checkSession(nid, sid):
     session_key = f"{nid:032x}" + sid
     return sessionlist.get(session_key, None) != None
+
 
 def sessionReady(nid, sid):
     session_key = f"{nid:032x}" + sid
@@ -341,7 +353,8 @@ def sessionReady(nid, sid):
         return False
     return session.myStatus == 6
 
-def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None, SegID = 0):
+
+def gotoNextStatus(nid: int, sid: str = None, pids=None, ip=None, loads=None, SegID=0, randomnum=None):
     """ docstring: session状态转移函数 """
     if not checkSession(nid, sid):
         # 特殊sid转化为真实sid
@@ -350,7 +363,7 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
         if not sid:
             return
     nid_str = f"{nid:032x}"
-    session_key = nid_str+sid
+    session_key = nid_str + sid
     session = sessionlist.get(session_key, None)
     if not session or session.myStatus == 6:
         return
@@ -378,9 +391,9 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
             ESSsignal.output.emit(1, "公钥自证明错误，建立会话失败\n")
             return
         message = str.encode(data["cypher_suite"]) \
-            + session.remote_ECDH_public_key_bytes \
-            + session.random_client \
-            + session.remote_public_key_bytes
+                  + session.remote_ECDH_public_key_bytes \
+                  + session.random_client \
+                  + session.remote_public_key_bytes
         signature = bytes.fromhex(data["signature"])
         if not checkSignature(message, signature, session.remote_public_key_bytes):
             ESSsignal.output.emit(1, "公钥签名错误，建立会话失败\n")
@@ -409,7 +422,7 @@ def gotoNextStatus(nid:int, sid:str = None, pids = None, ip = None, loads = None
 # TODO: 需要一个线程处理失败的或超时的连接
 # TODO: 需要处理服务器端注册
 class sessionDaemon(Thread):
-    
+
     def __init__(self):
         pass
 

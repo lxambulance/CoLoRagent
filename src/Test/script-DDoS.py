@@ -1,4 +1,4 @@
-''' docstring: 发送多种Data包的DDoS攻击 '''
+""" docstring: 发送多种Data包的DDoS攻击 """
 
 import os
 import sys
@@ -7,8 +7,9 @@ __BASE_DIR = os.path.dirname(os.path.dirname(
 sys.path.append(__BASE_DIR)
 
 if __name__ == '__main__':
-    from CoLoRProtocol.CoLoRpacket import ColorData
-    from scapy.all import IP, send
+    from src.CoLoRProtocol.CoLoRpacket import ColorData
+    from scapy.all import send
+    from scapy.layers.inet import IP
     from os import urandom
 
     pkt = IP(dst="192.168.0.2", src="192.168.0.1")

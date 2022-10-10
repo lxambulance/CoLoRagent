@@ -1,7 +1,8 @@
-''' docstring: 数据泄露攻击 '''
+""" docstring: 数据泄露攻击 """
 
 
-from scapy.all import IP, send
+from scapy.all import send
+from scapy.layers.inet import IP
 import os
 import sys
 __BASE_DIR = os.path.dirname(os.path.dirname(
@@ -10,7 +11,7 @@ sys.path.append(__BASE_DIR)
 
 
 if __name__ == '__main__':
-    from CoLoRProtocol.CoLoRpacket import ColorData
+    from src.CoLoRProtocol.CoLoRpacket import ColorData
     pkt = IP(dst="10.0.1.2", src="10.0.1.99")
 
     cd = ColorData()

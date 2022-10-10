@@ -1,4 +1,4 @@
-''' docstring: 将ColorProtocol包目录添加到当前执行搜索目录 '''
+""" docstring: 将ColorProtocol包目录添加到当前执行搜索目录 """
 
 
 import sys

@@ -1,11 +1,9 @@
-''' docstring: 测试CoLoR协议生成包速度 '''
+""" docstring: 测试CoLoR协议生成包速度 """
 
 
-import importsrc
 import os
 import time
-from random import randint
-from CoLoRProtocol.CoLoRpacket import ColorData
+from src.CoLoRProtocol.CoLoRpacket import ColorData
 
 
 if __name__ == '__main__':

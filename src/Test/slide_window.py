@@ -1,10 +1,17 @@
-import threading
 import unittest
-from Frontend.ColorMonitor import SlideWindow
+from src.Frontend.ColorMonitor import SlideWindow
 
 
 class MyTestCase(unittest.TestCase):
-    def test_slide_window(self):
+
+    def test_slide_window_small_size(self):
+        small_window = SlideWindow(10)
+        res = small_window.send()
+        self.assertEqual(len(res), 1)
+        res = small_window.send_all()
+        self.assertEqual(len(res), 9)
+
+    def test_slide_window_normal_size(self):
         window = SlideWindow(1024)
         res = window.send()
         self.assertEqual(len(res), 1)
@@ -22,6 +29,8 @@ class MyTestCase(unittest.TestCase):
         window.ack(10)
         res = window.resend()
         self.assertEqual(len(res), 18)
+
+    def test_slide_window_big_size(self):
         window = SlideWindow(0x20000, window_size=0x10000)
         res = window.send(0xffff)
         self.assertEqual(len(res), 0xffff)

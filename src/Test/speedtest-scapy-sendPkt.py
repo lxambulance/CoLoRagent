@@ -1,5 +1,5 @@
 # coding = utf-8
-''' docstring: scapy库发包速度 '''
+""" docstring: scapy库发包速度 """
 
 
 import time
@@ -9,8 +9,8 @@ from CoLoR_Data import CoLoR_Data
 
 
 def SendIpv4(ipdst, data):
-    ''' docstring: 封装IPv4网络包并发送
-    ipdst: 目标IP地址，data: IP包正文内容，proto: 约定值150 '''
+    """ docstring: 封装IPv4网络包并发送
+    ipdst: 目标IP地址，data: IP包正文内容，proto: 约定值150 """
     pkt = IP(dst=ipdst, proto=150) / data
     send(pkt, verbose=0)
 
