@@ -7,7 +7,6 @@ import zlib
 import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal
-from bitmap import BitMap
 from scapy.all import *
 from scapy.layers.inet import IP
 
@@ -15,6 +14,7 @@ import ProxyLib as PL
 import establishSecureSession as ESS
 
 from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
+from slideWindow import SendingWindow, ReceivingWindow
 
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
@@ -32,7 +32,7 @@ class SendingSidField(IntEnum):
     INVALID = -1
 
 
-RecvingSid = {}  # 记录内容接收情况，key:SID，value:下一片指针
+RecvingSid = {}  # 记录内容接收情况，key:SID，value:接收窗口
 WaitingACK = {}  # 流视频提供者记录ACK回复情况，key:NID（customer），value:连续未收到ACK个数
 RTO = 1  # 超时重传时间
 ESS.RTO = RTO
@@ -53,100 +53,6 @@ class pktSignals(QObject):
     output = pyqtSignal(int, object)
     # pathdata用于输出路径相关信息
     pathdata = pyqtSignal(int, str, list, int, str)
-
-
-# 滑动窗口相关
-class SlideWindow:
-    WINDOW_SIZE = 20
-    MAX_COUNT = 0xffff
-    __lock__ = threading.Lock()
-
-    def __init__(self, total_block: int, window_size: int = WINDOW_SIZE):
-        # 记录所有块
-        self.blocks = total_block
-        # 当前块
-        self.cur_block = 0
-        # 滑动窗口部分
-        self.window_size = min(window_size, self.MAX_COUNT)
-        self.left = 0
-        self.right = min(self.left + self.window_size, self.blocks)
-        self.cur = self.left
-        # # 使用 BitMap 标记是否已经收到 ACK
-        self.bitmap = BitMap(min(total_block, self.MAX_COUNT))
-        # # 窗口大小更新相关
-        self.cur_window_size = self.window_size
-        # # 超时重传相关
-        self.timer = None
-
-    def add_left(self) -> None:
-        """ 窗口下界后移 """
-        self.left += 1
-        self.left &= self.MAX_COUNT
-        self.cur_window_size -= 1
-        self.cur_block += 1
-
-    def add_right(self) -> None:
-        """ 窗口上界后移
-         在窗口缩小时不进行该操作以收缩窗口 """
-        while self.cur_window_size < self.window_size:
-            self.right += 1
-            self.right &= self.MAX_COUNT
-            self.cur_window_size += 1
-
-    def ack(self, ack_num: int, new_window_size: int = None) -> None:
-        """ 接受 ACK 包，更新窗口 """
-        with self.__lock__:
-            if isinstance(new_window_size, int):
-                self.window_size = new_window_size
-            self.bitmap.set(ack_num)
-            while self.bitmap.test(self.left):
-                self.bitmap.reset(self.left)
-                self.add_left()
-                self.add_right()
-
-    def send(self, num=1):
-        if num > self.MAX_COUNT or num <= 0:
-            return []
-        res = []
-        with self.__lock__:
-            while self.cur != self.right and len(res) < num:
-                offset = self.cur - self.left
-                if offset < 0:
-                    offset += self.MAX_COUNT
-                res.append((self.cur, self.cur_block + offset))
-                self.cur += 1
-                self.cur &= self.MAX_COUNT
-            return res
-
-    def send_all(self):
-        return self.send(self.cur_window_size)
-
-    def resend(self):
-        res = []
-        index = self.left
-        with self.__lock__:
-            while index != self.cur:
-                if not self.bitmap.test(index):
-                    offset = index - self.left
-                    if offset < 0:
-                        offset += self.MAX_COUNT
-                    res.append((index, self.cur_block + offset))
-                index += 1
-                index &= self.MAX_COUNT
-            return res
-
-    def is_finish(self):
-        return self.cur_block >= self.blocks  # 可能是 ==
-
-    def update_timer(self, callback: Callable, timeout=RTO):
-        self.cancel_timer()
-        self.timer = threading.Timer(timeout, callback)
-        self.timer.start()
-
-    def cancel_timer(self):
-        if isinstance(self.timer, threading.Timer):
-            self.timer.cancel()
-        self.timer = None
 
 
 class PktHandler(threading.Thread):
@@ -290,9 +196,9 @@ class PktHandler(threading.Thread):
             chip_num = math.ceil(data_len / sid_load_len)
             chip_len = min(sid_load_len, data_len)
             SendingSid[sid] = \
-                [chip_num, chip_len, 1, dst_nid, pids, ess_flag, SlideWindow(chip_num)]
+                [chip_num, chip_len, 1, dst_nid, pids, ess_flag, SendingWindow(chip_num)]
             #    分片数量  分片长度  下一片  目的NID PID 加密 滑动窗口
-        slide_window: SlideWindow = SendingSid[sid][SendingSidField.SLIDE_WINDOW]
+        slide_window: SendingWindow = SendingSid[sid][SendingSidField.SLIDE_WINDOW]
         chip_len = SendingSid[sid][SendingSidField.CHIP_LENGTH]
         for (seg_id, chip_index) in slide_window.send_all():
             send_packet(seg_id, chip_index)
@@ -541,7 +447,7 @@ class PktHandler(threading.Thread):
                                                RecvDataPkt.PIDs[1:][::-
                                                1], ReturnIP,
                                                flag=False, loads=RecvDataPkt.load, pkt=RecvDataPkt)
-                        # 定长数据（包括普通文件，数据库查询结果等）
+                        # 定长数据（包括普通文件，数据库查询结果等） TODO: 可能需要加同步锁
                         elif NewSid not in RecvingSid.keys():
                             # 新内容
                             if (RecvDataPkt.load[0] & 1) == 1:
@@ -551,7 +457,7 @@ class PktHandler(threading.Thread):
                                 PL.Lock_gets.release()
                             elif RecvDataPkt.SegID == 0:
                                 # 存在后续相同SIDdata包
-                                RecvingSid[NewSid] = 1  # 记录当前SID信息
+                                RecvingSid[NewSid] = ReceivingWindow(SavePath)  # 记录当前SID信息
                             else:
                                 return
                             # 将接收到的数据存入缓冲区
@@ -564,19 +470,15 @@ class PktHandler(threading.Thread):
                                 # DataBase Operations
                             else:
                                 # TODO: 按 SegID 进行存储
-                                PL.ConvertByte(text, SavePath)  # 存储数据
+                                if (RecvDataPkt.load[0] & 1) == 1:
+                                    PL.ConvertByte(text, SavePath)  # 存储数据
+                                else:
+                                    recv_window: ReceivingWindow = RecvingSid[NewSid]
+                                    recv_window.receive(RecvDataPkt.SegID & ReceivingWindow.MAX_COUNT, text)
                         else:
                             # 此前收到过SID的数据包
-                            if (RecvDataPkt.S != 0) and (RecvDataPkt.SegID == RecvingSid[NewSid]):
-                                # 正确的后续数据包
-                                if (RecvDataPkt.load[0] & 1) == 1:
-                                    # 传输完成
-                                    RecvingSid.pop(NewSid)
-                                    PL.Lock_gets.acquire()
-                                    PL.gets.pop(NewSid)
-                                    PL.Lock_gets.release()
-                                else:
-                                    RecvingSid[NewSid] += 1
+                            if RecvDataPkt.S != 0:
+                                recv_window: ReceivingWindow = RecvingSid[NewSid]
                                 # 将接收到的数据存入缓冲区
                                 text = ESS.Decrypt(RecvDataPkt.nid_pro, NewSid, RecvDataPkt.load[1:]) \
                                     if (RecvDataPkt.load[0] & 4) == 4 \
@@ -587,15 +489,15 @@ class PktHandler(threading.Thread):
                                     # DataBase Operations
                                 else:
                                     # TODO: 按 SegID 进行存储
-                                    PL.ConvertByte(text, SavePath)  # 存储数据
-                            elif (RecvDataPkt.S != 0) and (RecvDataPkt.SegID < RecvingSid[NewSid]):
-                                # 此前已收到数据包（可能是ACK丢失）,仅返回ACK
-                                self.signals.output.emit(0, '此前已收到数据包，重传ACK')
+                                    recv_window.receive(RecvDataPkt.SegID & ReceivingWindow.MAX_COUNT, text,
+                                                        RecvDataPkt.load[0])
+                                    if recv_window.is_finish():
+                                        recv_window.close()
                             else:
                                 return
-                        # 返回ACK
+                        # 返回ACK TODO: 根据 ReceivingWindow.receive 结果返回 ACK
                         ack_num = RecvDataPkt.SegID & 0xffff
-                        wnd_size = SlideWindow.WINDOW_SIZE & 0xffff
+                        wnd_size = SendingWindow.WINDOW_SIZE & 0xffff
                         new_seg_id = wnd_size << 0x10 | ack_num
                         NewDataPkt = PL.DataPkt(
                             1, 1, 0, 0, NewSid, nid_pro=RecvDataPkt.nid_pro, SegID=new_seg_id,
@@ -622,7 +524,7 @@ class PktHandler(threading.Thread):
                         # 定长数据（包括普通文件，数据库查询结果等） TODO: 添加滑动窗口相关内容
                         slide_window = SendingSid[NewSid][SendingSidField.SLIDE_WINDOW]
                         # 滑动窗口收到 ACK 消息
-                        slide_window.ack(RecvDataPkt.SegID & SlideWindow.WINDOW_SIZE)
+                        slide_window.ack(RecvDataPkt.SegID & SendingWindow.WINDOW_SIZE)
                         PIDs = SendingSid[NewSid][SendingSidField.PIDS]
                         NidCus = SendingSid[NewSid][SendingSidField.NID_CUSTOMER]
                         PL.Lock_AnnSidUnits.acquire()
