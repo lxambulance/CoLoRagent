@@ -1,5 +1,5 @@
 import unittest
-from Frontend.ColorMonitor import SendingWindow
+from Frontend.slideWindow import SendingWindow
 
 
 class MyTestCase(unittest.TestCase):
@@ -41,11 +41,11 @@ class MyTestCase(unittest.TestCase):
         for i in range(0xffff + 1):
             window.ack(i)
         res = window.send()
-        print(res)
+        self.assertEqual(res, [])
         res = window.send()
-        print(res)
+        self.assertEqual(res, [])
         res = window.send()
-        print(res)
+        self.assertEqual(res, [])
 
 
 if __name__ == '__main__':

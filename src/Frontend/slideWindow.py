@@ -51,7 +51,7 @@ class SendingWindow(SlideWindow):
     发送端滑动窗口
     """
 
-    def __init__(self, total_block: int, window_size: int = super().WINDOW_SIZE):
+    def __init__(self, total_block: int, window_size: int = SlideWindow.WINDOW_SIZE):
         super().__init__(total_block, window_size)
         # 超时重传相关
         self.timer = None
@@ -135,14 +135,14 @@ class ReceivingWindow(SlideWindow):
     """
     INT_MAX = 0xffff_ffff
 
-    def __init__(self, save_path: str, window_size: int = super().WINDOW_SIZE):
+    def __init__(self, save_path: str, window_size: int = SlideWindow.WINDOW_SIZE):
         super().__init__(self.INT_MAX, window_size)
         self.save_path = save_path
         self.file = open(save_path, 'wb')
         self.cache: dict[int, bytes] = {}
         self.ending = False
 
-    def receive(self, seq_num: int, data: bytes, last_segment: int = 0) -> (int, int):
+    def receive(self, seq_num: int, data: bytes, last_segment: int = 0) -> list[int, int]:
         """
         :param seq_num: 收到的数据包序号
         :param data: 收到的数据包数据
