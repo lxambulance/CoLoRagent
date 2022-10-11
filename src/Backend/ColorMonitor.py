@@ -15,7 +15,7 @@ import establishSecureSession as ESS
 
 from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
 from slideWindow import SendingWindow, ReceivingWindow
-from Frontend.b2fInterface import pktSignals
+from CoLoRagent.src.Frontend.bwfInterface import pktSignals
 
 
 # 文件传输相关全局变量

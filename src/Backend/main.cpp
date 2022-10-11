@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <resolvePacket.hpp>
 #include <sstream>
 #include <uvw.hpp>
 
@@ -190,6 +191,7 @@ void deleteMemif() {
     auto loop = uvw::Loop::getDefault();
     loop->walk(uvw::Overloaded{
         [](uvw::PollHandle &poll) { poll.close(); },
+        [](uvw::TCPHandle &client) { client.close(); },
         [](auto &&) { /* ignore all other types */ }});
     memif_connection_t *c = &memif_connection;
     if (c->rx_bufs) free(c->rx_bufs);
@@ -425,11 +427,50 @@ void connectColorProtocolStack() {
     c->seq = c->tx_err_counter = c->tx_counter = c->rx_counter = 0;
 }
 
-int main() {
-    spdlog::set_level(spdlog::level::debug);
+void addFrontendListener() {
     auto loop = uvw::Loop::getDefault();
-    connectColorProtocolStack();
+
+    auto tcp = loop->resource<uvw::TCPHandle>();
+    tcp->on<uvw::ListenEvent>([](const uvw::ListenEvent &, uvw::TCPHandle &srv) {
+        static int count = 0;
+        auto client = srv.loop().resource<uvw::TCPHandle>();
+        client->data(std::make_shared<int>(++count));
+        spdlog::debug("new frontend[{:d}] connection", count);
+        client->on<uvw::ErrorEvent>([](const uvw::ErrorEvent &, uvw::TCPHandle &client) {
+            spdlog::debug("frontend[{:d}] error close", *(client.data<int>()));
+            client.close();
+        });
+        client->on<uvw::EndEvent>([](const uvw::EndEvent &, uvw::TCPHandle &client) {
+            spdlog::debug("frontend[{:d}] close", *(client.data<int>()));
+            client.close();
+        });
+        client->on<uvw::DataEvent>([](const uvw::DataEvent &evt, uvw::TCPHandle &client) {
+            std::ostringstream s;
+            for (int i = 0; i < evt.length; ++i) s << evt.data[i];
+            spdlog::debug("receive frontend[{:d}] data:{:}", *(client.data<int>()), s.str());
+            uint32_t len=0;
+            char * ret=nullptr;
+            resolve_frontend_packet(evt, &ret, len);
+            client.write(std::move(std::unique_ptr<char[]>(ret)), len);
+        });
+        srv.accept(*client);
+        client->read();
+    });
+    tcp->bind("127.0.0.1", 50000);
+    tcp->listen();
+}
+
+int main() {
+    // set log
+    spdlog::set_level(spdlog::level::debug);
+
+    // set event handler
     addUserInput();
+    connectColorProtocolStack();
+    addFrontendListener();
+
+    // start main event loop
+    auto loop = uvw::Loop::getDefault();
     loop->run();
     return 0;
 }
