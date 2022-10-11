@@ -3,16 +3,15 @@
 
 
 import sys
-import time
-
 import qdarkstyle as qds
-import ColorMonitor as CM
-import establishSecureSession as ESS
-import MainWindow as mw
-from logInWindow import logInWindow
-
 from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import QApplication, QStyleFactory
+
+
+import Backend.ColorMonitor as CM
+import Backend.establishSecureSession as ESS
+import Frontend.MainWindow as mw
+from Frontend.logInWindow import logInWindow
 
 
 try:
