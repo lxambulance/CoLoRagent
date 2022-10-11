@@ -342,14 +342,14 @@ int on_interrupt(memif_conn_handle_t conn, void *private_ctx, uint16_t qid) {
             spdlog::debug("receive packet len = {:d}, data = ", (c->rx_bufs + i)->len);
             std::ostringstream s;
             int clen = (c->rx_bufs + i)->len;
-            unsigned char * ch = static_cast<unsigned char *>((c->rx_bufs + i)->data);
+            unsigned char *ch = static_cast<unsigned char *>((c->rx_bufs + i)->data);
             for (int k = 0; k < clen; ++k)
                 s << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)*(ch + k);
             spdlog::debug(s.str());
-            resolve_packet((void *)(c->rx_bufs + i)->data,
-                           (c->rx_bufs + i)->len,
-                           (void *)(c->tx_bufs + j)->data,
-                           &(c->tx_bufs + j)->len, c->ip_addr);
+            resolve_network_packet((void *)(c->rx_bufs + i)->data,
+                                   (c->rx_bufs + i)->len,
+                                   (void *)(c->tx_bufs + j)->data,
+                                   &(c->tx_bufs + j)->len, c->ip_addr);
             i++;
             j++;
             tx--;

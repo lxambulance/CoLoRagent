@@ -3,12 +3,8 @@
 
 import time
 import json
-import ProxyLib as PL
 import ColorMonitor as CM
-from ProxyLib import (
-    Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
-    SidAnn, Get, CacheSidUnits)
-from scapy.utils import randstring
+from ProxyLib import (Sha1Hash, AddCacheSidUnit, SidAnn, Get)
 from worker import worker
 import FileData as FD
 from serviceTable import serviceTableModel, progressBarDelegate
@@ -21,17 +17,14 @@ from mainPage import Ui_MainWindow
 import pyqtgraph as pg
 
 from PyQt5.QtGui import QIcon, QPalette
-from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction,
-                             QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog,
-                             QHeaderView, QTableWidgetItem, QVBoxLayout, QScrollArea, QWidget)
+from PyQt5.QtCore import QSize, QThreadPool, QTimer
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, QMessageBox, QTreeWidgetItem, QFileDialog, QHeaderView)
 
 import os
 import sys
 import time
 
-__BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))).replace('\\', '/')
+__BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
 sys.path.append(__BASE_DIR)
 HOME_DIR = __BASE_DIR + '/.tmp'
 DATA_PATH = __BASE_DIR + '/data.json'
@@ -42,7 +35,7 @@ LOG_PATH = HOME_DIR + f'/{starttime}.log'
 class MainWindow(QMainWindow, Ui_MainWindow):
     """ docstring: class MainWindow """
 
-    def __init__(self):
+    def __init__(self, mynid):
         super().__init__()
         self.setupUi(self)
 
@@ -70,8 +63,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.mapfromSIDtoItem = {}
         self.datapackets = []
 
-        # TODO: 在Get中写入Nid？
-        self.nid = f"{PL.Nid:032x}"
+        # 登录页面传递参数
+        self.nid = mynid
 
         # 设置表格头伸展方式
         self.dataPktReceive.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -543,7 +536,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def advancedRegItem(self, nowSelectItem):
         """ docstring: 高级通告（拉起额外线程处理，单体） """
-        if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
+        if nowSelectItem < 0 or nowSelectItem >= self.fd.rowCount():
             return
         filepath = self.fd.getData(nowSelectItem, 1)
         level = self.fd.getData(nowSelectItem, 5)

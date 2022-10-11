@@ -47,7 +47,7 @@ class CoLoRApp(QApplication):
         mw.DATA_PATH = self.loginwindow.configpath
         # print(f'before HOME_DIR{mw.HOME_DIR} DATA_PATH{mw.DATA_PATH}')
 
-        self.window = mw.MainWindow()
+        self.window = mw.MainWindow(self.loginwindow.myNID)
         ESS.ESSsignal.output.connect(self.window.handleMessageFromPkt)
         self.window.actionWindows.triggered.connect(self._setStyle)
         self.window.actionwindowsvista.triggered.connect(self._setStyle)
