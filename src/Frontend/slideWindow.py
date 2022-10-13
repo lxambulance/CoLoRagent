@@ -1,5 +1,7 @@
 import threading
 from collections.abc import Callable
+from typing import Tuple
+
 from bitmap import BitMap
 
 RTO = 1
@@ -35,9 +37,12 @@ class SlideWindow:
         self.cur_block += 1
 
     def add_right(self) -> None:
-        """ 窗口上界后移
-         在窗口缩小时不进行该操作以收缩窗口 """
-        while self.cur_window_size < self.window_size:
+        """
+        窗口上界后移
+        在窗口缩小时不进行该操作以收缩窗口
+        """
+        while self.cur_window_size < self.window_size \
+                and self.cur_block + self.cur_window_size < self.blocks:
             self.right += 1
             self.right &= self.MAX_COUNT
             self.cur_window_size += 1
@@ -63,13 +68,20 @@ class SendingWindow(SlideWindow):
         with self.__lock__:
             if isinstance(new_window_size, int):
                 self.window_size = new_window_size
-            self.bitmap.set(ack_num)
+            index = self.left & self.MAX_COUNT
+            while index != self.right:
+                if index == ack_num:
+                    if not self.bitmap.test(index):
+                        self.bitmap.set(index)
+                    break
+                index += 1
+                index &= self.MAX_COUNT
             while self.bitmap.test(self.left):
                 self.bitmap.reset(self.left)
                 self.add_left()
                 self.add_right()
 
-    def send(self, num=1):
+    def send(self, num=1) -> list[tuple[int, int]]:
         """
         :param num: 发送的数据包数量
         *尝试* 发送指定数量 (默认为 1 ) 的数据包
@@ -87,13 +99,13 @@ class SendingWindow(SlideWindow):
                 self.cur &= self.MAX_COUNT
             return res
 
-    def send_all(self) -> list:
+    def send_all(self) -> list[tuple[int, int]]:
         """
         尝试发送 *所有* 当前能发送的数据包
         """
         return self.send(self.cur_window_size)
 
-    def resend(self) -> list:
+    def resend(self) -> list[tuple[int, int]]:
         """
         获取所有未收到 ACK 的数据包列表
         """
@@ -116,17 +128,19 @@ class SendingWindow(SlideWindow):
         :param timeout: 超时时间
         更新超时重传定时器
         """
-        self.cancel_timer()
-        self.timer = threading.Timer(timeout, callback)
-        self.timer.start()
+        with self.__lock__:
+            self.cancel_timer()
+            self.timer = threading.Timer(timeout, callback)
+            self.timer.start()
 
     def cancel_timer(self):
         """
         取消超时重传定时器
         """
-        if isinstance(self.timer, threading.Timer):
-            self.timer.cancel()
-        self.timer = None
+        with self.__lock__:
+            if isinstance(self.timer, threading.Timer):
+                self.timer.cancel()
+            self.timer = None
 
 
 class ReceivingWindow(SlideWindow):
@@ -142,7 +156,7 @@ class ReceivingWindow(SlideWindow):
         self.cache: dict[int, bytes] = {}
         self.ending = False
 
-    def receive(self, seq_num: int, data: bytes, last_segment: int = 0) -> list[int, int]:
+    def receive(self, seq_num: int, data: bytes, last_segment: int = 0) -> tuple[int, int]:
         """
         :param seq_num: 收到的数据包序号
         :param data: 收到的数据包数据
@@ -150,17 +164,18 @@ class ReceivingWindow(SlideWindow):
         :return: (ACK 包序号, 接受包窗口大小)
         """
         with self.__lock__:
-            index = self.left
-            while index < self.right:
-                index &= self.MAX_COUNT
-                if not self.bitmap.test(index):
-                    self.cache[index] = data
-                    self.bitmap.set(index)
+            index = self.left & self.MAX_COUNT
+            while index != self.right:
+                if index == seq_num:
+                    if last_segment == 1:
+                        self.ending = True
+                        self.right = index
+                    if not self.bitmap.test(index):
+                        self.cache[index] = data
+                        self.bitmap.set(index)
                     break
-                if last_segment == 1 and index == seq_num:
-                    self.ending = True
-                    self.right = index
                 index += 1
+                index &= self.MAX_COUNT
             while self.bitmap.test(self.left):
                 self.cur_block += 1
                 # 文件落盘，清除缓存

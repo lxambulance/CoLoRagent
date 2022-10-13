@@ -27,12 +27,12 @@ class SendingSidField(IntEnum):
     NID_CUSTOMER = 3
     PIDS = 4
     ESS_FLAG = 5
-    SLIDE_WINDOW = 6
+    SENDING_WINDOW = 6
 
     INVALID = -1
 
 
-RecvingSid = {}  # 记录内容接收情况，key:SID，value:接收窗口
+RecvingSid = {}  # 记录内容接收情况，key: [SID, NID]，value:接收窗口
 WaitingACK = {}  # 流视频提供者记录ACK回复情况，key:NID（customer），value:连续未收到ACK个数
 RTO = 1  # 超时重传时间
 ESS.RTO = RTO
@@ -57,7 +57,6 @@ class pktSignals(QObject):
 
 class PktHandler(threading.Thread):
     """ docstring: 收包处理程序 """
-    packet = ''
 
     class DataFlag(IntEnum):
         ESS = 0x4
@@ -127,7 +126,7 @@ class PktHandler(threading.Thread):
             if cv2.waitKey(10) == 27:
                 # 视频提供者主动退出
                 Lock_WaitingACK.acquire()
-                if (NidCus in WaitingACK.keys()):
+                if NidCus in WaitingACK.keys():
                     WaitingACK.pop(NidCus)
                 Lock_WaitingACK.release()
                 cv2.destroyAllWindows()
@@ -160,13 +159,14 @@ class PktHandler(threading.Thread):
         data_len = len(data)
         data_flag = 0
 
+
         def send_packet(pkt_seg_id: int, pkt_chip_index: int):
             """
             发送单个数据包
             """
             end_flag = 0
             start = pkt_chip_index * chip_len
-            if pkt_chip_index + 1 == SendingSid[sid][SendingSidField.CHIP_NUM]:  # 最后一片
+            if pkt_chip_index + 1 == sending_sid[SendingSidField.CHIP_NUM]:  # 最后一片
                 text = data[start:]
                 end_flag = 1
             else:
@@ -184,25 +184,26 @@ class PktHandler(threading.Thread):
             会重发所有未收到 ACK 的数据包，并检查本次传输是否已经完成
             若已完成，则会将发送任务从 SendingSid 列表中移除
             """
-            for (r_seg_id, r_chip_index) in slide_window.resend():
+            for (r_seg_id, r_chip_index) in send_window.resend():
                 send_packet(r_seg_id, r_chip_index)
-            if slide_window.is_finish():
-                SendingSid.pop(sid)
+            if send_window.is_finish():
+                SendingSid.pop((sid, dst_nid))
 
         if ess_flag:
             sid_load_len -= 32
             data_flag |= self.DataFlag.ESS
-        if sid not in SendingSid:  # 新建 SendingSid 表项
+        if (sid, dst_nid) not in SendingSid:  # 新建 SendingSid 表项
             chip_num = math.ceil(data_len / sid_load_len)
             chip_len = min(sid_load_len, data_len)
-            SendingSid[sid] = \
+            SendingSid[(sid, dst_nid)] = \
                 [chip_num, chip_len, 1, dst_nid, pids, ess_flag, SendingWindow(chip_num)]
             #    分片数量  分片长度  下一片  目的NID PID 加密 滑动窗口
-        slide_window: SendingWindow = SendingSid[sid][SendingSidField.SLIDE_WINDOW]
-        chip_len = SendingSid[sid][SendingSidField.CHIP_LENGTH]
-        for (seg_id, chip_index) in slide_window.send_all():
+        sending_sid = SendingSid[(sid, dst_nid)]
+        send_window: SendingWindow = sending_sid[SendingSidField.SENDING_WINDOW]
+        chip_len = sending_sid[SendingSidField.CHIP_LENGTH]
+        for (seg_id, chip_index) in send_window.send_all():
             send_packet(seg_id, chip_index)
-        slide_window.update_timer(resend)
+        send_window.update_timer(resend)
 
     def run(self):
         # self.packet.show()
@@ -266,7 +267,7 @@ class PktHandler(threading.Thread):
                     # 按最大长度减去IP报文和DATA报文头长度(QoS暂默认最长为1字节)，预留位占4字节，数据传输结束标志位位于负载内占1字节
                     # SidLoadLength = NewGetPkt.MTU-60-86-(4*len(PIDs)) - 4 - 1
                     SidLoadLength = 1200  # 仅在报文不经过RM的点对点调试用
-                    ReturnIP = ''
+                    ReturnIP: str
                     if len(PIDs) == 0:
                         # 域内请求
                         if NidCus in PL.PeerProxys.keys():
@@ -295,17 +296,11 @@ class PktHandler(threading.Thread):
                             ESS.gotoNextStatus(
                                 NidCus, NewSid, pids=PIDs, ip=ReturnIP, randomnum=randomnum)
                             return
-                        elif SidPath == 3:
-                            pass
-                        # ## DEPRECATED ##
-                        # # 数据库查询服务
-                        elif SidPath == 4:
-                            pass
-                        # ## DEPRECATED ##
-                        # # 数据库查询服务
-                    else:
-                        Data = PL.ConvertFile(SidPath)
-                    DataLength = len(Data)
+                        else:
+                            # 未知的特殊内容
+                            return
+                    # 非特殊内容
+                    Data = PL.ConvertFile(SidPath)
                     # 特定密集文件，开启加密传输
                     ESSflag = ESS.checkSession(NidCus, NewSid)
                     if int(SidUnitLevel) > 5:
@@ -382,12 +377,13 @@ class PktHandler(threading.Thread):
                                     stringData = zlib.decompress(stringData)
                                     # 将获取到的字符流数据转换成1维数组
                                     data = np.frombuffer(stringData, np.uint8)
-                                    decimg = cv2.imdecode(
-                                        data, cv2.IMREAD_COLOR)  # 将数组解码成图像
+                                    # 将数组解码成图像
+                                    decimg = cv2.imdecode(data, cv2.IMREAD_COLOR)
                                     pops = []
                                     for frame in VideoCache.keys():
-                                        if frame == FrameCount or frame == ((FrameCount - 1) % (1 << 16)) or frame == (
-                                                (FrameCount - 2) % (1 << 16)):
+                                        if frame == FrameCount \
+                                                or frame == ((FrameCount - 1) % (1 << 16)) \
+                                                or frame == ((FrameCount - 2) % (1 << 16)):
                                             pops.append(frame)
                                     for frame in pops:
                                         VideoCache.pop(frame)
@@ -423,13 +419,13 @@ class PktHandler(threading.Thread):
                                 if FrameCount not in VideoCache.keys():
                                     VideoCache[FrameCount] = {}
                                 VideoCache[FrameCount][ChipCount] = RecvDataPkt.load[1:]
-                                MergeFlag[FrameCount] = ChipCount + \
-                                                        1 if (RecvDataPkt.load[0] == 1) else 0
+                                MergeFlag[FrameCount] = ChipCount + 1 if (RecvDataPkt.load[0] == 1) else 0
                                 # 重置缓冲区
                                 pops = []
                                 for frame in VideoCache.keys():
-                                    if frame != NewMax and frame != ((NewMax - 1) % (1 << 16)) and frame != (
-                                            (NewMax - 2) % (1 << 16)):
+                                    if frame != NewMax \
+                                            and frame != ((NewMax - 1) % (1 << 16)) \
+                                            and frame != ((NewMax - 2) % (1 << 16)):
                                         pops.append(frame)
                                 for frame in pops:
                                     VideoCache.pop(frame)
@@ -444,14 +440,15 @@ class PktHandler(threading.Thread):
                                     RecvDataPkt.nid_pro, NewSid, loads=RecvDataPkt.load)
                             else:
                                 ESS.newSession(RecvDataPkt.nid_pro, NewSid,
-                                               RecvDataPkt.PIDs[1:][::-
-                                               1], ReturnIP,
+                                               RecvDataPkt.PIDs[1:][::-1], ReturnIP,
                                                flag=False, loads=RecvDataPkt.load, pkt=RecvDataPkt)
                         # 定长数据（包括普通文件，数据库查询结果等） TODO: 可能需要加同步锁
                         elif NewSid not in RecvingSid.keys():
                             # 新内容
+                            single_pkt = False
                             if (RecvDataPkt.load[0] & 1) == 1:
                                 # 使用一个data包完成传输
+                                single_pkt = True
                                 PL.Lock_gets.acquire()
                                 PL.gets.pop(NewSid)  # 传输完成
                                 PL.Lock_gets.release()
@@ -470,7 +467,7 @@ class PktHandler(threading.Thread):
                                 # DataBase Operations
                             else:
                                 # TODO: 按 SegID 进行存储
-                                if (RecvDataPkt.load[0] & 1) == 1:
+                                if single_pkt:
                                     PL.ConvertByte(text, SavePath)  # 存储数据
                                 else:
                                     recv_window: ReceivingWindow = RecvingSid[NewSid]
@@ -496,8 +493,8 @@ class PktHandler(threading.Thread):
                             else:
                                 return
                         # 返回ACK TODO: 根据 ReceivingWindow.receive 结果返回 ACK
-                        ack_num = RecvDataPkt.SegID & 0xffff
-                        wnd_size = SendingWindow.WINDOW_SIZE & 0xffff
+                        ack_num = RecvDataPkt.SegID & SendingWindow.MAX_COUNT
+                        wnd_size = SendingWindow.WINDOW_SIZE & SendingWindow.MAX_COUNT
                         new_seg_id = wnd_size << 0x10 | ack_num
                         NewDataPkt = PL.DataPkt(
                             1, 1, 0, 0, NewSid, nid_pro=RecvDataPkt.nid_pro, SegID=new_seg_id,
@@ -518,15 +515,15 @@ class PktHandler(threading.Thread):
                         # 回应加密握手包
                         if ESS.checkSession(RecvDataPkt.nid_cus, NewSid) or RecvDataPkt.SegID == 3:
                             ESS.gotoNextStatus(
-                                RecvDataPkt.nid_cus, NewSid, SegID=RecvDataPkt.SegID)
-                        if (NewSid not in SendingSid.keys()) or (RecvDataPkt.SegID != SendingSid[NewSid][2] - 1):
+                                NidCus, NewSid, SegID=RecvDataPkt.SegID)
+                        if (NewSid, NidCus) not in SendingSid.keys():
                             return
                         # 定长数据（包括普通文件，数据库查询结果等） TODO: 添加滑动窗口相关内容
-                        slide_window = SendingSid[NewSid][SendingSidField.SLIDE_WINDOW]
+                        sendingSid = SendingSid[(NewSid, NidCus)]
+                        send_window: SendingWindow = sendingSid[SendingSidField.SENDING_WINDOW]
                         # 滑动窗口收到 ACK 消息
-                        slide_window.ack(RecvDataPkt.SegID & SendingWindow.WINDOW_SIZE)
-                        PIDs = SendingSid[NewSid][SendingSidField.PIDS]
-                        NidCus = SendingSid[NewSid][SendingSidField.NID_CUSTOMER]
+                        send_window.ack(RecvDataPkt.SegID & SendingWindow.MAX_COUNT)
+                        PIDs = sendingSid[SendingSidField.PIDS]
                         PL.Lock_AnnSidUnits.acquire()
                         SidPath = PL.AnnSidUnits[NewSid].path
                         PL.Lock_AnnSidUnits.release()
@@ -540,7 +537,7 @@ class PktHandler(threading.Thread):
                                 self.signals.output(
                                     "未知的NID：" + hex(NidCus).replace('0x', '').zfill(32))
                         else:
-                            PX = SendingSid[NewSid][4][-1] >> 16
+                            PX = PIDs[-1] >> 16
                             if PX in PL.PXs.keys():
                                 ReturnIP = PL.PXs[PX]
                             else:
@@ -548,7 +545,7 @@ class PktHandler(threading.Thread):
                                     "未知的PX：" + hex(PX).replace('0x', '').zfill(4))
                         self.send_block_packets(data=Data, sid=NewSid, dst_ip=ReturnIP,
                                                 dst_nid=NidCus, pids=PIDs,
-                                                ess_flag=SendingSid[NewSid][SendingSidField.ESS_FLAG])
+                                                ess_flag=sendingSid[SendingSidField.ESS_FLAG])
                 elif data[0] == 0x74:
                     # 收到网络中的control报文
                     # 校验和检验
@@ -581,7 +578,7 @@ class PktHandler(threading.Thread):
                         tmps += f"泄露DATA包的目的NID:\n{NewCtrlPkt.CusNid:032x}\n"
                         tmps += f"泄露DATA包的PID序列:\n{path_str}\n"
                         self.signals.output.emit(2, tmps)
-                    elif (NewCtrlPkt.tag == 18):
+                    elif NewCtrlPkt.tag == 18:
                         # 外部攻击警告
                         tmps = "告警BR所属NID: " + \
                                f"{NewCtrlPkt.BRNid:032x}" + '\n'
@@ -636,7 +633,7 @@ class video_customer(threading.Thread):
                     k = cv2.waitKey(10) & 0xff
                     if k == 27:
                         PL.Lock_gets.acquire()
-                        if (sid in PL.gets.keys()):
+                        if sid in PL.gets.keys():
                             PL.gets.pop(sid)
                             cv2.destroyAllWindows()
                         PL.Lock_gets.release()
