@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import threading
 from collections.abc import Callable
-from typing import Tuple
 
 from bitmap import BitMap
 
@@ -137,10 +138,9 @@ class SendingWindow(SlideWindow):
         """
         取消超时重传定时器
         """
-        with self.__lock__:
-            if isinstance(self.timer, threading.Timer):
-                self.timer.cancel()
-            self.timer = None
+        if isinstance(self.timer, threading.Timer):
+            self.timer.cancel()
+        self.timer = None
 
 
 class ReceivingWindow(SlideWindow):
@@ -169,7 +169,7 @@ class ReceivingWindow(SlideWindow):
                 if index == seq_num:
                     if last_segment == 1:
                         self.ending = True
-                        self.right = index
+                        self.right = index + 1
                     if not self.bitmap.test(index):
                         self.cache[index] = data
                         self.bitmap.set(index)
@@ -196,6 +196,7 @@ class ReceivingWindow(SlideWindow):
         """
         释放缓存，关闭文件
         """
-        self.cache.clear()
-        self.cache = None
-        self.file.close()
+        with self.__lock__:
+            self.cache.clear()
+            self.cache = None
+            self.file.close()
