@@ -1,14 +1,12 @@
 # coding=utf-8
 """ docstring: CoLoR Pan主页 """
-
-import time
+import subprocess
 import json
 import ProxyLib as PL
 import ColorMonitor as CM
 from ProxyLib import (
-    Sha1Hash, AddCacheSidUnit, DeleteCacheSidUnit,
-    SidAnn, Get, CacheSidUnits)
-from scapy.utils import randstring
+    Sha1Hash, AddCacheSidUnit, SidAnn, Get
+)
 from worker import worker
 import FileData as FD
 from serviceTable import serviceTableModel, progressBarDelegate
@@ -21,10 +19,12 @@ from mainPage import Ui_MainWindow
 import pyqtgraph as pg
 
 from PyQt5.QtGui import QIcon, QPalette
-from PyQt5.QtCore import QSize, QThreadPool, qrand, QTimer
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction,
-                             QMessageBox, QStyleFactory, QTreeWidgetItem, QFileDialog,
-                             QHeaderView, QTableWidgetItem, QVBoxLayout, QScrollArea, QWidget)
+from PyQt5.QtCore import QSize, QThreadPool, QTimer
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QAction,
+    QMessageBox, QTreeWidgetItem, QFileDialog,
+    QHeaderView
+)
 
 import os
 import sys
@@ -78,8 +78,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.dataPktReceive.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
 
         # 设置速度图线格式
-        self.speed_x = [x*5 for x in range(20)]
-        self.speed_y = [0]*20
+        self.speed_x = [x * 5 for x in range(20)]
+        self.speed_y = [0] * 20
         self.totalsize = 0
         speedpen = pg.mkPen(color=(255, 0, 0))
         color = self.palette().color(QPalette.Background).name()
@@ -260,7 +260,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.speed_x = self.speed_x[1:]
         self.speed_x.append(self.speed_x[-1] + 1)
         self.speed_y = self.speed_y[1:]
-        self.speed_y.append(self.totalsize/1000)
+        self.speed_y.append(self.totalsize / 1000)
         if self.totalsize:
             self.logWidget.addLog(
                 "<统计> 收包大小", f"Size = {self.totalsize} 字节", True)
@@ -268,7 +268,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         speed_max = 0
         for i in range(len(self.speed_y)):
             speed_max = max(speed_max, self.speed_y[i])
-        speed_max = (speed_max // 10 + 1)*10
+        speed_max = (speed_max // 10 + 1) * 10
         self.speedGraph.setYRange(0, speed_max)
         self.speed_line.setData(self.speed_x, self.speed_y)
         # 测试拖动条效果
@@ -293,32 +293,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             paths.reverse()
         else:
             name = '<Control> packet'
-        item = self.mapfromSIDtoItem.get(name+SID, None)
+        item = self.mapfromSIDtoItem.get(name + SID, None)
         if not item:
             # 该SID下第一个包，建立顶层节点topItem
             self.datapackets.append(QTreeWidgetItem(None, [name, "0", SID]))
             self.dataPktReceive.addTopLevelItem(self.datapackets[-1])
-            self.mapfromSIDtoItem[name+SID] = self.datapackets[-1]
+            self.mapfromSIDtoItem[name + SID] = self.datapackets[-1]
             item = self.datapackets[-1]
         path_str = '-'.join(map(lambda x: f"<{x:08x}>", paths))
         if (type & 0xff) == 0x72:
             item.addChild(QTreeWidgetItem(
-                [f"来源nid={nid}", str(size), "PIDs="+path_str]))
+                [f"来源nid={nid}", str(size), "PIDs=" + path_str]))
             self.graphicwindow.graphics_global.setMatchedPIDs(
                 path_str, flag=False, size=size)
             self.graphicwindow.graphics_global.getASid(path_str, False, size)
         elif (type & 0xff) == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem(
-                [f"包片段{num+1}", str(size), "PIDs="+path_str]))
+                [f"包片段{num + 1}", str(size), "PIDs=" + path_str]))
             self.graphicwindow.graphics_global.setMatchedPIDs(
                 path_str, flag=False, pkttype=1, size=size)
             self.graphicwindow.graphics_global.getASid(path_str, True, size)
         else:
             num = item.childCount()
-            item.addChild(QTreeWidgetItem([f"包片段{num+1}", str(size), ""]))
+            item.addChild(QTreeWidgetItem([f"包片段{num + 1}", str(size), ""]))
         totsize = int(item.text(1))
-        item.setText(1, str(totsize+size))
+        item.setText(1, str(totsize + size))
         self.totalsize += size  # 统计总收包大小，speedline需要使用
 
     def showMatchedPIDs(self, item, column):
@@ -414,10 +414,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if os.path.isfile(item_str):
                     item = item_str.replace('\\', '/')
                     pos = item.rfind('/')
-                    self.fd.addItem(filename=item[pos+1:], filepath=item)
-                    self.graphicwindow.chooseFile.addItem(item[pos+1:])
+                    self.fd.addItem(filename=item[pos + 1:], filepath=item)
+                    self.graphicwindow.chooseFile.addItem(item[pos + 1:])
                     # 添加log记录
-                    self.logWidget.addLog("<添加> 文件或服务", item[pos+1:], True)
+                    self.logWidget.addLog("<添加> 文件或服务", item[pos + 1:], True)
                 elif os.path.isdir(item_str):
                     # TODO: 支持文件夹
                     pass
@@ -431,12 +431,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def calcHashRet(self, row):
         """ docstring: 计算hash并更新视图（这是一个返回函数的函数） """
+
         def result(s):
             s = self.nid + s
             # print(s)
             self.fd.setData(row, 2, s)
             a = self.tablemodel.createIndex(row, 2)
             self.tablemodel.dataChanged.emit(a, a)
+
         return result
 
     def delItem(self):
@@ -503,7 +505,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             wait_list.append(SID)
             filepath = self.fd.getData(item, 1)
             Get(SID, filepath)
-            progress_callback.emit(round(now*100/total))
+            progress_callback.emit(round(now * 100 / total))
             # 添加log记录
             message_callback.emit(
                 '<下载> 文件', f'file {self.fd.getData(item, 0)}\n')
@@ -543,7 +545,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def advancedRegItem(self, nowSelectItem):
         """ docstring: 高级通告（拉起额外线程处理，单体） """
-        if nowSelectItem<0 or nowSelectItem>=self.fd.rowCount():
+        if nowSelectItem < 0 or nowSelectItem >= self.fd.rowCount():
             return
         filepath = self.fd.getData(nowSelectItem, 1)
         level = self.fd.getData(nowSelectItem, 5)
@@ -574,7 +576,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 continue
             filepath = self.fd.getData(item, 1)
             AddCacheSidUnit(filepath, 1, 1, 1, 1)
-            progress_callback.emit(round(now*20/total))
+            progress_callback.emit(round(now * 20 / total))
             # 添加log记录
             message_callback.emit(
                 '<注册> 文件或服务', f'file {self.fd.getData(item, 0)}\n')
@@ -609,7 +611,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 continue
             filepath = self.fd.getData(item, 1)
             AddCacheSidUnit(filepath, 3, 1, 1, 1)
-            progress_callback.emit(round(now*20/total + 80))
+            progress_callback.emit(round(now * 20 / total + 80))
             # 添加log记录
             message_callback.emit(
                 '<取消注册> 文件或服务', f'file {self.fd.getData(item, 0)}\n')
@@ -618,10 +620,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def updateProgress(self, row, column):
         """ docstring: 进度条刷新显示函数（返回函数） """
+
         def main(value):
             self.fd.setData(row, column, value)
             a = self.tablemodel.createIndex(row, column)
             self.tablemodel.dataChanged.emit(a, a)
+
         return main
 
     def switchView(self):
@@ -645,7 +649,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def openHub(self):
         """ docstring: 打开本地仓库 """
-        openhubworker = worker(0, os.startfile, HOME_DIR)
+        if sys.platform == "win32":
+            openhubworker = worker(0, os.startfile, HOME_DIR)
+        else:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            openhubworker = worker(0, subprocess.call, [opener, HOME_DIR])
         self.threadpool.start(openhubworker)
 
     def openFolder(self):
@@ -664,7 +672,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.setStatus('文件不存在')
             return
         filepath = tmp[:tmp.rfind('/')]
-        openfolderworker = worker(0, os.startfile, filepath)
+        if sys.platform == "win32":
+            openfolderworker = worker(0, os.startfile, filepath)
+        else:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            openfolderworker = worker(0, subprocess.call, [opener, filepath])
         openfolderworker.signals.finished.connect(
             lambda: self.setStatus('文件已打开'))
         self.threadpool.start(openfolderworker)
