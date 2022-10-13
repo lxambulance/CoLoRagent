@@ -15,33 +15,9 @@
  *------------------------------------------------------------------
  */
 
-#include <arpa/inet.h>
-#include <asm/byteorder.h>
-#include <assert.h>
-#include <byteswap.h>
-#include <fcntl.h>
-#include <icmp_proto.h>
-#include <inttypes.h>
-#include <linux/icmp.h>
-#include <linux/ip.h>
-#include <net/if.h>
-#include <net/if_arp.h>
-#include <netdb.h>
-#include <netinet/if_ether.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <sys/prctl.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <sys/un.h>
+#include "icmp_proto.h"
 
-static uint16_t
-cksum(void *addr, ssize_t len) {
+uint16_t cksum(void *addr, ssize_t len) {
     char *data = (char *)addr;
 
     uint32_t acc = 0xffff;
@@ -99,8 +75,7 @@ int print_packet(void *pck) {
     return 0;
 }
 
-static ssize_t
-resolve_arp(void *arp) {
+ssize_t resolve_arp(void *arp) {
     struct arphdr *resp = (struct arphdr *)arp;
 
     resp->ar_hrd = __bswap_16(ARPHRD_ETHER);
@@ -115,8 +90,7 @@ resolve_arp(void *arp) {
     return sizeof(struct arphdr);
 }
 
-static ssize_t
-resolve_eth_arp(struct ether_arp *eth_arp, void *eth_arp_resp,
+ssize_t resolve_eth_arp(struct ether_arp *eth_arp, void *eth_arp_resp,
                 uint8_t ip_addr[4]) {
     struct ether_arp *resp = (struct ether_arp *)eth_arp_resp;
 
@@ -137,8 +111,7 @@ resolve_eth_arp(struct ether_arp *eth_arp, void *eth_arp_resp,
     return sizeof(struct ether_arp);
 }
 
-static ssize_t
-resolve_eth(struct ether_header *eth, void *eth_resp) {
+ssize_t resolve_eth(struct ether_header *eth, void *eth_resp) {
     struct ether_header *resp = (struct ether_header *)eth_resp;
     memcpy(resp->ether_dhost, eth->ether_shost, 6);
 
@@ -154,8 +127,7 @@ resolve_eth(struct ether_header *eth, void *eth_resp) {
     return sizeof(struct ether_header);
 }
 
-static ssize_t
-resolve_ip(struct iphdr *ip, void *ip_resp, uint8_t ip_addr[4]) {
+ssize_t resolve_ip(struct iphdr *ip, void *ip_resp, uint8_t ip_addr[4]) {
     struct iphdr *resp = (struct iphdr *)ip_resp;
     resp->ihl = 5;
     resp->version = 4;
@@ -177,8 +149,7 @@ resolve_ip(struct iphdr *ip, void *ip_resp, uint8_t ip_addr[4]) {
     return sizeof(struct iphdr);
 }
 
-static ssize_t
-resolve_icmp(struct icmphdr *icmp, void *icmp_resp) {
+ssize_t resolve_icmp(struct icmphdr *icmp, void *icmp_resp) {
     struct icmphdr *resp = (struct icmphdr *)icmp_resp;
     resp->type = 0x00;
     resp->code = 0;
@@ -242,8 +213,7 @@ int resolve_packet(void *in_pck, ssize_t in_size,
     return 0;
 }
 
-static ssize_t
-generate_eth(struct ether_header *eh, uint8_t hw_daddr[6]) {
+ssize_t generate_eth(struct ether_header *eh, uint8_t hw_daddr[6]) {
     uint8_t hw_addr[6];
     int i;
     for (i = 0; i < 6; i++) {
@@ -257,8 +227,7 @@ generate_eth(struct ether_header *eh, uint8_t hw_daddr[6]) {
     return sizeof(struct ether_header);
 }
 
-static ssize_t
-generate_ip(struct iphdr *ip, uint8_t saddr[4], uint8_t daddr[4]) {
+ssize_t generate_ip(struct iphdr *ip, uint8_t saddr[4], uint8_t daddr[4]) {
     ip->ihl = 5;
     ip->version = 4;
     ip->tos = 0;
@@ -284,8 +253,7 @@ generate_ip(struct iphdr *ip, uint8_t saddr[4], uint8_t daddr[4]) {
     return sizeof(struct iphdr);
 }
 
-static ssize_t
-generate_icmp(struct icmphdr *icmp, uint32_t seq) {
+ssize_t generate_icmp(struct icmphdr *icmp, uint32_t seq) {
     icmp->type = ICMP_ECHO;
     icmp->code = 0;
     icmp->un.echo.id = 0;

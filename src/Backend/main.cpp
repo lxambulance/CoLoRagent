@@ -30,6 +30,7 @@ extern "C" {
 char APP_NAME[16] = "colorBackend";
 #define IF_NAME "colorMemif"
 #define SOCKET_NAME "/run/vpp/memif.sock"
+#define PIPE_FILE "/home/lxambulance/Documents/log.pipe"
 #define ICMPR_HEADROOM 64
 #define MAX_MEMIF_BUFS 256
 
@@ -38,12 +39,12 @@ struct memif_connection_t {
     /* memif connection handle */
     memif_conn_handle_t conn;
     /* tx buffers */
-    memif_buffer_t *tx_bufs;
+    memif_buffer_t* tx_bufs;
     /* allocated tx buffers counter */
     /* number of tx buffers pointing to shared memory */
     uint16_t tx_buf_num;
     /* rx buffers */
-    memif_buffer_t *rx_bufs;
+    memif_buffer_t* rx_bufs;
     /* allocated rx buffers counter */
     /* number of rx buffers pointing to shared memory */
     uint16_t rx_buf_num;
@@ -85,8 +86,8 @@ static void printDetails() {
     spdlog::info("{:=<30}", "");
     memif_details_t md;
     ssize_t buflen = 2048;
-    char *buf = (char *)malloc(buflen);
-    memif_connection_t *c = &memif_connection;
+    char* buf = (char*)malloc(buflen);
+    memif_connection_t* c = &memif_connection;
     memset(&md, 0, sizeof(md));
     memset(buf, 0, buflen);
     int err = memif_get_details(c->conn, &md, buf, buflen);
@@ -97,14 +98,14 @@ static void printDetails() {
     }
     spdlog::info("interface index: {:d}", c->index);
     spdlog::info("\tinterface ip: {:d}.{:d}.{:d}.{:d}", c->ip_addr[0], c->ip_addr[1], c->ip_addr[2], c->ip_addr[3]);
-    spdlog::info("\tinterface name: {:s}", (char *)md.if_name);
-    spdlog::info("\tapp name: {:s}", (char *)md.inst_name);
-    spdlog::info("\tremote interface name: {:s}", (char *)md.remote_if_name);
-    spdlog::info("\tremote app name: {:s}", (char *)md.remote_inst_name);
+    spdlog::info("\tinterface name: {:s}", (char*)md.if_name);
+    spdlog::info("\tapp name: {:s}", (char*)md.inst_name);
+    spdlog::info("\tremote interface name: {:s}", (char*)md.remote_if_name);
+    spdlog::info("\tremote app name: {:s}", (char*)md.remote_inst_name);
     spdlog::info("\tid: {:d}", md.id);
     std::ostringstream s;
     s.str(""), s.clear();
-    s << "\tsecret: " << (char *)md.secret;
+    s << "\tsecret: " << (char*)md.secret;
     spdlog::info(s.str());
     s.str(""), s.clear();
     s << "\trole: ";
@@ -116,21 +117,21 @@ static void printDetails() {
     s.str(""), s.clear();
     s << "\tmode: ";
     switch (md.mode) {
-        case 0:
-            s << "ethernet";
-            break;
-        case 1:
-            s << "ip";
-            break;
-        case 2:
-            s << "punt/inject";
-            break;
-        default:
-            s << "unknown";
-            break;
+    case 0:
+        s << "ethernet";
+        break;
+    case 1:
+        s << "ip";
+        break;
+    case 2:
+        s << "punt/inject";
+        break;
+    default:
+        s << "unknown";
+        break;
     }
     spdlog::info(s.str());
-    spdlog::info("\tsocket filename: {:s}", (char *)md.socket_filename);
+    spdlog::info("\tsocket filename: {:s}", (char*)md.socket_filename);
     spdlog::info("\trx queues:");
     for (int e = 0; e < md.rx_queues_num; e++) {
         spdlog::info("\t\tqueue id: {:d}", md.rx_queues[e].qid);
@@ -165,7 +166,7 @@ static void printDetails() {
 
 void printCounters() {
     spdlog::info("show counters");
-    memif_connection_t *c = &memif_connection;
+    memif_connection_t* c = &memif_connection;
     if (c->conn == NULL) return;
     spdlog::info("{:=<30}", "");
     spdlog::info("interface index: {:d}", c->index);
@@ -177,7 +178,7 @@ void printCounters() {
 
 void clearCounters() {
     spdlog::debug("clear counters");
-    memif_connection_t *c = &memif_connection;
+    memif_connection_t* c = &memif_connection;
     if (c->conn == NULL) return;
     c->t_sec = c->t_nsec = c->tx_err_counter = c->tx_counter = c->rx_counter = 0;
 }
@@ -190,10 +191,11 @@ void deleteMemif() {
     spdlog::debug("delete memif");
     auto loop = uvw::Loop::getDefault();
     loop->walk(uvw::Overloaded{
-        [](uvw::PollHandle &poll) { poll.close(); },
-        [](uvw::TCPHandle &client) { client.close(); },
-        [](auto &&) { /* ignore all other types */ }});
-    memif_connection_t *c = &memif_connection;
+        [](uvw::PollHandle& poll) { poll.close(); },
+        [](uvw::TCPHandle& client) { client.close(); },
+        [](uvw::PipeHandle& pipe) { pipe.close(); },
+        [](auto&&) { /* ignore all other types */ } });
+    memif_connection_t* c = &memif_connection;
     if (c->rx_bufs) free(c->rx_bufs);
     if (c->tx_bufs) free(c->tx_bufs);
     c->rx_bufs = c->tx_bufs = NULL;
@@ -209,28 +211,34 @@ void addUserInput() {
     auto loop = uvw::Loop::getDefault();
     // 注册终端读事件到主循环
     auto tty = loop->resource<uvw::TTYHandle>(uvw::StdIN, true);
-    tty->on<uvw::DataEvent>([](uvw::DataEvent &evt, uvw::TTYHandle &tty) {
+    tty->on<uvw::DataEvent>([](uvw::DataEvent& evt, uvw::TTYHandle& tty) {
         if (evt.length == 1 && evt.data[0] == '\n') return;
         evt.data[evt.length - 1] = 0;
         spdlog::debug("user input size={:d} data=\"{:s}\"", evt.length - 1, evt.data.get());
-        char *ui = evt.data.get(), *end = nullptr;
+        char* ui = evt.data.get(), * end = nullptr;
         if (strncmp(ui, "quit", 4) == 0 || evt.length == 2 && strncmp(ui, "q", 1) == 0) {
             deleteMemif();
             tty.close();
-        } else if (strncmp(ui, "help", 4) == 0) {
+        }
+        else if (strncmp(ui, "help", 4) == 0) {
             printHelp();
-        } else if (strncmp(ui, "show", 4) == 0) {
+        }
+        else if (strncmp(ui, "show", 4) == 0) {
             printDetails();
-        } else if (strncmp(ui, "sh-count", 8) == 0) {
+        }
+        else if (strncmp(ui, "sh-count", 8) == 0) {
             printCounters();
-        } else if (strncmp(ui, "cl-count", 8) == 0) {
+        }
+        else if (strncmp(ui, "cl-count", 8) == 0) {
             clearCounters();
-        } else if (strncmp(ui, "send", 4) == 0) {
+        }
+        else if (strncmp(ui, "send", 4) == 0) {
             sendICMPRep();
-        } else {
+        }
+        else {
             spdlog::info("unknown command: {:s}", evt.data.get());
         }
-    });
+        });
     tty->read();
 }
 
@@ -243,20 +251,20 @@ int add_uv_fd(int fd, uint32_t events) {
     auto loop = uvw::Loop::getDefault();
     auto poll = loop->resource<uvw::PollHandle>(fd);
     poll->data(std::make_shared<int>(fd));  // 自定义方式保存fd，上面那个取不出来。
-    poll->on<uvw::PollEvent>([nowfd = fd](uvw::PollEvent &evt, uvw::PollHandle &poll) {
+    poll->on<uvw::PollEvent>([nowfd = fd](uvw::PollEvent& evt, uvw::PollHandle& poll) {
         uint32_t events = 0;
         if (evt.flags & uvw::PollHandle::Event::READABLE) events |= MEMIF_FD_EVENT_READ;
         if (evt.flags & uvw::PollHandle::Event::WRITABLE) events |= MEMIF_FD_EVENT_WRITE;
         int memif_err = memif_control_fd_handler(nowfd, events);
         if (memif_err != MEMIF_ERR_SUCCESS)
             spdlog::error("memif_control_fd_handler: {:s} fd = {:d}", memif_strerror(memif_err), nowfd);
-    });
-    poll->on<uvw::ErrorEvent>([nowfd = fd](uvw::ErrorEvent &evt, uvw::PollHandle &poll) {
+        });
+    poll->on<uvw::ErrorEvent>([nowfd = fd](uvw::ErrorEvent& evt, uvw::PollHandle& poll) {
         uint32_t events = MEMIF_FD_EVENT_ERROR;
         int memif_err = memif_control_fd_handler(nowfd, events);
         if (memif_err != MEMIF_ERR_SUCCESS)
             spdlog::error("memif_control_fd_handler: {:s} fd = {:d}", memif_strerror(memif_err), nowfd);
-    });
+        });
     uvw::Flags<uvw::PollHandle::Event> flags;
     if (events & UV_READABLE) flags = flags | uvw::PollHandle::Event::READABLE;
     if (events & UV_WRITABLE) flags = flags | uvw::PollHandle::Event::WRITABLE;
@@ -269,11 +277,11 @@ int del_uv_fd(int fd) {
     spdlog::debug("del fd={:d}", fd);
     auto loop = uvw::Loop::getDefault();
     loop->walk(uvw::Overloaded{
-        [nowfd = fd](uvw::PollHandle &poll) {
+        [nowfd = fd](uvw::PollHandle& poll) {
             std::shared_ptr<int> pdata = poll.data<int>();
             if (*pdata == nowfd) poll.close();
         },
-        [](auto &&) { /* ignore all other types */ }});
+        [](auto&&) { /* ignore all other types */ } });
     return 0;
 }
 
@@ -281,7 +289,7 @@ int mod_uv_fd(int fd, uint32_t events) {
     spdlog::debug("mod fd={:d} evt={:d}", fd, events);
     auto loop = uvw::Loop::getDefault();
     loop->walk(uvw::Overloaded{
-        [nowfd = fd, evts = events](uvw::PollHandle &poll) {
+        [nowfd = fd, evts = events](uvw::PollHandle& poll) {
             std::shared_ptr<int> pdata = poll.data<int>();
             if (*pdata == nowfd) {
                 poll.stop();
@@ -291,14 +299,14 @@ int mod_uv_fd(int fd, uint32_t events) {
                 poll.start(flags);
             }
         },
-        [](auto &&) { /* ignore all other types */ }});
+        [](auto&&) { /* ignore all other types */ } });
 
     return 0;
 }
 
 /* user needs to watch new fd or stop watching fd that is about to be closed.
     control fd will be modified during connection establishment to minimize CPU usage */
-int control_fd_update(int fd, uint8_t events, void *ctx) {
+int control_fd_update(int fd, uint8_t events, void* ctx) {
     spdlog::debug("control_fd_update fd={:d} evt={:d}", fd, events);
     if (events & MEMIF_FD_EVENT_DEL) return del_uv_fd(fd);
     uint32_t evt = 0;
@@ -310,9 +318,9 @@ int control_fd_update(int fd, uint8_t events, void *ctx) {
 
 /* called when event is polled on interrupt file descriptor.
     there are packets in shared memory ready to be received */
-int on_interrupt(memif_conn_handle_t conn, void *private_ctx, uint16_t qid) {
+int on_interrupt(memif_conn_handle_t conn, void* private_ctx, uint16_t qid) {
     spdlog::debug("on_interrupt");
-    memif_connection_t *c = &memif_connection;
+    memif_connection_t* c = &memif_connection;
 
     int err = MEMIF_ERR_SUCCESS, ret_val;
     uint16_t rx = 0, tx = 0;
@@ -344,14 +352,12 @@ int on_interrupt(memif_conn_handle_t conn, void *private_ctx, uint16_t qid) {
             spdlog::debug("receive packet len = {:d}, data = ", (c->rx_bufs + i)->len);
             std::ostringstream s;
             int clen = (c->rx_bufs + i)->len;
-            unsigned char *ch = static_cast<unsigned char *>((c->rx_bufs + i)->data);
+            unsigned char* ch = static_cast<unsigned char*>((c->rx_bufs + i)->data);
             for (int k = 0; k < clen; ++k)
                 s << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)*(ch + k);
             spdlog::debug(s.str());
-            resolve_network_packet((void *)(c->rx_bufs + i)->data,
-                                   (c->rx_bufs + i)->len,
-                                   (void *)(c->tx_bufs + j)->data,
-                                   &(c->tx_bufs + j)->len, c->ip_addr);
+            resolve_network_packet((char*)(c->rx_bufs + i)->data, (c->rx_bufs + i)->len,
+                (char*)(c->tx_bufs + j)->data, &(c->tx_bufs + j)->len, c->ip_addr);
             i++;
             j++;
             tx--;
@@ -384,42 +390,65 @@ error:
     return 0;
 }
 
-int on_connect(memif_conn_handle_t conn, void *private_ctx) {
+int on_connect(memif_conn_handle_t conn, void* private_ctx) {
     spdlog::debug("memif connected!");
     memif_refill_queue(conn, 0, -1, ICMPR_HEADROOM);
     printHelp();
     return 0;
 }
 
-int on_disconnect(memif_conn_handle_t conn, void *private_ctx) {
+int on_disconnect(memif_conn_handle_t conn, void* private_ctx) {
     spdlog::debug("memif disconnected!");
     return 0;
 }
 
+void getVPPErrorOutput() {
+    auto loop = uvw::Loop::getDefault();
+    auto pipe = loop->resource<uvw::PipeHandle>();
+    pipe->on<uvw::EndEvent>([](uvw::EndEvent& evt, uvw::PipeHandle& pipe) {
+        spdlog::debug("pipe end");
+        pipe.close();
+        getVPPErrorOutput();
+        });
+    pipe->on<uvw::DataEvent>([](uvw::DataEvent& evt, uvw::PipeHandle& pipe) {
+        int now = evt.length - 1;
+        while (now && (evt.data[now] == '\n' || evt.data[now] == ' ')) now--;
+        if (evt.data[now] == ':') return;
+        std::ostringstream s;
+        for (int i = 0; i <= now; ++i) s << evt.data[i];
+        spdlog::info("vpp info\n{:}", s.str());
+        });
+    int fd = open(PIPE_FILE, O_RDONLY | O_NONBLOCK);
+    pipe->open(fd);
+    pipe->read();
+}
+
 void connectColorProtocolStack() {
+    // 添加异常输出管道
+    getVPPErrorOutput();
     // 初始化memif
     int err = memif_init(control_fd_update, APP_NAME, NULL, NULL, NULL);
     spdlog::debug("memif_init: {:s}", memif_strerror(err));
     if (err != MEMIF_ERR_SUCCESS) exit(EXIT_FAILURE);
     memset(&memif_connection, 0, sizeof(memif_connection_t));
     // 建立memif共享内存接口
-    memif_connection_t *c = &memif_connection;
+    memif_connection_t* c = &memif_connection;
     memset(&args, 0, sizeof(args));
     args.is_master = 0;
     args.log2_ring_size = 11;
     args.buffer_size = 2048;
     args.num_s2m_rings = 1;
     args.num_m2s_rings = 1;
-    strncpy((char *)args.interface_name, IF_NAME, strlen(IF_NAME));
+    strncpy((char*)args.interface_name, IF_NAME, strlen(IF_NAME));
     args.mode = MEMIF_INTERFACE_MODE_ETHERNET;
     args.interface_id = 0;
     err = memif_create(&c->conn, &args, on_connect, on_disconnect, on_interrupt, NULL);
     spdlog::debug("memif_create: {:s}", memif_strerror(err));
     if (err != MEMIF_ERR_SUCCESS) exit(EXIT_FAILURE);
     c->rx_buf_num = 0;
-    c->rx_bufs = (memif_buffer_t *)malloc(sizeof(memif_buffer_t) * MAX_MEMIF_BUFS);
+    c->rx_bufs = (memif_buffer_t*)malloc(sizeof(memif_buffer_t) * MAX_MEMIF_BUFS);
     c->tx_buf_num = 0;
-    c->tx_bufs = (memif_buffer_t *)malloc(sizeof(memif_buffer_t) * MAX_MEMIF_BUFS);
+    c->tx_bufs = (memif_buffer_t*)malloc(sizeof(memif_buffer_t) * MAX_MEMIF_BUFS);
     c->ip_addr[0] = 192;
     c->ip_addr[1] = 168;
     c->ip_addr[2] = 1;
@@ -431,31 +460,31 @@ void addFrontendListener() {
     auto loop = uvw::Loop::getDefault();
 
     auto tcp = loop->resource<uvw::TCPHandle>();
-    tcp->on<uvw::ListenEvent>([](const uvw::ListenEvent &, uvw::TCPHandle &srv) {
+    tcp->on<uvw::ListenEvent>([](const uvw::ListenEvent&, uvw::TCPHandle& srv) {
         static int count = 0;
         auto client = srv.loop().resource<uvw::TCPHandle>();
         client->data(std::make_shared<int>(++count));
         spdlog::debug("new frontend[{:d}] connection", count);
-        client->on<uvw::ErrorEvent>([](const uvw::ErrorEvent &, uvw::TCPHandle &client) {
+        client->on<uvw::ErrorEvent>([](const uvw::ErrorEvent&, uvw::TCPHandle& client) {
             spdlog::debug("frontend[{:d}] error close", *(client.data<int>()));
             client.close();
-        });
-        client->on<uvw::EndEvent>([](const uvw::EndEvent &, uvw::TCPHandle &client) {
+            });
+        client->on<uvw::EndEvent>([](const uvw::EndEvent&, uvw::TCPHandle& client) {
             spdlog::debug("frontend[{:d}] close", *(client.data<int>()));
             client.close();
-        });
-        client->on<uvw::DataEvent>([](const uvw::DataEvent &evt, uvw::TCPHandle &client) {
+            });
+        client->on<uvw::DataEvent>([](const uvw::DataEvent& evt, uvw::TCPHandle& client) {
             std::ostringstream s;
             for (int i = 0; i < evt.length; ++i) s << evt.data[i];
             spdlog::debug("receive frontend[{:d}] data:{:}", *(client.data<int>()), s.str());
-            uint32_t len=0;
-            char * ret=nullptr;
+            uint32_t len = 0;
+            char* ret = nullptr;
             resolve_frontend_packet(evt, &ret, len);
             client.write(std::move(std::unique_ptr<char[]>(ret)), len);
-        });
+            });
         srv.accept(*client);
         client->read();
-    });
+        });
     tcp->bind("127.0.0.1", 50000);
     tcp->listen();
 }

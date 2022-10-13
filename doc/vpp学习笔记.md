@@ -296,6 +296,20 @@ conn 0 0
 ping 192.168.1.2
 ```
 
+#### 场景5
+
+> 简单描述：配置VPP接管主机网卡，直接处理网络包。
+
+```shell
+# 创建命名管道
+mkfifo log.pipe
+# 使用cat等命令先打开log.pipe接收端，否则vpp无法打开log.pipe
+cat < log.pipe
+# 确保VPP配置log为该管道文件，启动vpp
+sudo /usr/bin/vpp -c startup.conf
+# 可以在cat屏幕上看到输出
+```
+
 ### 调试
 
 ```shell
