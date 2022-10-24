@@ -1,6 +1,7 @@
 # coding=utf-8
 """ CoLoR代理功能函数库，供交互线程及监听线程调用 """
 
+# import profile
 from scapy.all import *
 from scapy.layers.inet import IP
 from scapy.layers.l2 import Ether
@@ -172,11 +173,11 @@ file_set = {}
 
 def ConvertFile(path, lpointer=0, rpointer=-1):
     """ docstring: 将任意文件编码为二进制 """
-    if path not in file_set:
+    if not path in file_set:
         with open(path, 'rb') as f:
             file_set[path] = f.read()
     tar = file_set[path]
-    if rpointer == -1:
+    if (rpointer == -1):
         rpointer = len(tar)
     return tar[lpointer: rpointer]
 
@@ -839,18 +840,18 @@ hdr_set = {}
 s = conf.L2socket()
 
 
-def SendIpv4(ip_dst, data):
-    """
-    封装IPv4网络包并发送
-    ip_dst: 目标IP地址
-    data: IP包正文内容
-    proto: 约定值150
-    """
-    if ip_dst not in hdr_set:
-        hdr_set[ip_dst] = bytearray(raw(Ether() / IP(dst=ip_dst, proto=150)))
-    ether_hdr = hdr_set[ip_dst][:14]
-    ip_hdr = hdr_set[ip_dst][14:]
-    ip_hdr = ip_hdr[:2] + ConvertInt2Bytes(len(data) + 20, 2) + ip_hdr[4:10] + ConvertInt2Bytes(0, 2) + ip_hdr[12:]
+hdr_set = {}
+s = conf.L2socket()
+
+#@profile
+def SendIpv4(ipdst, data):
+    """ docstring: 封装IPv4网络包并发送
+    ipdst: 目标IP地址，data: IP包正文内容，proto: 约定值150 """
+    if not ipdst in hdr_set:
+        hdr_set[ipdst] = bytearray(raw(Ether() / IP(dst=ipdst, proto=150)))
+    ether_hdr = hdr_set[ipdst][:14]
+    ip_hdr = hdr_set[ipdst][14:]
+    ip_hdr = ip_hdr[:2] + ConvertInt2Bytes(len(data)+20, 2) + ip_hdr[4:10] + ConvertInt2Bytes(0, 2) + ip_hdr[12:]
     cs = ConvertInt2Bytes(CalculateCS(ip_hdr), 2)
     ip_hdr[10] = cs[0]
     ip_hdr[11] = cs[1]

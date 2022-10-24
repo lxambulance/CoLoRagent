@@ -10,7 +10,7 @@ RTO = 1
 
 # 滑动窗口相关
 class SlideWindow:
-    WINDOW_SIZE = 20
+    WINDOW_SIZE = 0x30
     MAX_COUNT = 0xffff
 
     def __init__(self, total_block: int, window_size: int = WINDOW_SIZE):

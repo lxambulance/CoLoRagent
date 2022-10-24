@@ -66,10 +66,10 @@ class CoLoRApp(QApplication):
 
         # 测试
         CM.PL.RegFlag = 1
-        # nid = "b0cd69ef142db5a471676ad710eebf3a"
+        nid = "b0cd69ef142db5a471676ad710eebf3a"
         # CM.PL.PeerProxys[int(nid, 16)]='192.168.56.1'
-        nid = "d23454d19f307d8b98ff2da277c0b546"
-        CM.PL.PeerProxys[int(nid, 16)]='192.168.56.2'
+        # nid = "d23454d19f307d8b98ff2da277c0b546"
+        CM.PL.PeerProxys[int(nid, 16)]='10.134.149.183'
         # time.sleep(2)
         # Sql provider
         # CM.PL.AddCacheSidUnit(3,1,1,1,1)
