@@ -840,10 +840,6 @@ hdr_set = {}
 s = conf.L2socket()
 
 
-hdr_set = {}
-s = conf.L2socket()
-
-#@profile
 def SendIpv4(ipdst, data):
     """ docstring: 封装IPv4网络包并发送
     ipdst: 目标IP地址，data: IP包正文内容，proto: 约定值150 """
@@ -851,7 +847,7 @@ def SendIpv4(ipdst, data):
         hdr_set[ipdst] = bytearray(raw(Ether() / IP(dst=ipdst, proto=150)))
     ether_hdr = hdr_set[ipdst][:14]
     ip_hdr = hdr_set[ipdst][14:]
-    ip_hdr = ip_hdr[:2] + ConvertInt2Bytes(len(data)+20, 2) + ip_hdr[4:10] + ConvertInt2Bytes(0, 2) + ip_hdr[12:]
+    ip_hdr = ip_hdr[:2] + ConvertInt2Bytes(len(data) + 20, 2) + ip_hdr[4:10] + ConvertInt2Bytes(0, 2) + ip_hdr[12:]
     cs = ConvertInt2Bytes(CalculateCS(ip_hdr), 2)
     ip_hdr[10] = cs[0]
     ip_hdr[11] = cs[1]
