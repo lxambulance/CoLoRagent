@@ -10,7 +10,7 @@ RTO = 1
 
 # 滑动窗口相关
 class SlideWindow:
-    WINDOW_SIZE = 0x30
+    WINDOW_SIZE = 0xfffe
     MAX_COUNT = 0xffff
 
     def __init__(self, total_block: int, window_size: int = WINDOW_SIZE):
@@ -131,8 +131,8 @@ class SendingWindow(SlideWindow):
         """
         with self.__lock__:
             self.cancel_timer()
-            self.timer = threading.Timer(timeout, callback)
-            self.timer.start()
+            # self.timer = threading.Timer(timeout, callback)
+            # self.timer.start()
 
     def cancel_timer(self):
         """

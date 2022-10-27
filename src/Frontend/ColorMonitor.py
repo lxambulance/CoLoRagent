@@ -16,6 +16,11 @@ import establishSecureSession as ESS
 from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
 from slideWindow import SendingWindow, ReceivingWindow
 
+import socket
+import asyncio
+import uvloop
+
+
 # 文件传输相关全局变量
 SendingSid = {}  # 记录内容发送情况，key:SID，value:[片数，单片大小，下一片指针，customer的nid，pid序列]
 
@@ -60,20 +65,15 @@ class DataFlag(IntEnum):
     LAST = 0x1
 
 
-msgQueue = []
-
-
 class PktHandler(threading.Thread):
     """ docstring: 收包处理程序 """
     sending_threads = {}
 
-    def __init__(self, id):
-        threading.Thread.__init__(self)
-        self.queid = id
+    def __init__(self, msgqueue):
+        super().__init__()
+        self.queue = msgqueue
         # 请将所有需要输出print()的内容改写为信号的发射(self.signals.output.emit())
-        # TODO：异常情况调用traceback模块输出信息
         self.signals = pktSignals()
-        self.packet = None
 
     def video_provider(self, Sid, NidCus, PIDs, LoadLength, ReturnIP, randomnum):
         FrameCount = 0  # 帧序号，每15帧设定第一片的标志位R为1（需要重传ACK）
@@ -150,13 +150,21 @@ class PktHandler(threading.Thread):
             Lock_WaitingACK.release()
 
     def run(self):
-        # self.packet.show()
-        # if (self.packet.dst == PL.IPv4) and (self.packet.proto == 150):
+        asyncio.set_event_loop(uvloop.new_event_loop())
+        # asyncio.run(self._run())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.gather(*[self._run(x+1) for x in range(5)]))
+
+    async def _run(self, time):
+        count = 0
         while True:
-            mq = msgQueue[self.queid]
-            raw_data = mq.get()
+            try:
+                raw_data = self.queue.get_nowait()
+            except asyncio.QueueEmpty:
+                await asyncio.sleep(time)
+                continue
+            count += 1
             self.packet = IP(raw_data)
-            # self.packet.show()
             data = bytes(self.packet.payload)  # 存入二进制字符串
             PktLength = len(data)
             if PL.RegFlag == 0:
@@ -402,7 +410,7 @@ class PktHandler(threading.Thread):
                             continue
                         # TODO: 需要判断 SendingThread 状态吗?
                         sending_thread = self.sending_threads[(NewSid, NidCus)]
-                        sending_thread.ack(RecvDataPkt.SegID)
+                        sending_thread.ack(RecvDataPkt)
                 elif data[0] == 0x74:
                     # 收到网络中的control报文
                     # 校验和检验
@@ -541,6 +549,8 @@ class SendingThread(threading.Thread):
         self.msg_queue = queue.Queue()
         self.ready = True
 
+        self.count_send = 0
+
     def send_block_packets(self):
         """
         使用滑动窗口对定长数据（如文件） 进行可靠传输
@@ -587,6 +597,8 @@ class SendingThread(threading.Thread):
                 self.ready = False
 
         for (seg_id, chip_index) in self.sending_window.send_all():
+            self.count_send += 1
+            # print(self.count_send)
             send_packet(seg_id, chip_index)
         self.sending_window.update_timer(resend)
 
@@ -596,7 +608,7 @@ class SendingThread(threading.Thread):
             ack_pkt = self.msg_queue.get()
             # TODO: 添加滑动窗口相关内容
             # 滑动窗口收到 ACK 消息
-            self.sending_window.ack(ack_pkt.SegID & SendingWindow.MAX_COUNT)
+            # self.sending_window.ack(ack_pkt.SegID & SendingWindow.MAX_COUNT)
             self.send_block_packets()
 
     def ack(self, ack_pkt):
@@ -667,7 +679,7 @@ class Monitor(threading.Thread):
         self.message = message
         self.path = path
         self.s = socket.socket(socket.AF_INET, socket.SOCK_RAW, 150)
-        self.s.bind(("10.134.148.137", 0))
+        self.s.bind((PL.IPv4, 0))
 
     def parser(self, packet):
         """ docstring: 调用通用语法解析器线程 """
@@ -684,23 +696,26 @@ class Monitor(threading.Thread):
         AgentRegisterSender.start()
         # VideoCus = video_customer()
         # VideoCus.start()
-        parser_num = 16
-        for i in range(parser_num):
-            msgQueue.append(queue.Queue(1024))
-            parser = PktHandler(i)
-            parser.signals.output.connect(self.message)
-            parser.signals.pathdata.connect(self.path)
-            parser.start()
+
+        asyncio.set_event_loop(uvloop.new_event_loop())
+        self.msgqueue = asyncio.Queue(maxsize=1024)
+        parser = PktHandler(self.msgqueue)
+        parser.signals.output.connect(self.message)
+        parser.signals.pathdata.connect(self.path)
+        parser.start()
+        # asyncio.run(self._run())
+        loop = asyncio.get_event_loop()
+        tasks = [ self._run() for _ in range(5) ]
+        loop.run_until_complete(asyncio.gather(*tasks))
+
+    async def _run(self):
+        loop = asyncio.get_event_loop()
         count = 0
         while True:
             count += 1
-            p, _ = self.s.recvfrom(2048)
-            choose_id = 0
-            for i in range(parser_num):
-                if msgQueue[choose_id].qsize() > msgQueue[i].qsize():
-                    choose_id = i
-            # print(p.hex())
-            if not msgQueue[choose_id].full():
-                msgQueue[choose_id].put(p)
-            else:
+            pkt = await loop.sock_recv(self.s, 2048)
+            # print(count)
+            try:
+                self.msgqueue.put_nowait(pkt)
+            except asyncio.QueueFull:
                 print(f"too many packet received! {count}")
