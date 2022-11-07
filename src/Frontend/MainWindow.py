@@ -2,11 +2,11 @@
 """ docstring: CoLoR Pan主页 """
 import subprocess
 import json
-import ProxyLib as PL
-import ColorMonitor as CM
-from ProxyLib import (
-    Sha1Hash, AddCacheSidUnit, SidAnn, Get
-)
+# import ProxyLib as PL
+# import ColorMonitor as CM
+# from ProxyLib import (
+#     Sha1Hash, AddCacheSidUnit, SidAnn, Get
+# )
 from worker import worker
 import FileData as FD
 from serviceTable import serviceTableModel, progressBarDelegate

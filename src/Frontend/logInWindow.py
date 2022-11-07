@@ -1,17 +1,17 @@
 # coding=utf-8
 """ docstring: CoLoR 登录对话 """
 
-import establishSecureSession as ESS
+
 from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog
 from logInDialog import Ui_Dialog
-import os
-import sys
 import json
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))).replace('\\', '/')
+import os
+
+
+# 调用者需要负责修改BASE_DIR或DATA_PATH、HOME_DIR到正确路径
+BASE_DIR = '.'
 DATA_PATH = BASE_DIR + '/data.json'
 HOME_DIR = BASE_DIR + '/.tmp'
-sys.path.append(BASE_DIR)
 
 
 class logInWindow(QDialog, Ui_Dialog):
@@ -40,8 +40,9 @@ class logInWindow(QDialog, Ui_Dialog):
         self.RMIPv4.textChanged.connect(self.setRMIPv4)
 
     def setNid(self):
-        ESS.Agent.regenerate()
-        self.myNID = ESS.Agent.nid.hex()
+        # TODO: 从连接端口获取
+        # ESS.Agent.regenerate()
+        # self.myNID = ESS.Agent.nid.hex()
         self.agentNID.setText(self.myNID)
 
     def setIPv4(self, text):
@@ -63,7 +64,8 @@ class logInWindow(QDialog, Ui_Dialog):
             __raw_data['RMIPv4'] = self.rmIPv4
             with open(self.configpath, 'w') as f:
                 json.dump(__raw_data, f)
-            ESS.Agent.saveKey(self.configpath)
+            # TODO: 返回后端
+            # ESS.Agent.saveKey(self.configpath)
 
     def autoFillForm(self, path):
         """ docstring: 根据*.json文件内容填写表单剩余项 """
@@ -74,11 +76,13 @@ class logInWindow(QDialog, Ui_Dialog):
             self.filetmppath = __raw_data.get('filetmppath', None)
             self.showpath_filetmp.setText(self.filetmppath)
             try:
-                ESS.Agent.loadKey(__raw_data)
+                # TODO：从后端获取
+                # ESS.Agent.loadKey(__raw_data)
+                pass
             except:
                 print("load wrong! regenerate keys.")
-                ESS.Agent.regenerate()
-            self.myNID = ESS.Agent.nid.hex()
+                # ESS.Agent.regenerate()
+            # self.myNID = ESS.Agent.nid.hex()
             self.agentNID.setText(self.myNID)
             self.myIPv4 = __raw_data.get('myIPv4', None)
             self.agentIPv4.setText(self.myIPv4)
@@ -99,6 +103,7 @@ class logInWindow(QDialog, Ui_Dialog):
 
 
 if __name__ == '__main__':
+    import sys
     app = QApplication(sys.argv)
     window = logInWindow()
     window.show()

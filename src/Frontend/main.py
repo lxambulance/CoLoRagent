@@ -6,8 +6,6 @@ import sys
 import time
 
 import qdarkstyle as qds
-import ColorMonitor as CM
-import establishSecureSession as ESS
 import MainWindow as mw
 from logInWindow import logInWindow
 
