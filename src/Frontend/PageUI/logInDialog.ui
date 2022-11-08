@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>287</height>
+    <height>239</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -48,22 +48,6 @@
        </property>
       </widget>
      </item>
-     <item>
-      <widget class="QPushButton" name="choosepath_config">
-       <property name="maximumSize">
-        <size>
-         <width>20</width>
-         <height>20</height>
-        </size>
-       </property>
-       <property name="toolTip">
-        <string>选择文件路径</string>
-       </property>
-       <property name="text">
-        <string>...</string>
-       </property>
-      </widget>
-     </item>
     </layout>
    </item>
    <item row="2" column="0">
@@ -83,7 +67,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="generateNid">
+      <widget class="QPushButton" name="generateNID">
        <property name="maximumSize">
         <size>
          <width>20</width>
@@ -123,22 +107,6 @@
       <widget class="QLineEdit" name="showpath_filetmp">
        <property name="readOnly">
         <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="choosepath_filetmp">
-       <property name="maximumSize">
-        <size>
-         <width>20</width>
-         <height>20</height>
-        </size>
-       </property>
-       <property name="toolTip">
-        <string>选择存储目录</string>
-       </property>
-       <property name="text">
-        <string>...</string>
        </property>
       </widget>
      </item>
@@ -183,7 +151,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="../Icon/resource.qrc"/>
+  <include location="../../../asset/resource.qrc"/>
  </resources>
  <connections>
   <connection>

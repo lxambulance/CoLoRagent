@@ -24,47 +24,22 @@ class ConnectionEnum(IntEnum):
     QUEUE = 3
 
 
-example_request = """{
-    "type": "request",
-    "op":
-}"""
-
-
-example_reply = """{
-    "type": "reply",
-}"""
-
-
-async def parse_packet(dict_list, key, packet):
+async def send_packet(dict_list, key, packet):
     enddevice = dict_list[key]
-    # 1. parse
-    raw_data = json.loads(packet)
-    # 2. work
-    if raw_data["type"] == "request":
-        pass
-    elif raw_data["type"] == "reply":
-        pass
-    return
-
-
-async def generate_packet(dict_list, key, packet):
-    enddevice = dict_list[key]
-    # 1. generate
-    raw_data = json.dumps(packet)
-    # 2. write
-    enddevice[ConnectionEnum.WRITER].write(struct.pack(">I", len(raw_data)))
+    # write
+    enddevice[ConnectionEnum.WRITER].write(struct.pack(">I", len(packet)))
     await enddevice[ConnectionEnum.WRITER].drain()
-    enddevice[ConnectionEnum.WRITER].write(raw_data)
+    enddevice[ConnectionEnum.WRITER].write(packet)
     await enddevice[ConnectionEnum.WRITER].drain()
 
 
-async def hander(dict_list, background_tasks, key):
+async def receiver(dict_list, background_tasks, key, parse_packet):
     enddevice = dict_list[key]
     while enddevice[ConnectionEnum.CONTROL_FLAG]:
-        # TODO: start to read, task(parse, work)
+        # TODO: start to read, task(parse)
         try:
             l = await enddevice[ConnectionEnum.READER].readexactly(DATA_LENGTH)
-            l = struct.unpack(">I", l)
+            l, = struct.unpack(">I", l)
             p = await enddevice[ConnectionEnum.READER].readexactly(l)
         except asyncio.IncompleteReadError as e:
             enddevice[ConnectionEnum.WRITER].close()
@@ -75,16 +50,16 @@ async def hander(dict_list, background_tasks, key):
         task.add_done_callback(background_tasks.discard)
 
 
-async def generator(dict_list, background_tasks, key):
+async def sender(dict_list, background_tasks, key):
     enddevice = dict_list[key]
     while enddevice[ConnectionEnum.CONTROL_FLAG]:
-        # TODO: start to task(generate, write)
+        # start to task(write)
         try:
             data = enddevice[ConnectionEnum.QUEUE].get_nowait()
         except asyncio.QueueEmpty:
             await asyncio.sleep(SLEEP_TIME)
             continue
-        task = asyncio.create_task(generate_packet(dict_list, key, data))
+        task = asyncio.create_task(send_packet(dict_list, key, data))
         background_tasks.add(task)
         task.add_done_callback(background_tasks.discard)
 

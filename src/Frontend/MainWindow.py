@@ -1,12 +1,12 @@
 # coding=utf-8
-""" docstring: CoLoR Pan主页 """
-import subprocess
+""" docstring: CoLoR 网盘功能主页 """
+
+
+import os
+import sys
+import time
 import json
-# import ProxyLib as PL
-# import ColorMonitor as CM
-# from ProxyLib import (
-#     Sha1Hash, AddCacheSidUnit, SidAnn, Get
-# )
+import subprocess
 from worker import worker
 import FileData as FD
 from serviceTable import serviceTableModel, progressBarDelegate
@@ -17,22 +17,14 @@ from videoWindow import videoWindow
 from cmdWindow import cmdWindow
 from mainPage import Ui_MainWindow
 import pyqtgraph as pg
-
 from PyQt5.QtGui import QIcon, QPalette
 from PyQt5.QtCore import QSize, QThreadPool, QTimer
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QAction,
-    QMessageBox, QTreeWidgetItem, QFileDialog,
-    QHeaderView
-)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction,
+                             QMessageBox, QTreeWidgetItem, QFileDialog, QHeaderView)
 
-import os
-import sys
-import time
 
-__BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))).replace('\\', '/')
-sys.path.append(__BASE_DIR)
+__BASE_DIR = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
 HOME_DIR = __BASE_DIR + '/.tmp'
 DATA_PATH = __BASE_DIR + '/data.json'
 starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
@@ -42,9 +34,10 @@ LOG_PATH = HOME_DIR + f'/{starttime}.log'
 class MainWindow(QMainWindow, Ui_MainWindow):
     """ docstring: class MainWindow """
 
-    def __init__(self):
+    def __init__(self, threadpool):
         super().__init__()
         self.setupUi(self)
+        self.threadpool = threadpool
 
         # 隐藏searchLog搜索框
         self.searchLog.hide()
@@ -53,12 +46,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         FD.DATA_PATH = DATA_PATH
         FD.HOME_DIR = HOME_DIR
 
-        # 尝试新建文件仓库
-        if not os.path.exists(HOME_DIR):
-            os.mkdir(HOME_DIR)
-
-        # 设置线程池 TODO: 线程池放到窗口外面
-        self.threadpool = QThreadPool()
+        # # 尝试新建文件仓库
+        # if not os.path.exists(HOME_DIR):
+        #     os.mkdir(HOME_DIR)
 
         # 用于统计频率和AS统计
         self.timer = QTimer()
@@ -71,7 +61,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.datapackets = []
 
         # TODO: 在Get中写入Nid？
-        self.nid = f"{PL.Nid:032x}"
+        self.nid = None  # f"{PL.Nid:032x}"
 
         # 设置表格头伸展方式
         self.dataPktReceive.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -85,8 +75,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         color = self.palette().color(QPalette.Background).name()
         color = '#ffffff' if color == '#f0f0f0' else color
         self.speedGraph.setBackground(color)
-        self.speed_line = self.speedGraph.plot(
-            self.speed_x, self.speed_y, pen=speedpen)
+        self.speed_line = self.speedGraph.plot(self.speed_x, self.speed_y, pen=speedpen)
 
         # 添加右键菜单
         self.listView.addAction(self.action_reg)
@@ -102,12 +91,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.listView.addAction(self.action_openDir)
         self.tableView.addAction(self.action_openDir)
 
-        # 添加toolbar按钮
+        # 添加工具栏按钮
         self.button_swi = QAction(QIcon(":/icon/switchView"), "视图切换", self)
         self.button_swi.setStatusTip("视图切换")
         self.toolBar.addAction(self.button_swi)
-        self.button_openfolder = QAction(
-            QIcon(":/icon/openFolder"), "打开文件夹", self)
+        self.button_openfolder = QAction(QIcon(":/icon/openFolder"), "打开文件夹", self)
         self.button_openfolder.setStatusTip("打开文件夹")
         self.toolBar.addAction(self.button_openfolder)
         self.button_addfile = QAction(QIcon(":/icon/addFile"), "添加文件", self)
@@ -117,15 +105,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_showtopo.setStatusTip("显示网络拓扑")
         self.toolBar.addAction(self.button_showtopo)
         self.button_showtopo.setCheckable(True)
-        self.button_startvideoserver = QAction(
-            QIcon(":/icon/server-multi-button"), "启动视频服务", self)
+        self.button_startvideoserver = QAction(QIcon(":/icon/server-multi-button"), "启动视频服务", self)
         self.button_startvideoserver.setStatusTip("启动视频服务")
         self.toolBar.addAction(self.button_startvideoserver)
 
-        # 设置其他窗口为空
+        # 设置其他窗口为空。TODO: 命令行待完善
         self.videowindow = None
         self.cmdwindow = None
-        self.action_cmdline.setVisible(False)  # TODO: 命令行待完善
+        self.action_cmdline.setVisible(False)
 
         # 设置选中条目
         self.selectItems = []
@@ -143,7 +130,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # 设置网络拓扑窗口
         self.graphicwindow = GraphicWindow(self.fd)
-        self.graphicwindow.loadTopo(DATA_PATH)
+        # self.graphicwindow.loadTopo(DATA_PATH)
         self.graphicwindow.hide()
 
         # 设置日志记录
@@ -177,8 +164,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.listView.doubleClicked.connect(self.viewInfo)
         # 拓扑图信号连接
         self.graphicwindow.GS.hide_window_signal.connect(self.showTopo)
-        self.graphicwindow.GS.advencedRegrow_signal.connect(
-            self.advancedRegItem)
+        self.graphicwindow.GS.advencedRegrow_signal.connect(self.advancedRegItem)
         # 动作信号
         self.action_add.triggered.connect(self.addItem)
         self.action_del.triggered.connect(self.delItem)
@@ -772,14 +758,14 @@ if __name__ == '__main__':
     window.show()
 
     # 测试收包匹配功能
-    window.getPathFromPkt(0x72, '123', [0x11222695], 100, int("b0cd69ef142db5a471676ad710eebf3a", 16))
-    window.getPathFromPkt(0x72, '123', [0x33446217, 0x11222695], 1500, int("d23454d19f307d8b98ff2da277c0b546", 16))
-    window.getPathFromPkt(
-        0x73, 'abc', [0x11222695, 0x11221211, 0x33446217, 0x55661234], 1000, 0)
+    window.getPathFromPkt(0x72, '123', [0x11222695], 100,
+                          int("b0cd69ef142db5a471676ad710eebf3a", 16))
+    window.getPathFromPkt(0x72, '123', [0x33446217, 0x11222695],
+                          1500, int("d23454d19f307d8b98ff2da277c0b546", 16))
+    window.getPathFromPkt(0x73, 'abc', [0x11222695, 0x11221211, 0x33446217, 0x55661234], 1000, 0)
     window.getPathFromPkt(0x173, 'abc', [0x11222695, 0x55661234], 1000, 0)
     window.getPathFromPkt(0x173, 'abc', [0x11227788], 100, 0)
-    window.getPathFromPkt(
-        0x73, 'abc', [0x11227788, 0x11227788, 0x33441234, 0x77880000], 100, 0)
+    window.getPathFromPkt(0x73, 'abc', [0x11227788, 0x11227788, 0x33441234, 0x77880000], 100, 0)
     window.getPathFromPkt(0x74, '', [], 20, 0)
     # 测试告警信息显示功能
     window.handleMessageFromPkt(2, 'test1\ncontent1\n')
