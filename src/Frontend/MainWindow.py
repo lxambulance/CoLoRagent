@@ -192,8 +192,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         reply = QMessageBox.question(self, '通知', '是否开启摄像头服务？', status)
         if reply == QMessageBox.No:
             return
-        CM.PL.AddCacheSidUnit(1, 1, 1, 1, 1)
-        CM.PL.SidAnn()
+        request = {"type": "request", "op": "startvideoserver"}
+        self.startvideoserverworker = worker(0, ic.put_request, request)
+        self.threadpool.start(self.startvideoserverworker)
 
     def openCmdWindow(self):
         """ docstring: 打开命令行窗口 """
@@ -202,8 +203,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.cmdwindow.setGeometry(self.cmdwindow.geometry())
         self.cmdwindow.show()
-        self.logWidget.addLog(
-            "<动作> 打开视频窗口", f"Geo = {self.cmdwindow.geometry()}", False)
+        self.logWidget.addLog("<动作> 打开视频窗口", f"Geo = {self.cmdwindow.geometry()}", False)
 
     def openVideoWindow(self):
         """ docstring: 打开视频窗口 """
@@ -252,6 +252,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 测试拖动条效果
         # bar = self.logWidget.scrollarea.verticalScrollBar()
         # print(bar.value(), bar.maximum())
+        pass
 
     def getPathFromPkt(self, type, SID, paths, size, NID):
         """ docstring: 收包信息分类显示 """
@@ -488,6 +489,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             message_callback.emit(
                 '<下载> 文件', f'file {self.fd.getData(item, 0)}\n')
         # TODO：涉及进度条完成状态需要通过color monitor精确判断
+        pass
 
     def regItem(self):
         """ docstring: 文件通告（拉起额外线程处理） """

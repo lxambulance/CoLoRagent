@@ -54,6 +54,10 @@ async def parse_client_packet(dict_list, key, packet):
                 async with aiofiles.open(DATA_PATH, "bw") as f:
                     await f.write(data)
                 print("save config ok!")
+            case "startvideoserver":
+                # CM.PL.AddCacheSidUnit(1, 1, 1, 1, 1)
+                # CM.PL.SidAnn()
+                pass
     return
 
 
