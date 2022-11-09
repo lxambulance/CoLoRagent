@@ -18,55 +18,59 @@ from cmdWindow import cmdWindow
 from mainPage import Ui_MainWindow
 import pyqtgraph as pg
 from PyQt5.QtGui import QIcon, QPalette
-from PyQt5.QtCore import QSize, QThreadPool, QTimer
+from PyQt5.QtCore import QSize, QThreadPool, QTimer, QObject, pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction,
                              QMessageBox, QTreeWidgetItem, QFileDialog, QHeaderView)
 
 
-__BASE_DIR = os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
+__BASE_DIR = '.'
 HOME_DIR = __BASE_DIR + '/.tmp'
 DATA_PATH = __BASE_DIR + '/data.json'
 starttime = time.strftime("%y-%m-%d_%H_%M_%S", time.localtime())
 LOG_PATH = HOME_DIR + f'/{starttime}.log'
 
 
+class MainWindowSignals(QObject):
+    """ docstring: signals class """
+
+    finished = pyqtSignal()
+
+
 class MainWindow(QMainWindow, Ui_MainWindow):
     """ docstring: class MainWindow """
 
-    def __init__(self, threadpool):
+    def __init__(self, threadpool, myNID, *, configpath=DATA_PATH, filetmppath=HOME_DIR, configdata=None):
         super().__init__()
         self.setupUi(self)
         self.threadpool = threadpool
-
-        # 隐藏searchLog搜索框
-        self.searchLog.hide()
+        self.NID = myNID
+        self.signals = MainWindowSignals()
 
         # 修改数据存储路径
-        FD.DATA_PATH = DATA_PATH
-        FD.HOME_DIR = HOME_DIR
-
-        # # 尝试新建文件仓库
-        # if not os.path.exists(HOME_DIR):
-        #     os.mkdir(HOME_DIR)
-
-        # 用于统计频率和AS统计
+        FD.DATA_PATH = configpath
+        FD.HOME_DIR = filetmppath
+        # 设置定时器用于统计收包速度和各自治域信息统计
         self.timer = QTimer()
-        self.timer_message = QTimer()
         self.timer.setInterval(1000)
+        self.timer_message = QTimer()
         self.messagebox = None
-
         # 用于收包显示的变量
         self.mapfromSIDtoItem = {}
         self.datapackets = []
+        # 设置选中条目
+        self.selectItems = []
 
-        # TODO: 在Get中写入Nid？
-        self.nid = None  # f"{PL.Nid:032x}"
-
-        # 设置表格头伸展方式
+        # 隐藏searchLog搜索框。TODO：搜索功能
+        self.searchLog.hide()
+        # 隐藏其他窗口视图（命令行、视频页）。TODO: 命令行待完善
+        self.videowindow = None
+        self.cmdwindow = None
+        self.action_cmdline.setVisible(False)
+        # 定制展示窗口功能
+        self.__set_filelistfunction()
+        # 设置数据接收区表格头伸展方式
         self.dataPktReceive.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.dataPktReceive.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-
         # 设置速度图线格式
         self.speed_x = [x * 5 for x in range(20)]
         self.speed_y = [0] * 20
@@ -76,7 +80,58 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         color = '#ffffff' if color == '#f0f0f0' else color
         self.speedGraph.setBackground(color)
         self.speed_line = self.speedGraph.plot(self.speed_x, self.speed_y, pen=speedpen)
+        # 设置网络拓扑窗口
+        self.graphicwindow = GraphicWindow(self.fd)
+        # self.graphicwindow.loadTopo(DATA_PATH)
+        self.graphicwindow.hide()
+        # 设置日志记录
+        for i in range(self.fd.rowCount()):
+            filename = self.fd.getData(i)
+            self.graphicwindow.chooseFile.addItem(filename)
+            # 添加log记录
+            self.logWidget.addLog("<导入> 文件或服务", filename, True)
 
+        # 设置信号/槽的连接
+        # 视图信号
+        self.tableView.signal_select.connect(self.setSelectItem)
+        self.listView.signal_select.connect(self.setSelectItem)
+        self.listView.signal_add.connect(self.addItems)
+        self.tableView.doubleClicked.connect(self.viewInfo)
+        self.listView.doubleClicked.connect(self.viewInfo)
+        # 拓扑图信号
+        self.graphicwindow.GS.hide_window_signal.connect(self.showTopo)
+        self.graphicwindow.GS.advencedRegrow_signal.connect(self.advancedRegItem)
+        # 动作信号
+        self.action_add.triggered.connect(self.addItem)
+        self.action_del.triggered.connect(self.delItem)
+        self.action_dow.triggered.connect(self.dowItem)
+        self.action_reg.triggered.connect(self.regItem)
+        # logTexted不处理setText函数，textChanged处理所有改动
+        self.action_undoReg.triggered.connect(self.undoRegItem)
+        self.action_openDir.triggered.connect(self.openFolder)
+        self.action_hub.triggered.connect(self.openHub)
+        self.action_import.triggered.connect(self.importData)
+        self.action_swi.triggered.connect(self.switchView)
+        self.action_reset.triggered.connect(self.resetView)
+        self.action_video.triggered.connect(self.openVideoWindow)
+        self.action_cmdline.triggered.connect(self.openCmdWindow)
+        self.action_advancedreg.triggered.connect(self.showAdvancedReg)
+        # 按钮信号
+        self.button_swi.triggered.connect(self.switchView)
+        self.button_openfolder.triggered.connect(self.openFolder)
+        self.button_addfile.triggered.connect(self.addItem)
+        self.button_showtopo.triggered.connect(self.showTopo)
+        self.button_startvideoserver.triggered.connect(self.startVideoServer)
+        # 收包信号
+        self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
+        # 计时信号
+        self.timer.timeout.connect(self.updateSpeedLine)
+        self.timer_message.timeout.connect(self.timerMessageClear)
+
+        # 计时器打开
+        self.timer.start()
+
+    def __set_filelistfunction(self):
         # 添加右键菜单
         self.listView.addAction(self.action_reg)
         self.tableView.addAction(self.action_reg)
@@ -109,36 +164,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_startvideoserver.setStatusTip("启动视频服务")
         self.toolBar.addAction(self.button_startvideoserver)
 
-        # 设置其他窗口为空。TODO: 命令行待完善
-        self.videowindow = None
-        self.cmdwindow = None
-        self.action_cmdline.setVisible(False)
-
-        # 设置选中条目
-        self.selectItems = []
-
         # 使用自定义模型
-        self.fd = FD.FileData(nid=self.nid)
-        try:
-            self.fd.load()
-        except:
-            pass
+        self.fd = FD.FileData(NID=self.NID)
         self.listmodel = serviceListModel(self.fd)
         self.tablemodel = serviceTableModel(self.fd)
         self.progressbardelegate = progressBarDelegate(self)
         self.progressbarpool = {}
-
-        # 设置网络拓扑窗口
-        self.graphicwindow = GraphicWindow(self.fd)
-        # self.graphicwindow.loadTopo(DATA_PATH)
-        self.graphicwindow.hide()
-
-        # 设置日志记录
-        for i in range(self.fd.rowCount()):
-            filename = self.fd.getData(i)
-            self.graphicwindow.chooseFile.addItem(filename)
-            # 添加log记录
-            self.logWidget.addLog("<导入> 文件或服务", filename, True)
 
         # 设置模型对应的view
         self.listView.setModel(self.listmodel)
@@ -154,46 +185,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableView.hide()
         self.splitter_horizontal.setSizes([200, 200, 500])
         self.splitter_vertical.setSizes([350, 450])
-
-        # 设置信号与槽的连接
-        # 视图信号
-        self.tableView.signal_select.connect(self.setSelectItem)
-        self.listView.signal_select.connect(self.setSelectItem)
-        self.listView.signal_add.connect(self.addItems)
-        self.tableView.doubleClicked.connect(self.viewInfo)
-        self.listView.doubleClicked.connect(self.viewInfo)
-        # 拓扑图信号连接
-        self.graphicwindow.GS.hide_window_signal.connect(self.showTopo)
-        self.graphicwindow.GS.advencedRegrow_signal.connect(self.advancedRegItem)
-        # 动作信号
-        self.action_add.triggered.connect(self.addItem)
-        self.action_del.triggered.connect(self.delItem)
-        self.action_dow.triggered.connect(self.dowItem)
-        self.action_reg.triggered.connect(self.regItem)
-        # logTexted不处理setText函数，textChanged处理所有改动
-        self.action_undoReg.triggered.connect(self.undoRegItem)
-        self.action_openDir.triggered.connect(self.openFolder)
-        self.action_hub.triggered.connect(self.openHub)
-        self.action_import.triggered.connect(self.importData)
-        self.action_swi.triggered.connect(self.switchView)
-        self.action_reset.triggered.connect(self.resetView)
-        self.action_video.triggered.connect(self.openVideoWindow)
-        self.action_cmdline.triggered.connect(self.openCmdWindow)
-        self.action_advancedreg.triggered.connect(self.showAdvancedReg)
-        # 按钮信号
-        self.button_swi.triggered.connect(self.switchView)
-        self.button_openfolder.triggered.connect(self.openFolder)
-        self.button_addfile.triggered.connect(self.addItem)
-        self.button_showtopo.triggered.connect(self.showTopo)
-        self.button_startvideoserver.triggered.connect(self.startVideoServer)
-        # 收包信号
-        self.dataPktReceive.itemClicked.connect(self.showMatchedPIDs)
-        # 计时信号
-        self.timer.timeout.connect(self.updateSpeedLine)
-        self.timer_message.timeout.connect(self.timerMessageClear)
-
-        # 计时器开始
-        self.timer.start()
 
     def startVideoServer(self):
         status = QMessageBox.Yes | QMessageBox.No
@@ -261,7 +252,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # bar = self.logWidget.scrollarea.verticalScrollBar()
         # print(bar.value(), bar.maximum())
 
-    def getPathFromPkt(self, type, SID, paths, size, nid):
+    def getPathFromPkt(self, type, SID, paths, size, NID):
         """ docstring: 收包信息分类显示 """
         name = 'Unknown packet'
         for i in range(self.fd.rowCount()):
@@ -289,7 +280,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path_str = '-'.join(map(lambda x: f"<{x:08x}>", paths))
         if (type & 0xff) == 0x72:
             item.addChild(QTreeWidgetItem(
-                [f"来源nid={nid}", str(size), "PIDs=" + path_str]))
+                [f"来源nid={NID}", str(size), "PIDs=" + path_str]))
             self.graphicwindow.graphics_global.setMatchedPIDs(
                 path_str, flag=False, size=size)
             self.graphicwindow.graphics_global.getASid(path_str, False, size)
@@ -419,7 +410,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """ docstring: 计算hash并更新视图（这是一个返回函数的函数） """
 
         def result(s):
-            s = self.nid + s
+            s = self.NID + s
             # print(s)
             self.fd.setData(row, 2, s)
             a = self.tablemodel.createIndex(row, 2)
@@ -668,19 +659,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(openfolderworker)
 
     def importData(self):
-        """ docstring: 导入其他数据文件 """
-        fpath = QFileDialog.getOpenFileName(self, '打开文件', HOME_DIR)
-        if fpath[0]:
-            lastlen = self.fd.rowCount()
-            ret = self.fd.load(fpath[0])
-            if ret:
-                self.setStatus(ret)
-            else:
-                self.modelViewUpdate()
-                for i in range(lastlen, self.fd.rowCount()):
-                    filename = self.fd.getData(i)
-                    # 添加log记录
-                    # self.logText.append(f'<add> file {filename}\n')
+        # """ docstring: 导入其他数据文件 """
+        # fpath = QFileDialog.getOpenFileName(self, '打开文件', HOME_DIR)
+        # if fpath[0]:
+        #     lastlen = self.fd.rowCount()
+        #     ret = self.fd.load(fpath[0])
+        #     if ret:
+        #         self.setStatus(ret)
+        #     else:
+        #         self.modelViewUpdate()
+        #         for i in range(lastlen, self.fd.rowCount()):
+        #             filename = self.fd.getData(i)
+        #             # 添加log记录
+        #             # self.logText.append(f'<add> file {filename}\n')
+        # TODO: 从后端重新读配置文件
+        pass
 
     def closeEvent(self, event):
         """ docstring: 关闭窗口时弹出警告 """
@@ -695,11 +688,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.videowindow = None
             self.saveLog()
             event.accept()
+            self.signals.finished.emit()
         elif reply == QMessageBox.No:
             self.graphicwindow.close()
             self.cmdwindow = None
             self.videowindow = None
             event.accept()
+            self.signals.finished.emit()
         else:
             event.ignore()
 
@@ -750,11 +745,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     from random import randint
-    import qdarkstyle as qds
+    # import qdarkstyle as qds
+    # app.setStyleSheet(qds.load_stylesheet_pyqt5())
 
     app = QApplication(sys.argv)
-    # app.setStyleSheet(qds.load_stylesheet_pyqt5())
-    window = MainWindow()
+    window = MainWindow(QThreadPool(), "a5"*16)
     window.show()
 
     # 测试收包匹配功能

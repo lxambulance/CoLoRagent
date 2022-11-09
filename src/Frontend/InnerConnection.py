@@ -84,6 +84,16 @@ async def connect_server():
     await w.wait_closed()
 
 
+def main():
+    asyncio.run(connect_server())
+
+
+def put_request(request):
+    """ docstring: put操作可能会阻塞，需要另起一个线程 """
+    request_packet = bytes(json.dumps(request), "utf-8")
+    asyncio.run(server_list[server_key][ConnectionEnum.QUEUE].put(request_packet))
+
+
 def my_term_sig_handler(signum, frame):
     term_sig_handler(server_list, signum, frame)
 
@@ -91,4 +101,4 @@ def my_term_sig_handler(signum, frame):
 if __name__ == '__main__':
     signal.signal(signal.SIGTERM, my_term_sig_handler)
     signal.signal(signal.SIGINT, my_term_sig_handler)
-    asyncio.run(connect_server())
+    main()

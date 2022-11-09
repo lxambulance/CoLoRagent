@@ -42,6 +42,7 @@ async def parse_client_packet(dict_list, key, packet):
                 reply["op"] = "getconfig"
                 async with aiofiles.open(DATA_PATH, 'br') as f:
                     data = await f.read()
+                # TODO: 修改文件路径信息
                 reply["data"] = json.loads(data)
     reply_packet = bytes(json.dumps(reply), "utf-8")
     print(packet, reply_packet)

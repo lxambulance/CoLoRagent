@@ -5,8 +5,6 @@
 from PyQt5.QtWidgets import QDialog, QApplication
 from logInDialog import Ui_Dialog
 from worker import worker
-import json
-import asyncio
 import InnerConnection as ic
 
 
@@ -17,12 +15,12 @@ class logInWindow(QDialog, Ui_Dialog):
         super().__init__()
         self.setupUi(self)
         self.threadpool = threadpool
-
         self.configpath = None
         self.filetmppath = None
         self.myNID = None
         self.myIPv4 = None
         self.rmIPv4 = None
+        self.configdata = None
 
         # 设置结束、重生成NID、ED IP修改、RM IP修改的信号/槽连接
         self.buttonBox.accepted.connect(self.writeConfig)
@@ -31,7 +29,7 @@ class logInWindow(QDialog, Ui_Dialog):
         self.RMIPv4.textChanged.connect(self.setRMIPv4)
 
         # 设置前端连接模块在另外一个线程运行
-        InnerConnectionworker = worker(0, asyncio.run, ic.connect_server())
+        InnerConnectionworker = worker(0, ic.main)
         ic.backendmessage.connected.connect(self.startReadConfig)
         self.threadpool.start(InnerConnectionworker)
 
@@ -58,14 +56,14 @@ class logInWindow(QDialog, Ui_Dialog):
         self.threadpool.start(self.sendworker)
 
     def sendGetConfigRequest(self):
-        """ docstring: 生成配置请求并发送 """
+        """ docstring: 生成配置请求并发送。put操作可能会阻塞，需要另起一个线程 """
         request = {"type": "request"}
         request["op"] = "getconfig"
-        request_packet = bytes(json.dumps(request), "utf-8")
-        asyncio.run(ic.server_list[ic.server_key][ic.ConnectionEnum.QUEUE].put(request_packet))
+        ic.put_request(request)
 
     def readConfig(self, data):
         """ docstring: 处理后端配置文件，填写表单项 """
+        self.configdata = data
         self.configpath = data.get("configpath", None)
         self.showpath_config.setText(self.configpath)
         self.filetmppath = data.get("filetmppath", None)

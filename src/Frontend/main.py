@@ -1,5 +1,5 @@
 # coding=utf-8
-""" docstring: 主程序 """
+""" docstring: 前端主程序 """
 
 
 import signal
@@ -20,11 +20,10 @@ try:
     QtWin.setCurrentProcessExplicitAppUserModelID(appid)
 except ImportError:
     print("Not Windows System")
-    pass
 
 
-class CoLoRApp(QApplication):
-    """ docstring: CoLoR应用类 """
+class CoLoRFrontend(QApplication):
+    """ docstring: 前端类 """
 
     def _setStyle(self):
         """ docstring: 切换应用界面风格（改qss文件） """
@@ -59,8 +58,9 @@ class CoLoRApp(QApplication):
         self.loginwindow = logInWindow(threadpool)
         self.loginwindow.show()
 
-        # 设置登录界面跳转信号/槽连接
+        # 设置登录界面接受、拒绝信号/槽连接
         self.loginwindow.buttonBox.accepted.connect(self.start_main)
+        self.loginwindow.buttonBox.rejected.connect(lambda: self.stop_main(None, None))
 
         # 设置结束信号操作
         signal.signal(signal.SIGTERM, self.stop_main)
@@ -72,38 +72,16 @@ class CoLoRApp(QApplication):
             return
 
         # 初始化本终端信息
-        # CM.PL.IPv4 = self.loginwindow.myIPv4
-        # CM.PL.Nid = int('0x'+self.loginwindow.myNID, 16)
-        # CM.PL.rmIPv4 = self.loginwindow.rmIPv4
-        mw.HOME_DIR = self.loginwindow.filetmppath
-        mw.DATA_PATH = self.loginwindow.configpath
-        self.window = mw.MainWindow(self.threadpool)
+        self.window = mw.MainWindow(self.threadpool, self.loginwindow.myNID, configpath=self.loginwindow.configpath,
+                                    filetmppath=self.loginwindow.filetmppath, configdata=self.loginwindow.configdata)
 
-        # 设置主界面风格切换动作信号/槽连接
+        # 设置主界面风格切换动作、关闭信号/槽连接
         self.window.actionWindows.triggered.connect(self._setStyle)
         self.window.actionwindowsvista.triggered.connect(self._setStyle)
         self.window.actionFusion.triggered.connect(self._setStyle)
         self.window.actionQdarkstyle.triggered.connect(self._setStyle)
-
+        self.window.signals.finished.connect(lambda: self.stop_main(None, None))
         self.window.show()
-
-        # 连接后端信号槽
-        # ESS.ESSsignal.output.connect(self.window.handleMessageFromPkt)
-        # thread_monitor = CM.Monitor(
-        #     message=app.window.handleMessageFromPkt,
-        #     path=app.window.getPathFromPkt
-        # )
-        # thread_monitor.setDaemon(True)
-        # thread_monitor.daemon = True
-        # thread_monitor.start()
-
-        # 特殊测试，伪造RM条目
-        pass
-        # CM.PL.RegFlag = 1
-        # nid = "b0cd69ef142db5a471676ad710eebf3a"
-        # CM.PL.PeerProxys[int(nid, 16)] = '10.134.149.183'
-        # nid = "d23454d19f307d8b98ff2da277c0b546"
-        # CM.PL.PeerProxys[int(nid, 16)]='10.134.148.137'
 
     def stop_main(self, signum, frame):
         ic.my_term_sig_handler(signum, frame)
@@ -112,5 +90,5 @@ class CoLoRApp(QApplication):
 if __name__ == '__main__':
     import sys
     threadpool = QThreadPool()
-    app = CoLoRApp(sys.argv, threadpool)
+    app = CoLoRFrontend(sys.argv, threadpool)
     sys.exit(app.exec_())
