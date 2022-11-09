@@ -8,7 +8,8 @@ import time
 import json
 import subprocess
 from worker import worker
-import FileData as FD
+import InnerConnection as ic
+import FileData as fd
 from serviceTable import serviceTableModel, progressBarDelegate
 from serviceList import serviceListModel
 from AddItemWindow import AddItemWindow
@@ -44,11 +45,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.threadpool = threadpool
         self.NID = myNID
+        self.configpath = configpath
+        self.filetmppath = filetmppath
+        self.configdata = configdata
         self.signals = MainWindowSignals()
 
-        # 修改数据存储路径
-        FD.DATA_PATH = configpath
-        FD.HOME_DIR = filetmppath
         # 设置定时器用于统计收包速度和各自治域信息统计
         self.timer = QTimer()
         self.timer.setInterval(1000)
@@ -82,7 +83,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.speed_line = self.speedGraph.plot(self.speed_x, self.speed_y, pen=speedpen)
         # 设置网络拓扑窗口
         self.graphicwindow = GraphicWindow(self.fd)
-        # self.graphicwindow.loadTopo(DATA_PATH)
+        self.graphicwindow.loadTopo(self.configdata.get("topo map", None))
         self.graphicwindow.hide()
         # 设置日志记录
         for i in range(self.fd.rowCount()):
@@ -165,7 +166,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.toolBar.addAction(self.button_startvideoserver)
 
         # 使用自定义模型
-        self.fd = FD.FileData(NID=self.NID)
+        self.fd = fd.FileData(NID=self.NID, initData=self.configdata.get("file data", None))
         self.listmodel = serviceListModel(self.fd)
         self.tablemodel = serviceTableModel(self.fd)
         self.progressbardelegate = progressBarDelegate(self)
@@ -679,31 +680,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """ docstring: 关闭窗口时弹出警告 """
         status = QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel
         reply = QMessageBox.question(self, '警告：是否保存数据', '保存并退出?', status)
-        if reply == QMessageBox.Yes:
-            # 做出保存操作
-            self.fd.save()
-            self.graphicwindow.saveTopo(DATA_PATH)
-            self.graphicwindow.close()
-            self.cmdwindow = None
-            self.videowindow = None
-            self.saveLog()
-            event.accept()
-            self.signals.finished.emit()
-        elif reply == QMessageBox.No:
-            self.graphicwindow.close()
-            self.cmdwindow = None
-            self.videowindow = None
-            event.accept()
-            self.signals.finished.emit()
-        else:
+        if reply == QMessageBox.Cancel:
             event.ignore()
+            return
+        if reply == QMessageBox.Yes:
+            # 处理保存操作
+            self.configdata["topo map"] = self.graphicwindow.saveTopo()
+            self.configdata["file data"] = self.fd.save()
+            self.datasave()
+        self.graphicwindow.close()
+        self.cmdwindow = None
+        self.videowindow = None
+        ic.normal_stop()
+        event.accept()
 
-    def saveLog(self):
+    def datasave(self):
         """ docstring: 保存日志文件 """
-        with open(LOG_PATH, 'w', encoding='utf-8') as f:
-            # s = self.logText.toPlainText()
-            # f.write(s)
-            pass
+        # TODO: 额外保存用户操作以及后端提示信息
+        request = {"type": "request", "op": "setconfig", "data": self.configdata}
+        ic.put_request(request)
 
     def viewInfo(self, index):
         """ docstring: 双击条目显示文件内容 """

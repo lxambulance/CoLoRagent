@@ -24,10 +24,11 @@ class topoGraphScene(QGraphicsScene):
 
         # 添加特殊节点用于收包动画显示
         # TODO: 建立新的点类
-        self.node_file = QGraphicsEllipseItem(-12,-12,24,24)
-        self.node_file_img = QGraphicsPixmapItem(QPixmap(':/file/document').scaled(80, 72), self.node_file)
+        self.node_file = QGraphicsEllipseItem(-12, -12, 24, 24)
+        self.node_file_img = QGraphicsPixmapItem(
+            QPixmap(':/file/document').scaled(80, 72), self.node_file)
         self.node_file_img.setOffset(-40, -90)
-        self.node_file.setPen(QPen(QColor('#ffff80'),2))
+        self.node_file.setPen(QPen(QColor('#ffff80'), 2))
         self.node_file.setBrush(Qt.red)
         self.node_file.setZValue(20)
         self.addItem(self.node_file)
@@ -35,8 +36,8 @@ class topoGraphScene(QGraphicsScene):
 
         # 设置特殊文本类显示信息
         self.baseinfo = Text("信息显示框",
-            font =QFont("SimHei", 12, QFont.Normal),
-            color=QColor("#ff8000"))
+                             font=QFont("SimHei", 12, QFont.Normal),
+                             color=QColor("#ff8000"))
         self.addItem(self.baseinfo)
         self.baseinfo.setFlag(self.baseinfo.ItemIgnoresTransformations)
         self.baseinfo.hide()
@@ -44,7 +45,7 @@ class topoGraphScene(QGraphicsScene):
         # 观察节点特殊记录
         self.node_me = None
         self.nid_me = None
-        self.waitlist = [] # 用于暂存添加到topo图中的新节点修改属性
+        self.waitlist = []  # 用于暂存添加到topo图中的新节点修改属性
 
         # 绘制背景线
         self.backgroundLines = []
@@ -56,7 +57,7 @@ class topoGraphScene(QGraphicsScene):
             n2.setPos(i*20, 5000)
             e = Edge(n1, n2, 2)
             e.setFlag(e.ItemIsSelectable, False)
-            if j%8==0:
+            if j % 8 == 0:
                 e.setPen(QPen(QColor("#111111"), 2, Qt.DotLine))
             self.addItem(e)
             self.backgroundLines.append(e)
@@ -66,20 +67,19 @@ class topoGraphScene(QGraphicsScene):
             n4.setPos(5000, i*20)
             e = Edge(n3, n4, 2)
             e.setFlag(e.ItemIsSelectable, False)
-            if j%8==0:
+            if j % 8 == 0:
                 e.setPen(QPen(QColor("#111111"), 2, Qt.DotLine))
             self.addItem(e)
             self.backgroundLines.append(e)
 
         # 拓扑图主要参数
-        self.ASinfo = {} # AS所含节点信息，格式：id:[node,...]
-        self.belongAS = {} # 节点所属AS，格式：id:ASitem
-        self.nextedges = {} # 边表，邻接表存储，格式：id:[(nextnode, edge),...]
-        self.R = 0 # 布局中大圆半径
+        self.ASinfo = {}  # AS所含节点信息，格式：id:[node,...]
+        self.belongAS = {}  # 节点所属AS，格式：id:ASitem
+        self.nextedges = {}  # 边表，邻接表存储，格式：id:[(nextnode, edge),...]
+        self.R = 0  # 布局中大圆半径
 
         # json格式转换时临时保存参数
         self.topo = {}
-        self.data = {}
 
     def addEdge(self, n1, n2, edge):
         """ docstring: 向nextedges字典中添加点-边映射（无向边） """
@@ -153,14 +153,11 @@ class topoGraphScene(QGraphicsScene):
                 node.setPos(x, y)
             nodelist.append(asitem)
 
-    def initTopo(self, path):
+    def initTopo(self, configdata):
         """ docstring: 初始化拓扑为配置文件信息 """
-        with open(path, 'r') as f:
-            self.data = load(f)
-            self.topo = self.data.get('topo map', {})
+        self.topo = configdata
         if len(self.topo) == 0:
             return
-        
         # 添加节点
         tmpass = []
         tmpnodes = []
@@ -216,10 +213,10 @@ class topoGraphScene(QGraphicsScene):
                     color = item[4]
                 edgeitem = Edge(tmpnodes[x], tmpnodes[y], 0, item[2], font, color)
             else:
-                edgeitem = Edge(tmpnodes[x], tmpnodes[y], linetype = 1)
+                edgeitem = Edge(tmpnodes[x], tmpnodes[y], linetype=1)
             self.addItem(edgeitem)
             self.addEdge(tmpnodes[x], tmpnodes[y], edgeitem)
-        
+
         # 根据标志位显示标签
         if self.parent().labelenable:
             for item in self.items():
@@ -232,12 +229,9 @@ class topoGraphScene(QGraphicsScene):
                         continue
                     item.throughputlabel.show()
 
-    def saveTopo(self, path):
+    def saveTopo(self):
         """ docstring: 存储拓扑图 """
-        with open(path, 'r') as f:
-            self.data = load(f)
         self.topo = {}
-
         # 删除所有还在waitlist中的点，视为添加失败
         for item in self.waitlist:
             self.removeItem(item)
@@ -256,7 +250,7 @@ class topoGraphScene(QGraphicsScene):
                     node['size'] = item.size
                     node['tfont'] = item.throughputlabel.currentfont.toString()
                     node['tcolor'] = item.throughputlabel.currentcolor.name()
-                elif item.myType == 1 or item.myType == 2 or item.myType==5:
+                elif item.myType == 1 or item.myType == 2 or item.myType == 5:
                     node['nid'] = item.nid
                 node['pos'] = [item.scenePos().x(), item.scenePos().y()]
                 node['name'] = item.name
@@ -290,7 +284,4 @@ class topoGraphScene(QGraphicsScene):
                     y.append(z)
             tmpasinfo[str(x)] = y
         self.topo['ASinfo'] = tmpasinfo
-
-        with open(path, 'w') as f:
-            self.data['topo map'] = self.topo
-            dump(self.data, f)
+        return self.topo

@@ -3,16 +3,25 @@
 
 
 import json
+from enum import IntEnum
+
+
+FILEDATA_SIZE = 5
+
+class FileDataEnum(IntEnum):
+    FILENAME = 0
+    FILEPATH = 1
+    FILEHASH = 2
+    ISREG = 3
+    ISDOW = 4
 
 
 class FileData:
     """ docstring: 文件数据类 """
 
     def __init__(self, *, initData=None, NID=None):
-        self.__data = initData or []
-        self.NID = NID or f"{1:032x}"
-        # TODO: raw data 放到别处去
-        self.__raw_data = {}
+        self.__data = initData
+        self.NID = NID
 
     def getData(self, row, column=0):
         """ docstring: 获取数据 """
@@ -52,46 +61,10 @@ class FileData:
         return len(self.__data)
 
     def columnCount(self):
-        return 5
+        return FILEDATA_SIZE
 
-    def __load(self, Path=None):
-        """ docstring: 从数据路径加载数据 """
-        last = self.rowCount()
-        if Path == None:
-            Path = DATA_PATH
-        pos = Path.find('json')
-        if pos == -1:
-            return('这不是一个合法的json类型文件')
-        with open(Path, 'r') as f:
-            try:
-                self.__raw_data = json.load(f)
-            except:
-                return('json格式转换失败，数据加载失败')
-            items = self.__raw_data['base data']
-            for item in items:
-                item_nid = item[2][:32]
-                # print(item_nid)
-                if self.NID != item_nid:
-                    # 非本机通告文件
-                    item[1] = HOME_DIR + '/' + item[0]
-                    if item[3] != 100:
-                        continue
-                    elif not os.path.exists(item[1]) or not os.path.isfile(item[1]):
-                        item[4] = 0
-                else:
-                    # 本机通告文件，存在性检测
-                    if not os.path.exists(item[1]):
-                        continue
-                self.__data.append(item)
-        return ''
-
-    def __save(self, Path=None):
-        """ docstring: 将数据保存到数据路径中 """
-        if Path == None:
-            Path = DATA_PATH
-        with open(Path, 'w') as f:
-            self.__raw_data['base data'] = self.__data
-            json.dump(self.__raw_data, f)
+    def save(self):
+        return self.__data
 
 
 if __name__ == '__main__':

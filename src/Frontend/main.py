@@ -60,31 +60,31 @@ class CoLoRFrontend(QApplication):
 
         # 设置登录界面接受、拒绝信号/槽连接
         self.loginwindow.buttonBox.accepted.connect(self.start_main)
-        self.loginwindow.buttonBox.rejected.connect(lambda: self.stop_main(None, None))
+        self.loginwindow.buttonBox.rejected.connect(self.stop_main)
 
         # 设置结束信号操作
-        signal.signal(signal.SIGTERM, self.stop_main)
-        signal.signal(signal.SIGINT, self.stop_main)
+        signal.signal(signal.SIGTERM, ic.my_term_sig_handler)
+        signal.signal(signal.SIGINT, ic.my_term_sig_handler)
 
     def start_main(self):
         # 未连接到后端禁止启动
-        if ic.server_key is None:
-            return
+        if self.loginwindow.configdata is None:
+            self.stop_main()
 
         # 初始化本终端信息
         self.window = mw.MainWindow(self.threadpool, self.loginwindow.myNID, configpath=self.loginwindow.configpath,
                                     filetmppath=self.loginwindow.filetmppath, configdata=self.loginwindow.configdata)
 
-        # 设置主界面风格切换动作、关闭信号/槽连接
+        # 设置主界面风格切换动作信号/槽连接
         self.window.actionWindows.triggered.connect(self._setStyle)
         self.window.actionwindowsvista.triggered.connect(self._setStyle)
         self.window.actionFusion.triggered.connect(self._setStyle)
         self.window.actionQdarkstyle.triggered.connect(self._setStyle)
-        self.window.signals.finished.connect(lambda: self.stop_main(None, None))
         self.window.show()
-
-    def stop_main(self, signum, frame):
-        ic.my_term_sig_handler(signum, frame)
+    
+    def stop_main(self):
+        ic.normal_stop()
+        sys.exit()
 
 
 if __name__ == '__main__':

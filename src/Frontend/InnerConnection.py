@@ -4,6 +4,7 @@
 
 import asyncio
 import signal
+import time
 from CoLoRProtocol.frontendBackendConnection import *
 from PyQt5.QtCore import pyqtSignal, QObject
 
@@ -18,6 +19,7 @@ except ModuleNotFoundError:
 CONNECTION_TIME = 3
 server_key = None
 server_list = {}
+flag_term_sig = False
 background_tasks = set()
 
 
@@ -53,6 +55,7 @@ async def parse_server_packet(dict_list, key, packet):
         match json_packet["op"]:
             case "getconfig":
                 backendmessage.configdata.emit(json_packet["data"])
+                print("getconfig ok!")
     return
 
 
@@ -65,7 +68,7 @@ async def connect_server():
         except ConnectionRefusedError:
             connectcount += 1
             print(f"connection refused. Retry(total = {connectcount})")
-            if connectcount == CONNECTION_TIME:
+            if connectcount == CONNECTION_TIME or flag_term_sig:
                 return
             continue
         else:
@@ -92,10 +95,26 @@ def put_request(request):
     """ docstring: put操作可能会阻塞，需要另起一个线程 """
     request_packet = bytes(json.dumps(request), "utf-8")
     asyncio.run(server_list[server_key][ConnectionEnum.QUEUE].put(request_packet))
+    print("put ok")
 
 
 def my_term_sig_handler(signum, frame):
+    global flag_term_sig
+    flag_term_sig = True
     term_sig_handler(server_list, signum, frame)
+
+
+def normal_stop():
+    global flag_term_sig
+    flag_term_sig = True
+    time.sleep(1)
+    for k, v in server_list.items():
+        v[ConnectionEnum.CONTROL_FLAG] = False
+        v[ConnectionEnum.WRITER].close()
+    try:
+        asyncio.get_event_loop().stop()
+    except:
+        pass
 
 
 if __name__ == '__main__':

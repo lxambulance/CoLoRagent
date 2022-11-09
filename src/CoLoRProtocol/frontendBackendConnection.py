@@ -14,7 +14,7 @@ from enum import IntEnum
 HOST, PORT = "127.0.0.1", 50001
 DATA_LENGTH = 4
 KEY_LENGTH = 10
-SLEEP_TIME = 1
+SLEEP_TIME = 0.5
 
 
 class ConnectionEnum(IntEnum):
