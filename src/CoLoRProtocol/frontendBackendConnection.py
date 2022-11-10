@@ -50,14 +50,14 @@ async def receiver(dict_list, background_tasks, key, parse_packet):
         task.add_done_callback(background_tasks.discard)
 
 
-async def sender(dict_list, background_tasks, key):
+async def sender(dict_list, background_tasks, key, time=SLEEP_TIME):
     enddevice = dict_list[key]
     while enddevice[ConnectionEnum.CONTROL_FLAG]:
         # start to task(write)
         try:
             data = enddevice[ConnectionEnum.QUEUE].get_nowait()
         except asyncio.QueueEmpty:
-            await asyncio.sleep(SLEEP_TIME)
+            await asyncio.sleep(time)
             continue
         task = asyncio.create_task(send_packet(dict_list, key, data))
         background_tasks.add(task)
@@ -76,20 +76,20 @@ async def hello(dict_list, enddevice, r, w):
             b = secrets.token_bytes(KEY_LENGTH)
         w.write(b)
         await w.drain()
-        print(f"get new connection[{len(dict_list)+1}]!")
+        # print(f"get new connection[{len(dict_list)+1}]!")
     elif enddevice == "client":
         b = secrets.token_bytes(KEY_LENGTH)
         w.write(b)
         await w.drain()
-        print(f"send<{b}> ok!")
+        # print(f"send<{b}> ok!")
         try:
             p = await r.readexactly(KEY_LENGTH)
         except asyncio.IncompleteReadError as e:
             traceback.print_exc()
             return None
-        print(f"receive<{p}> ok!")
+        # print(f"receive<{p}> ok!")
     else:
-        print("wrong arguments in hello!")
+        # print("wrong arguments in hello!")
         return None
     dict_list[p+b] = [r, w, True, asyncio.Queue(maxsize=1024)]
     return p+b

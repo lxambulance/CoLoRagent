@@ -51,18 +51,19 @@ class logInWindow(QDialog, Ui_Dialog):
 
     def startReadConfig(self):
         """ docstring: 设置发送线程，连接返回读取配置文件信号 """
+        ic.backendmessage.connected.disconnect()
         self.sendworker = worker(0, self.sendGetConfigRequest)
         ic.backendmessage.configdata.connect(self.readConfig)
         self.threadpool.start(self.sendworker)
 
     def sendGetConfigRequest(self):
         """ docstring: 生成配置请求并发送。put操作可能会阻塞，需要另起一个线程 """
-        request = {"type": "request"}
-        request["op"] = "getconfig"
+        request = {"type": "getconfig"}
         ic.put_request(request)
 
     def readConfig(self, data):
         """ docstring: 处理后端配置文件，填写表单项 """
+        ic.backendmessage.configdata.disconnect()
         self.configdata = data
         self.configpath = data.get("configpath", None)
         self.showpath_config.setText(self.configpath)

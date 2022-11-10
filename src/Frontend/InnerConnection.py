@@ -17,6 +17,8 @@ except ModuleNotFoundError:
 
 
 CONNECTION_TIME = 3
+CLOSE_DELAY = 0.5
+SEND_INTERVAL = 0.1
 server_key = None
 server_list = {}
 flag_term_sig = False
@@ -24,8 +26,13 @@ background_tasks = set()
 
 
 class signals(QObject):
+    # 一次性信号，记得解绑
     connected = pyqtSignal()
     configdata = pyqtSignal(object)
+    hashdata = pyqtSignal(object)
+    # 周期信号
+    message = pyqtSignal(object)
+    pathdata = pyqtSignal(object)
 
 
 backendmessage = signals()
@@ -33,15 +40,13 @@ backendmessage = signals()
 
 async def test(key):
     # 测试 getconfig request
-    request = {"type": "request"}
-    request["op"] = "getconfig"
+    request = {"type": "getconfig"}
     request_packet = bytes(json.dumps(request), "utf-8")
     await server_list[key][ConnectionEnum.QUEUE].put(request_packet)
 
 
-example_reply = """{
-    "type": "reply",
-    "op": "getconfig",
+example_server_packet = """{
+    "type": "getconfigreply",
     "data": {}
 }"""
 
@@ -51,11 +56,16 @@ async def parse_server_packet(dict_list, key, packet):
     # 1. parse
     json_packet = json.loads(packet)
     # 2. work
-    if json_packet["type"] == "reply":
-        match json_packet["op"]:
-            case "getconfig":
-                backendmessage.configdata.emit(json_packet["data"])
-                print("getconfig ok!")
+    match json_packet["type"]:
+        case "getconfigreply":
+            backendmessage.configdata.emit(json_packet["data"])
+        case "receivecolorpacket":
+            backendmessage.pathdata.emit(json_packet["data"])
+        case "receivebackendmessage":
+            backendmessage.message.emit(json_packet["data"])
+        case "hashret":
+            backendmessage.hashdata.emit(json_packet["data"])
+    print(json_packet.get("data", None))
     return
 
 
@@ -80,7 +90,7 @@ async def connect_server():
         server_key = pb
         backendmessage.connected.emit()
         await asyncio.gather(
-            sender(server_list, background_tasks, pb),
+            sender(server_list, background_tasks, pb, time=SEND_INTERVAL),
             receiver(server_list, background_tasks, pb, parse_server_packet)
         )
     w.close()
@@ -107,7 +117,7 @@ def my_term_sig_handler(signum, frame):
 def normal_stop():
     global flag_term_sig
     flag_term_sig = True
-    time.sleep(1)
+    time.sleep(CLOSE_DELAY)
     for k, v in server_list.items():
         v[ConnectionEnum.CONTROL_FLAG] = False
         v[ConnectionEnum.WRITER].close()

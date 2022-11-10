@@ -20,7 +20,7 @@ class FileData:
     """ docstring: 文件数据类 """
 
     def __init__(self, *, initData=None, NID=None):
-        self.__data = initData
+        self.__data = initData or []
         self.NID = NID
 
     def getData(self, row, column=0):

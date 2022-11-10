@@ -20,14 +20,30 @@ except ModuleNotFoundError:
 BASE_DIR = '.'
 DATA_PATH = BASE_DIR + '/data.json'
 HOME_DIR = BASE_DIR + '/.tmp'
+SEND_INTERVAL = 0.1
 client_list = {}
 background_tasks = set()
 
 
-example_request = """{
-    "type": "request",
-    "op": "getconfig",
-    "data": {}
+async def test(key):
+    """ docstring: 测试 server 发送 reply """
+    await asyncio.sleep(5)
+    reply = {"type": "receivecolorpacket"}
+    reply["data"] = {"type": 0x72, "SID": "123", "paths": [0x11222695], "size": 100, "NID": 0}
+    reply_packet = bytes(json.dumps(reply), "utf-8")
+    await client_list[key][ConnectionEnum.QUEUE].put(reply_packet)
+    reply = {"type": "receivebackendmessage"}
+    reply["data"] = {"messageType": 1, "message": "hello, world!"}
+    reply_packet = bytes(json.dumps(reply), "utf-8")
+    await client_list[key][ConnectionEnum.QUEUE].put(reply_packet)
+    reply = {"type": "hashret"}
+    reply["data"] = {"retid": 1, "filehash": "a5"*20}
+    reply_packet = bytes(json.dumps(reply), "utf-8")
+    await client_list[key][ConnectionEnum.QUEUE].put(reply_packet)
+
+
+example_client_packet = """{
+    "type": "getconfig"
 }"""
 
 
@@ -36,28 +52,28 @@ async def parse_client_packet(dict_list, key, packet):
     # 1. parse
     json_packet = json.loads(packet)
     # 2. work
-    reply = {"type": "reply"}
-    if json_packet["type"] == "request":
-        match json_packet["op"]:
-            case "getconfig":
-                reply["op"] = "getconfig"
-                async with aiofiles.open(DATA_PATH, 'br') as f:
-                    data = await f.read()
-                # TODO: 修改配置文件路径信息
-                reply["data"] = json.loads(data)
-                reply_packet = bytes(json.dumps(reply), "utf-8")
-                await client[ConnectionEnum.QUEUE].put(reply_packet)
-                print(packet)
-                print(reply_packet)
-            case "setconfig":
-                data = bytes(json.dumps(json_packet["data"]), "utf-8")
-                async with aiofiles.open(DATA_PATH, "bw") as f:
-                    await f.write(data)
-                print("save config ok!")
-            case "startvideoserver":
-                # CM.PL.AddCacheSidUnit(1, 1, 1, 1, 1)
-                # CM.PL.SidAnn()
-                pass
+    reply = {}
+    match json_packet["type"]:
+        case "getconfig":
+            reply["type"] = "getconfigreply"
+            async with aiofiles.open(DATA_PATH, 'br') as f:
+                data = await f.read()
+            # TODO: 修改配置文件路径信息
+            reply["data"] = json.loads(data)
+            reply_packet = bytes(json.dumps(reply), "utf-8")
+            await client[ConnectionEnum.QUEUE].put(reply_packet)
+        case "setconfig":
+            data = bytes(json.dumps(json_packet["data"]), "utf-8")
+            async with aiofiles.open(DATA_PATH, "bw") as f:
+                await f.write(data)
+        case "startvideoserver":
+            # TODO
+            # CM.PL.AddCacheSidUnit(1, 1, 1, 1, 1)
+            # CM.PL.SidAnn()
+            print("startvideoserver")
+        case "calchash":
+            # TODO 另起一个线程计算
+            print("calchash ok!")
     return
 
 
@@ -66,8 +82,9 @@ async def client_connected(r, w):
     pb = await hello(client_list, "server", r, w)
     if pb:
         await asyncio.gather(
-            sender(client_list, background_tasks, pb),
-            receiver(client_list, background_tasks, pb, parse_client_packet)
+            sender(client_list, background_tasks, pb, time=SEND_INTERVAL),
+            receiver(client_list, background_tasks, pb, parse_client_packet),
+            test(pb)
         )
     w.close()
     await w.wait_closed()
