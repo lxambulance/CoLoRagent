@@ -6,7 +6,6 @@ import os
 import sys
 import time
 import json
-import subprocess
 from worker import worker
 import InnerConnection as ic
 import FileData as fd
@@ -21,7 +20,7 @@ import pyqtgraph as pg
 from PyQt5.QtGui import QIcon, QPalette
 from PyQt5.QtCore import QSize, QThreadPool, QTimer, QObject, pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction,
-                             QMessageBox, QTreeWidgetItem, QFileDialog, QHeaderView)
+                             QMessageBox, QTreeWidgetItem, QHeaderView)
 
 
 __BASE_DIR = "."
@@ -251,22 +250,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         speed_max = (speed_max // 10 + 1) * 10
         self.speedGraph.setYRange(0, speed_max)
         self.speed_line.setData(self.speed_x, self.speed_y)
-        # 测试拖动条效果
-        # bar = self.logWidget.scrollarea.verticalScrollBar()
-        # print(bar.value(), bar.maximum())
-        pass
 
-    def getPathFromPkt(self, type, SID, paths, size, NID):
+    def getPathFromPkt(self, pkttype, SID, paths, size, NID):
         """ docstring: 收包信息分类显示。type == 0x173表示data ack """
         name = "Unknown packet"
         for i in range(self.fd.rowCount()):
             if SID == self.fd.getData(i, 2):
                 name = self.fd.getData(i, 0)
                 break
-        if (type & 0xff) == 0x72:
+        if (pkttype & 0xff) == 0x72:
             name = "<Get>" + name
-        elif (type & 0xff) == 0x73:
-            if not ((type >> 8) & 1):
+        elif (pkttype & 0xff) == 0x73:
+            if not ((pkttype >> 8) & 1):
                 name = "<Data>" + name
                 paths = paths[1:]
             else:
@@ -282,13 +277,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.mapfromSIDtoItem[name + SID] = self.datapackets[-1]
             item = self.datapackets[-1]
         path_str = "-".join(map(lambda x: f"<{x:08x}>", paths))
-        if (type & 0xff) == 0x72:
+        if (pkttype & 0xff) == 0x72:
             item.addChild(QTreeWidgetItem(
                 [f"来源nid={NID}", str(size), "PIDs=" + path_str]))
             self.graphicwindow.graphics_global.setMatchedPIDs(
                 path_str, flag=False, size=size)
             self.graphicwindow.graphics_global.getASid(path_str, False, size)
-        elif (type & 0xff) == 0x73:
+        elif (pkttype & 0xff) == 0x73:
             num = item.childCount()
             item.addChild(QTreeWidgetItem(
                 [f"包片段{num + 1}", str(size), "PIDs=" + path_str]))
@@ -383,10 +378,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     if len(fcontent) > 512 * 3:
                         return ret + "{...(内容过长)...}\n"
             data = json.loads(fcontent)
-        except:
-            return ret + "非JSON格式文件\n"
-        ret += "\n" + json.dumps(data, sort_keys=True,
-                                 indent=4, separators=(",", ":")) + "\n"
+        except Exception:
+            return ret + "读文件失败\n"
+        ret += "\n" + json.dumps(data, sort_keys=True, indent=4, separators=(",", ":")) + "\n"
         return ret
 
     def timerMessageClear(self):
@@ -419,9 +413,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if sys.platform == "win32":
             openhubworker = worker(0, os.startfile, HOME_DIR)
         elif sys.platform == "darwin":
-            openhubworker = worker(0, subprocess.call, ["open", HOME_DIR])
+            openhubworker = worker(0, os.system, f"open {HOME_DIR}")
         else:
-            openhubworker = worker(0, subprocess.call, ["xdg-open", HOME_DIR])
+            openhubworker = worker(0, os.system, f"xdg-open {HOME_DIR}")
         self.threadpool.start(openhubworker)
 
     def openFolder(self):
@@ -443,9 +437,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if sys.platform == "win32":
             openfolderworker = worker(0, os.startfile, filepath)
         elif sys.platform == "darwin":
-            openfolderworker = worker(0, subprocess.call, ["open", filepath])
+            openfolderworker = worker(0, os.system, f"open {filepath}")
         else:
-            openfolderworker = worker(0, subprocess.call, ["xdg-open", filepath])
+            openfolderworker = worker(0, os.system, f"xdg-open {filepath}")
         openfolderworker.signals.finished.connect(lambda: self.setStatus("文件已打开"))
         self.threadpool.start(openfolderworker)
 
@@ -543,7 +537,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         pass
         # 添加数据，修改视图，添加log记录
         lastrow = self.fd.rowCount()
-        for item_str in nowitems:
+        for item_str in urls:
             if os.path.isfile(item_str):
                 item = item_str.replace("\\", "/")
                 pos = item.rfind("/")
@@ -577,7 +571,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             nowSelectItems = self.selectItems.copy()
             delitemworker = worker(1, self.delItem_multi, nowSelectItems)
-            delitemworker.signals.finished.connect(lambda: self.modelViewUpdate())
+            delitemworker.signals.finished.connect(self.modelViewUpdate)
             delitemworker.signals.finished.connect(lambda: self.setStatus("条目已删除"))
             delitemworker.signals.message.connect(self.logWidget.addLog)
             self.threadpool.start(delitemworker)

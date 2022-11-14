@@ -2,6 +2,7 @@
 """ docstring: 后端连接处理模块 """
 
 
+import json
 import asyncio
 import signal
 import time
@@ -118,13 +119,13 @@ def normal_stop():
     global flag_term_sig
     flag_term_sig = True
     time.sleep(CLOSE_DELAY)
-    for k, v in server_list.items():
+    for _, v in server_list.items():
         v[ConnectionEnum.CONTROL_FLAG] = False
         v[ConnectionEnum.WRITER].close()
     try:
         asyncio.get_event_loop().stop()
     except:
-        pass
+        print("loop has already stopped!")
 
 
 if __name__ == '__main__':

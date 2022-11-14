@@ -60,7 +60,7 @@ class CoLoRFrontend(QApplication):
 
         # 设置登录界面接受、拒绝信号/槽连接
         self.loginwindow.buttonBox.accepted.connect(self.start_main)
-        self.loginwindow.buttonBox.rejected.connect(self.stop_main)
+        self.loginwindow.buttonBox.rejected.connect(stop_main)
 
         # 设置结束信号操作
         signal.signal(signal.SIGTERM, ic.my_term_sig_handler)
@@ -69,7 +69,7 @@ class CoLoRFrontend(QApplication):
     def start_main(self):
         # 未连接到后端禁止启动
         if self.loginwindow.configdata is None:
-            self.stop_main()
+            stop_main()
 
         # 初始化本终端信息
         self.window = mw.MainWindow(self.threadpool, self.loginwindow.myNID, configpath=self.loginwindow.configpath,
@@ -81,10 +81,11 @@ class CoLoRFrontend(QApplication):
         self.window.actionFusion.triggered.connect(self._setStyle)
         self.window.actionQdarkstyle.triggered.connect(self._setStyle)
         self.window.show()
-    
-    def stop_main(self):
-        ic.normal_stop()
-        sys.exit()
+
+
+def stop_main():
+    ic.normal_stop()
+    sys.exit()
 
 
 if __name__ == '__main__':

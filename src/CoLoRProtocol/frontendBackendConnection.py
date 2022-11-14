@@ -3,7 +3,6 @@
 
 
 import sys
-import json
 import struct
 import secrets
 import asyncio
@@ -38,10 +37,10 @@ async def receiver(dict_list, background_tasks, key, parse_packet):
     while enddevice[ConnectionEnum.CONTROL_FLAG]:
         # TODO: start to read, task(parse)
         try:
-            l = await enddevice[ConnectionEnum.READER].readexactly(DATA_LENGTH)
-            l, = struct.unpack(">I", l)
-            p = await enddevice[ConnectionEnum.READER].readexactly(l)
-        except asyncio.IncompleteReadError as e:
+            length = await enddevice[ConnectionEnum.READER].readexactly(DATA_LENGTH)
+            length, = struct.unpack(">I", length)
+            p = await enddevice[ConnectionEnum.READER].readexactly(length)
+        except asyncio.IncompleteReadError:
             enddevice[ConnectionEnum.WRITER].close()
             await enddevice[ConnectionEnum.WRITER].wait_closed()
             return
@@ -97,7 +96,7 @@ async def hello(dict_list, enddevice, r, w):
 
 def term_sig_handler(dict_list, signum, frame):
     # print(f"signal number:{signum} Frame:{frame}")
-    for k, v in dict_list.items():
+    for _, v in dict_list.items():
         v[ConnectionEnum.CONTROL_FLAG] = False
         v[ConnectionEnum.WRITER].close()
     asyncio.get_event_loop().stop()

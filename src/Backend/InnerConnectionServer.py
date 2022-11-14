@@ -2,6 +2,7 @@
 """ docstring: 后端监听程序 """
 
 
+import json
 import asyncio
 import aiofiles
 import socket
@@ -29,7 +30,7 @@ async def test(key):
     """ docstring: 测试 server 发送 reply """
     await asyncio.sleep(5)
     reply = {"type": "receivecolorpacket"}
-    reply["data"] = {"type": 0x72, "SID": "123", "paths": [0x11222695], "size": 100, "NID": 0}
+    reply["data"] = {"pkttype": 0x72, "SID": "123", "paths": [0x11222695], "size": 100, "NID": 0}
     reply_packet = bytes(json.dumps(reply), "utf-8")
     await client_list[key][ConnectionEnum.QUEUE].put(reply_packet)
     reply = {"type": "receivebackendmessage"}
@@ -96,7 +97,7 @@ async def backend_server():
 
 
 def my_term_sig_handler(signum, frame):
-    for k, v in client_list.items():
+    for k, _ in client_list.items():
         print(f"connection<{k}>")
     term_sig_handler(client_list, signum, frame)
 
