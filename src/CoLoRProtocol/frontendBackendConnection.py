@@ -67,7 +67,7 @@ async def hello(dict_list, enddevice, r, w):
     if enddevice == "server":
         try:
             p = await r.readexactly(KEY_LENGTH)
-        except asyncio.IncompleteReadError as e:
+        except asyncio.IncompleteReadError:
             traceback.print_exc()
             return None
         b = secrets.token_bytes(KEY_LENGTH)
@@ -83,7 +83,7 @@ async def hello(dict_list, enddevice, r, w):
         # print(f"send<{b}> ok!")
         try:
             p = await r.readexactly(KEY_LENGTH)
-        except asyncio.IncompleteReadError as e:
+        except asyncio.IncompleteReadError:
             traceback.print_exc()
             return None
         # print(f"receive<{p}> ok!")

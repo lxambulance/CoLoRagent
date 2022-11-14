@@ -30,7 +30,7 @@ class signals(QObject):
     # 一次性信号，记得解绑
     connected = pyqtSignal()
     configdata = pyqtSignal(object)
-    hashdata = pyqtSignal(object)
+    hashdata = pyqtSignal(dict)
     # 周期信号
     message = pyqtSignal(object)
     pathdata = pyqtSignal(object)

@@ -34,6 +34,7 @@ class MainWindowSignals(QObject):
     """ docstring: signals class """
 
     finished = pyqtSignal()
+    calcHashFinished = pyqtSignal(int)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -47,6 +48,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.configpath = configpath
         self.filetmppath = filetmppath
         self.configdata = configdata or {}
+        self.retidnow = 0
+        self.retidexpected = 0
+        self.id2rowmap = {}
+        self.signals = MainWindowSignals()
 
         # 设置定时器用于统计收包速度和各自治域信息统计
         self.timer = QTimer()
@@ -491,24 +496,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.tablemodel.dataChanged.emit(a, a)
         return update
 
-    def sendCalcHash(self, filepath):
-        """ docstring: 发送文件路径计算哈希 """
-        # self.
-        request = {"type": "calchash", "data": {"retid": 1, "filepath": filepath}}
-        ic.put_request(request)
-
-    def getHashRet(self, row):
+    def updateSID(self, retid, filehash, SID_prefix):
         """ docstring: 计算hash并更新视图 """
-        def updateSID(retid, filehash):
+        row = self.id2rowmap.pop(retid, 0)
+        # 关闭信号接收
+        if len(self.id2rowmap) == 0 or self.retidnow == self.retidexpected:
             ic.backendmessage.hashdata.disconnect()
-            s = self.NID + s
-            self.fd.setData(row, 2, s)
-            a = self.tablemodel.createIndex(row, 2)
-            self.tablemodel.dataChanged.emit(a, a)
-        return updateSID
+        if row == 0:
+            return
+        # 修改SID
+        filehash = SID_prefix + filehash
+        self.fd.setData(row, fd.FileDataEnum.FILEHASH, filehash)
+        # 发出数据修改信号
+        a = self.tablemodel.createIndex(row, 2)
+        self.tablemodel.dataChanged.emit(a, a)
+        self.signals.calcHashFinished.emit(row)
 
     def addItem(self):
-        """ docstring: 添加条目（仅支持单体添加） """
+        """ docstring: 添加条目（单体添加，开额外窗口） """
+        def regItem(receivedrow):
+            if receivedrow != row:
+                return
+            else:
+                self.signals.calcHashFinished.disconnect()
+            self.selectItems = [row]
+            self.regItem()
+
         self.additemwindow = AddItemWindow(self.fd, self)
         ret = self.additemwindow.exec_()
         row = self.additemwindow.newitemrow
@@ -516,53 +529,55 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # ret用于判断返回结果
         if ret == 0 or row is None:
             return
-        additemworker = worker(0, self.addItem_multi, [row])
+
         self.modelViewUpdate()
-        filename = self.fd.getData(row, 0)
-        self.graphicwindow.chooseFile.addItem(filename)
-        # 添加log记录
+        filename = self.fd.getData(row, fd.FileDataEnum.FILENAME)
+        # 添加记录
         self.logWidget.addLog("<添加> 文件或服务", filename, True)
-        # 计算hash值
-        if not self.fd.getData(row, 2):
-            filepath = self.fd.getData(row, 1)
-            hashworker = worker(0, self.sendCalcHash, filepath)
-            ic.backendmessage.hashdata.connect(lambda x: self.getHashRet(row)(**x))
-            self.threadpool.start(hashworker)
-        # 检查needReg，进行通告流程
+        # 修改高级通告选项显示
+        self.graphicwindow.chooseFile.addItem(filename)
+        additemworker = worker(0, self.addItem_multi, [row])
+        ic.backendmessage.hashdata.connect(lambda x: self.updateSID(**x, SID_prefix=self.NID))
+        # 检查是否需要通告
         if needReg:
-            self.selectItems = [row]
-            self.regItem()
+            self.signals.calcHashFinished.connect(regItem)
+        self.threadpool.start(additemworker)
 
     def urlAddItems(self, urls):
-        pass
+        """ docstring: urls批量处理存储 """
         # 添加数据，修改视图，添加log记录
-        lastrow = self.fd.rowCount()
+        items = []
         for item_str in urls:
             if os.path.isfile(item_str):
                 item = item_str.replace("\\", "/")
                 pos = item.rfind("/")
-                self.fd.addItem(filename=item[pos + 1:], filepath=item)
-                self.graphicwindow.chooseFile.addItem(item[pos + 1:])
-                # 添加log记录
-                self.logWidget.addLog("<添加> 文件或服务", item[pos + 1:], True)
-            elif os.path.isdir(item_str):
-                # TODO: 支持文件夹
-                pass
+                filename = item[pos + 1:]
+                self.fd.addItem(filename=filename, filepath=item)
+                items.append(self.fd.rowCount()-1)
+                # 刷新数据展示
+                self.modelViewUpdate()
+                # 添加记录
+                self.logWidget.addLog("<添加> 文件或服务", filename, True)
+                # 修改高级通告选项显示
+                self.graphicwindow.chooseFile.addItem(filename)
+        additemworker = worker(0, self.addItem_multi, items)
+        ic.backendmessage.hashdata.connect(lambda x: self.updateSID(**x, SID_prefix=self.NID))
+        self.threadpool.start(additemworker)
 
-    def addItem_multi(self, items):
-        """ docstring: 拖入文件。"""
-        nowitems = items.copy()
+    def addItem_multi(self, nowitems):
+        """ docstring: 添加多个文件，修改显示，计算哈希。
+            （要求文件条目已经存储到self.fd，此处参数传递为对应待添加文件在self.fd中的行号。暂时不考虑多操作并行冲突情况。） """
         if len(nowitems) == 0:
             return
-        self.modelViewUpdate()
-        # 额外拉起线程处理多文件哈希
-        nowrow = self.fd.rowCount()
-        for i in range(lastrow, nowrow):
-            filepath = self.fd.getData(i, 1)
-            ic.backendmessage.hashdata.connect(self.getHashRet(i))
-            self.sendCalcHash(filepath)
-        multihashworker = worker(0, multihash)
-        self.threadpool.start(multihashworker)
+        self.retidexpected += len(nowitems)
+        for row in nowitems:
+            # 生成后端请求
+            filepath = self.fd.getData(row, fd.FileDataEnum.FILEPATH)
+            request = {"type": "calchash", "data": {"retid": self.retidnow+1, "filepath": filepath}}
+            ic.put_request(request)
+            print(request)
+            self.id2rowmap[self.retidnow + 1] = row
+            self.retidnow += 1
 
     def delItem(self):
         """ docstring: 删除选中条目（拉起额外线程处理） """
@@ -637,8 +652,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             regitemworker = worker(1, self.regItem_multi, nowSelectItem)
             for item in nowSelectItem:
                 regitemworker.signals.progress.connect(self.updateProgress(item, 3))
-            regitemworker.signals.finished.connect(
-                lambda: self.setStatus("条目已通告"))
+            regitemworker.signals.finished.connect(lambda: self.setStatus("条目已通告"))
             regitemworker.signals.message.connect(self.logWidget.addLog)
             self.threadpool.start(regitemworker)
 
@@ -673,8 +687,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             kwargs["WhiteList"] = list(map(int, whitelist.split(',')))
         regitemworker = worker(
             0, AddCacheSidUnit, filepath, 1, 1, 1, 1, **kwargs)
-        regitemworker.signals.finished.connect(
-            lambda: self.updateProgress(nowSelectItem, 3)(100))
+        regitemworker.signals.finished.connect(lambda: self.updateProgress(nowSelectItem, 3)(100))
         regitemworker.signals.finished.connect(lambda: self.setStatus("条目已通告"))
         regitemworker.signals.finished.connect(SidAnn)
         self.threadpool.start(regitemworker)
@@ -707,10 +720,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             nowSelectItem = self.selectItems.copy()
             undoregworker = worker(1, self.undoRegItem_multi, nowSelectItem)
             for item in nowSelectItem:
-                undoregworker.signals.progress.connect(
-                    self.updateProgress(item, 3))
-            undoregworker.signals.finished.connect(
-                lambda: self.setStatus("条目已取消通告"))
+                undoregworker.signals.progress.connect(self.updateProgress(item, 3))
+            undoregworker.signals.finished.connect(lambda: self.setStatus("条目已取消通告"))
             undoregworker.signals.message.connect(self.logWidget.addLog)
             self.threadpool.start(undoregworker)
 

@@ -74,7 +74,7 @@ async def parse_client_packet(dict_list, key, packet):
             print("startvideoserver")
         case "calchash":
             # TODO 另起一个线程计算
-            print("calchash ok!")
+            print(json_packet["data"])
     return
 
 

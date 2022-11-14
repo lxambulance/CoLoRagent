@@ -1,5 +1,5 @@
 import unittest
-from Frontend.slideWindow import SendingWindow
+from Backend.slideWindow import SendingWindow
 
 
 class MyTestCase(unittest.TestCase):
