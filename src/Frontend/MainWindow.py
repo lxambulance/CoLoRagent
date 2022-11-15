@@ -170,6 +170,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.button_showtopo.setCheckable(True)
         self.button_startvideoserver = QAction(QIcon(":/icon/server-multi-button"), "启动视频服务", self)
         self.button_startvideoserver.setStatusTip("启动视频服务")
+        self.button_startvideoserver.setCheckable(True)
         self.toolBar.addAction(self.button_startvideoserver)
 
         # 使用自定义模型
@@ -194,13 +195,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.splitter_horizontal.setSizes([200, 200, 500])
         self.splitter_vertical.setSizes([350, 450])
 
-    def startVideoServer(self):
+    def startVideoServer(self, status):
         """ docstring: 启动视频应用服务 """
-        status = QMessageBox.Yes | QMessageBox.No
-        reply = QMessageBox.question(self, "通知", "是否开启摄像头服务？", status)
-        if reply == QMessageBox.No:
-            return
-        request = {"type": "startvideoserver"}
+        print(status)
+        if status:
+            reply = QMessageBox.question(self, "通知", "是否开启摄像头服务？", QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.No:
+                self.button_startvideoserver.toggle()
+                return
+            request = {"type": "startvideoserver"}
+        else:
+            request = {"type": "stopvideoserver"}
         self.startvideoserverworker = worker(0, ic.put_request, request)
         self.threadpool.start(self.startvideoserverworker)
 
@@ -237,8 +242,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             # 确保通过x关闭后，主窗口按钮状态同步
             if self.button_showtopo.isChecked():
-                self.button_showtopo.trigger()
+                self.button_showtopo.toggle()
             self.graphicwindow.hide()
+
+    def showAdvancedReg(self):
+        """ docstring: 高级通告页面跳转 """
+        if len(self.selectItems) == 0:
+            self.setStatus("未选中条目")
+            return
+        if len(self.selectItems) > 1:
+            self.setStatus("选中要素过多")
+            return
+        nowSelectItem = self.selectItems[0]
+        if not self.button_showtopo.isChecked():
+            self.button_showtopo.trigger()
+        self.graphicwindow.chooseFile.setCurrentIndex(nowSelectItem)
+        self.graphicwindow.showAdvancedRegrow(nowSelectItem)
+        if not self.graphicwindow.Toolbar.isVisible():
+            self.graphicwindow.actionReopenToolbar.trigger()
+        if not self.graphicwindow.pushButtonAdvancedReg.isChecked():
+            self.graphicwindow.pushButtonAdvancedReg.click()
 
     def updateSpeedLine(self):
         """ docstring: 设置折线图显示，1秒刷新一次 """
@@ -488,14 +511,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         request = {"type": "setconfig", "data": self.configdata}
         ic.put_request(request)
 
-    def updateProgress(self, row, column):
-        """ docstring: 进度条刷新显示函数（返回函数） """
-        def update(value):
-            self.fd.setData(row, column, value)
-            a = self.tablemodel.createIndex(row, column)
-            self.tablemodel.dataChanged.emit(a, a)
-        return update
-
     def updateSID(self, retid, filehash, SID_prefix):
         """ docstring: 计算hash并更新视图 """
         row = self.id2rowmap.pop(retid, 0)
@@ -573,9 +588,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for row in nowitems:
             # 生成后端请求
             filepath = self.fd.getData(row, fd.FileDataEnum.FILEPATH)
-            request = {"type": "calchash", "data": {"retid": self.retidnow+1, "filepath": filepath}}
+            request = {"type": "additem", "data": {"retid": self.retidnow+1, "filepath": filepath}}
             ic.put_request(request)
-            print(request)
             self.id2rowmap[self.retidnow + 1] = row
             self.retidnow += 1
 
@@ -583,95 +597,96 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """ docstring: 删除选中条目（拉起额外线程处理） """
         if len(self.selectItems) == 0:
             self.setStatus("未选中任何条目")
-        else:
-            nowSelectItems = self.selectItems.copy()
-            delitemworker = worker(1, self.delItem_multi, nowSelectItems)
-            delitemworker.signals.finished.connect(self.modelViewUpdate)
-            delitemworker.signals.finished.connect(lambda: self.setStatus("条目已删除"))
-            delitemworker.signals.message.connect(self.logWidget.addLog)
-            self.threadpool.start(delitemworker)
+            return
+        nowSelectItems = self.selectItems.copy()
+        delitemworker = worker(1, self.delItem_multi, nowSelectItems)
+        delitemworker.signals.finished.connect(self.modelViewUpdate)
+        delitemworker.signals.finished.connect(lambda: self.setStatus("条目已删除"))
+        delitemworker.signals.message.connect(self.logWidget.addLog)
+        self.threadpool.start(delitemworker)
 
     def delItem_multi(self, items, message_callback, **kwargs):
         """ docstring: 删除条目线程实际处理函数 """
         items.sort(reverse=True)
         for item in items:
-            if not self.fd.getData(item, 0):
+            filename = self.fd.getData(item, fd.FileDataEnum.FILENAME)
+            if not filename:
                 continue
+            # 发送后端消息
+            filepath = self.fd.getData(item, fd.FileDataEnum.FILEPATH)
+            request = {"type": "delitem", "data": filepath}
+            ic.put_request(request)
             # 添加log记录
-            message_callback.emit("<删除> 文件或服务", f"file {self.fd.getData(item, 0)}")
+            message_callback.emit("<删除> 文件或服务", f"file {filename}")
             self.fd.removeItem(item)
             self.graphicwindow.chooseFile.removeItem(item)
             self.selectItems.remove(item)
+
+    def updateProgress(self, row, value):
+        """ docstring: 进度条刷新显示函数（返回函数） """
+        if value == fd.REG_OR_DOW_COMPLETED:
+            self.waitdowitemcount -= 1
+            if self.waitdowitemcount == 0:
+                ic.backendmessage.dowitemprogress.disconnect()
+        self.fd.setData(row, fd.FileDataEnum.ISDOW, value)
+        a = self.tablemodel.createIndex(row, fd.FileDataEnum.ISDOW)
+        self.tablemodel.dataChanged.emit(a, a)
 
     def dowItem(self):
         """ docstring: 从远端下载数据（拉起额外线程处理） """
         if len(self.selectItems) == 0:
             self.setStatus("未选中任何条目")
-        else:
-            nowSelectItems = self.selectItems.copy()
-            dowitemworker = worker(1, self.dowItem_multi, nowSelectItems)
-            for item in nowSelectItems:
-                dowitemworker.signals.progress.connect(self.updateProgress(item, 4))
-            dowitemworker.signals.finished.connect(lambda: self.setStatus("条目已下载或服务已开始获取"))
-            dowitemworker.signals.message.connect(self.logWidget.addLog)
-            self.threadpool.start(dowitemworker)
+            return
+        nowSelectItems = self.selectItems.copy()
+        ic.backendmessage.dowitemprogress.connect(lambda x: self.updateProgress(**x))
+        self.waitdowitemcount = 0
+        dowitemworker = worker(1, self.dowItem_multi, nowSelectItems)
+        dowitemworker.signals.finished.connect(lambda: self.setStatus("条目已下载或服务已开始获取"))
+        dowitemworker.signals.message.connect(self.logWidget.addLog)
+        self.threadpool.start(dowitemworker)
 
-    def dowItem_multi(self, items, progress_callback, message_callback):
+    def dowItem_multi(self, items, message_callback, **kwargs):
         """ docstring: 下载数据线程实际处理函数 """
-        total = len(items)
-        now = 0
-        wait_list = []
         for item in items:
-            if not self.fd.getData(item, 0):
+            filename = self.fd.getData(item, fd.FileDataEnum.FILENAME)
+            if not filename:
                 continue
-            if self.fd.getData(item, 0) == "video server":
-                SID = self.fd.getData(item, 2)
-                CM.PL.Get(SID, 1)
-                message_callback.emit("<获取> 服务", f"{self.fd.getData(item, 0)}\n")
+            SID = self.fd.getData(item, fd.FileDataEnum.FILEHASH)
+            filepath = self.fd.getData(item, fd.FileDataEnum.FILEPATH)
+            request = {"type": "dowitem", "data": {"SID": SID, "filepath": filepath, "row": item}}
+            if filename == "video server":
+                ic.put_request(request)
+                self.waitdowitemcount += 1
+                message_callback.emit("<获取> 服务", f"{filename}\n")
                 continue
-            now += 1
-            isDow = self.fd.getData(item, 4)
-            if isDow:
+            isDow = self.fd.getData(item, fd.FileDataEnum.ISDOW)
+            if isDow == fd.REG_OR_DOW_COMPLETED:
                 continue
-            SID = self.fd.getData(item, 2)
-            wait_list.append(SID)
-            filepath = self.fd.getData(item, 1)
-            Get(SID, filepath)
-            progress_callback.emit(round(now * 100 / total))
+            ic.put_request(request)
+            self.waitdowitemcount += 1
             # 添加log记录
-            message_callback.emit("<下载> 文件", f"file {self.fd.getData(item, 0)}\n")
-        # TODO：涉及进度条完成状态需要通过color monitor精确判断
-        pass
+            message_callback.emit("<下载> 文件", f"file {filename}\n")
+
+    def updateReg(self, row, value):
+        if value == fd.REG_OR_DOW_COMPLETED:
+            self.waitregitemcount -= 1
+            if self.waitregitemcount == 0:
+                ic.backendmessage.regitemprogress.disconnect()
+        self.fd.setData(row, fd.FileDataEnum.ISREG, value)
+        a = self.tablemodel.createIndex(row, fd.FileDataEnum.ISREG)
+        self.tablemodel.dataChanged.emit(a, a)
 
     def regItem(self):
         """ docstring: 文件通告（拉起额外线程处理） """
         if len(self.selectItems) == 0:
             self.setStatus("未选中条目")
-        else:
-            nowSelectItem = self.selectItems.copy()
-            regitemworker = worker(1, self.regItem_multi, nowSelectItem)
-            for item in nowSelectItem:
-                regitemworker.signals.progress.connect(self.updateProgress(item, 3))
-            regitemworker.signals.finished.connect(lambda: self.setStatus("条目已通告"))
-            regitemworker.signals.message.connect(self.logWidget.addLog)
-            self.threadpool.start(regitemworker)
-
-    def showAdvancedReg(self):
-        """ docstring: 高级通告页面跳转 """
-        if len(self.selectItems) == 0:
-            self.setStatus("未选中条目")
-        elif len(self.selectItems) > 1:
-            self.setStatus("选中要素过多")
-        else:
-            nowSelectItem = self.selectItems[0]
-            if not self.button_showtopo.isChecked():
-                self.button_showtopo.trigger()
-            self.graphicwindow.chooseFile.setCurrentIndex(nowSelectItem)
-            self.graphicwindow.showAdvancedRegrow(nowSelectItem)
-            if not self.graphicwindow.Toolbar.isVisible():
-                self.graphicwindow.actionReopenToolbar.trigger()
-            if not self.graphicwindow.pushButtonAdvancedReg.isChecked():
-                self.graphicwindow.pushButtonAdvancedReg.click()
+            return
+        nowSelectItem = self.selectItems.copy()
+        ic.backendmessage.regitemprogress.connect(lambda x: self.updateReg(**x))
+        regitemworker = worker(1, self.regItem_multi, nowSelectItem)
+        regitemworker.signals.finished.connect(lambda: self.setStatus("条目已通告"))
+        regitemworker.signals.message.connect(self.logWidget.addLog)
+        self.threadpool.start(regitemworker)
 
     def advancedRegItem(self, nowSelectItem):
         """ docstring: 高级通告（拉起额外线程处理，单体） """
@@ -685,8 +700,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             kwargs["level"] = int(level)
         if whitelist:
             kwargs["WhiteList"] = list(map(int, whitelist.split(',')))
-        regitemworker = worker(
-            0, AddCacheSidUnit, filepath, 1, 1, 1, 1, **kwargs)
+        regitemworker = worker(0, AddCacheSidUnit, filepath, 1, 1, 1, 1, **kwargs)
         regitemworker.signals.finished.connect(lambda: self.updateProgress(nowSelectItem, 3)(100))
         regitemworker.signals.finished.connect(lambda: self.setStatus("条目已通告"))
         regitemworker.signals.finished.connect(SidAnn)
@@ -716,14 +730,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """ docstring: 取消通告（拉起额外线程处理） """
         if len(self.selectItems) == 0:
             self.setStatus("未选中条目")
-        else:
-            nowSelectItem = self.selectItems.copy()
-            undoregworker = worker(1, self.undoRegItem_multi, nowSelectItem)
-            for item in nowSelectItem:
-                undoregworker.signals.progress.connect(self.updateProgress(item, 3))
-            undoregworker.signals.finished.connect(lambda: self.setStatus("条目已取消通告"))
-            undoregworker.signals.message.connect(self.logWidget.addLog)
-            self.threadpool.start(undoregworker)
+            return
+        nowSelectItem = self.selectItems.copy()
+        undoregworker = worker(1, self.undoRegItem_multi, nowSelectItem)
+        for item in nowSelectItem:
+            undoregworker.signals.progress.connect(self.updateProgress(item, 3))
+        undoregworker.signals.finished.connect(lambda: self.setStatus("条目已取消通告"))
+        undoregworker.signals.message.connect(self.logWidget.addLog)
+        self.threadpool.start(undoregworker)
 
     def undoRegItem_multi(self, items, progress_callback, message_callback):
         """ docstring: 取消通告线程实际处理函数 TODO：没有考虑高级通告的处理参数 """

@@ -7,6 +7,7 @@ from enum import IntEnum
 
 
 FILEDATA_SIZE = 5
+REG_OR_DOW_COMPLETED = 100
 
 class FileDataEnum(IntEnum):
     FILENAME = 0

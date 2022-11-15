@@ -31,6 +31,8 @@ class signals(QObject):
     connected = pyqtSignal()
     configdata = pyqtSignal(object)
     hashdata = pyqtSignal(dict)
+    dowitemprogress = pyqtSignal(dict)
+    regitemprogress = pyqtSignal(dict)
     # 周期信号
     message = pyqtSignal(object)
     pathdata = pyqtSignal(object)
@@ -66,7 +68,9 @@ async def parse_server_packet(dict_list, key, packet):
             backendmessage.message.emit(json_packet["data"])
         case "hashret":
             backendmessage.hashdata.emit(json_packet["data"])
-    print(json_packet.get("data", None))
+        case "downprogress":
+            backendmessage.downprogress.emit(json_packet["data"])
+    print(json_packet["type"], json_packet.get("data", None))
     return
 
 

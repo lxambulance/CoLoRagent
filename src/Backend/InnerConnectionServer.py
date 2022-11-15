@@ -41,6 +41,11 @@ async def test(key):
     reply["data"] = {"retid": 1, "filehash": "a5"*20}
     reply_packet = bytes(json.dumps(reply), "utf-8")
     await client_list[key][ConnectionEnum.QUEUE].put(reply_packet)
+    reply = {"type": "downprogress"}
+    reply["data"] = {"row":0, "value":10}
+    reply_packet = bytes(json.dumps(reply), "utf-8")
+    await client_list[key][ConnectionEnum.QUEUE].put(reply_packet)
+
 
 
 example_client_packet = """{
@@ -72,8 +77,18 @@ async def parse_client_packet(dict_list, key, packet):
             # CM.PL.AddCacheSidUnit(1, 1, 1, 1, 1)
             # CM.PL.SidAnn()
             print("startvideoserver")
-        case "calchash":
+        case "stopvideoserver":
+            print("stop")
+        case "additem":
             # TODO 另起一个线程计算
+            print(json_packet["data"])
+        case "delitem":
+            print(json_packet["data"])
+        case "dowitem":
+            # TODO:
+            # CM.PL.Get(SID, 1)
+            # CM.PL.Get(SID, filepath)
+            # 另外需要控制接收进度条
             print(json_packet["data"])
     return
 
