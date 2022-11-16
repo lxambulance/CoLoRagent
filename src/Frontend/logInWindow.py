@@ -36,7 +36,7 @@ class logInWindow(QDialog, Ui_Dialog):
     def regenerateNID(self):
         """ docstring: 重新生成NID """
         # TODO: 后端重新生成
-        pass
+        print("regenerateNID")
 
     def setIPv4(self, text):
         self.myIPv4 = text

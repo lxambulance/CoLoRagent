@@ -34,7 +34,7 @@ class MainWindowSignals(QObject):
     """ docstring: signals class """
 
     finished = pyqtSignal()
-    calcHashFinished = pyqtSignal(int)
+    calchashfinished = pyqtSignal(int)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -52,6 +52,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.retidexpected = 0
         self.id2rowmap = {}
         self.signals = MainWindowSignals()
+        self.waitdowitemcount = 0
+        self.waitregitemcount = 0
+        self.waitunregitemcount = 0
 
         # 设置定时器用于统计收包速度和各自治域信息统计
         self.timer = QTimer()
@@ -110,9 +113,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_add.triggered.connect(self.addItem)
         self.action_del.triggered.connect(self.delItem)
         self.action_dow.triggered.connect(self.dowItem)
-        self.action_reg.triggered.connect(self.regItem)
+        self.action_reg.triggered.connect(lambda: self.regItem(True))
         # logTexted不处理setText函数，textChanged处理所有改动
-        self.action_undoReg.triggered.connect(self.undoRegItem)
+        self.action_undoReg.triggered.connect(lambda: self.regItem(False))
         self.action_openDir.triggered.connect(self.openFolder)
         self.action_hub.triggered.connect(self.openHub)
         self.action_import.triggered.connect(self.importData)
@@ -472,20 +475,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(openfolderworker)
 
     def importData(self):
-        """ docstring: 重新读取配置文件。TODO: 从后端重新读配置文件 """
-        # fpath = QFileDialog.getOpenFileName(self, "打开文件", HOME_DIR)
-        # if fpath[0]:
-        #     lastlen = self.fd.rowCount()
-        #     ret = self.fd.load(fpath[0])
-        #     if ret:
-        #         self.setStatus(ret)
-        #     else:
-        #         self.modelViewUpdate()
-        #         for i in range(lastlen, self.fd.rowCount()):
-        #             filename = self.fd.getData(i)
-        #             # 添加log记录
-        #             # self.logText.append(f"<add> file {filename}\n")
-        pass
+        """ docstring: 重新读取配置文件。"""
+        # TODO: 从后端重新读配置文件，添加保存逻辑
+        print("TODO: import data")
 
     def closeEvent(self, event):
         """ docstring: 关闭窗口时弹出警告 """
@@ -525,7 +517,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 发出数据修改信号
         a = self.tablemodel.createIndex(row, 2)
         self.tablemodel.dataChanged.emit(a, a)
-        self.signals.calcHashFinished.emit(row)
+        self.signals.calchashfinished.emit(row)
 
     def addItem(self):
         """ docstring: 添加条目（单体添加，开额外窗口） """
@@ -533,9 +525,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if receivedrow != row:
                 return
             else:
-                self.signals.calcHashFinished.disconnect()
+                self.signals.calchashfinished.disconnect()
             self.selectItems = [row]
-            self.regItem()
+            self.regItem(True)
 
         self.additemwindow = AddItemWindow(self.fd, self)
         ret = self.additemwindow.exec_()
@@ -555,7 +547,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ic.backendmessage.hashdata.connect(lambda x: self.updateSID(**x, SID_prefix=self.NID))
         # 检查是否需要通告
         if needReg:
-            self.signals.calcHashFinished.connect(regItem)
+            self.signals.calchashfinished.connect(regItem)
         self.threadpool.start(additemworker)
 
     def urlAddItems(self, urls):
@@ -624,10 +616,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def updateProgress(self, row, value):
         """ docstring: 进度条刷新显示函数（返回函数） """
+        if self.waitdowitemcount <= 0:
+            return
         if value == fd.REG_OR_DOW_COMPLETED:
             self.waitdowitemcount -= 1
             if self.waitdowitemcount == 0:
                 ic.backendmessage.dowitemprogress.disconnect()
+            self.setStatus("条目已下载")
         self.fd.setData(row, fd.FileDataEnum.ISDOW, value)
         a = self.tablemodel.createIndex(row, fd.FileDataEnum.ISDOW)
         self.tablemodel.dataChanged.emit(a, a)
@@ -641,17 +636,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ic.backendmessage.dowitemprogress.connect(lambda x: self.updateProgress(**x))
         self.waitdowitemcount = 0
         dowitemworker = worker(1, self.dowItem_multi, nowSelectItems)
-        dowitemworker.signals.finished.connect(lambda: self.setStatus("条目已下载或服务已开始获取"))
+        dowitemworker.signals.finished.connect(lambda: self.setStatus("服务已开始获取"))
         dowitemworker.signals.message.connect(self.logWidget.addLog)
         self.threadpool.start(dowitemworker)
 
     def dowItem_multi(self, items, message_callback, **kwargs):
         """ docstring: 下载数据线程实际处理函数 """
         for item in items:
-            filename = self.fd.getData(item, fd.FileDataEnum.FILENAME)
-            if not filename:
-                continue
             SID = self.fd.getData(item, fd.FileDataEnum.FILEHASH)
+            if not SID:
+                continue
+            filename = self.fd.getData(item, fd.FileDataEnum.FILENAME)
             filepath = self.fd.getData(item, fd.FileDataEnum.FILEPATH)
             request = {"type": "dowitem", "data": {"SID": SID, "filepath": filepath, "row": item}}
             if filename == "video server":
@@ -669,22 +664,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def updateReg(self, row, value):
         if value == fd.REG_OR_DOW_COMPLETED:
+            if self.waitregitemcount <= 0:
+                return
             self.waitregitemcount -= 1
-            if self.waitregitemcount == 0:
-                ic.backendmessage.regitemprogress.disconnect()
+            self.setStatus("条目已通告")
+        if value == fd.UNREG_COMPLETED:
+            if self.waitunregitemcount <= 0:
+                return
+            self.waitunregitemcount -= 1
+            self.setStatus("条目已取消通告")
+        if self.waitregitemcount == 0 and self.waitunregitemcount == 0:
+            ic.backendmessage.regitemprogress.disconnect()
         self.fd.setData(row, fd.FileDataEnum.ISREG, value)
         a = self.tablemodel.createIndex(row, fd.FileDataEnum.ISREG)
         self.tablemodel.dataChanged.emit(a, a)
 
-    def regItem(self):
+    def regItem(self, flag):
         """ docstring: 文件通告（拉起额外线程处理） """
         if len(self.selectItems) == 0:
             self.setStatus("未选中条目")
             return
         nowSelectItem = self.selectItems.copy()
         ic.backendmessage.regitemprogress.connect(lambda x: self.updateReg(**x))
-        regitemworker = worker(1, self.regItem_multi, nowSelectItem)
-        regitemworker.signals.finished.connect(lambda: self.setStatus("条目已通告"))
+        regitemworker = worker(1, self.regItem_multi, nowSelectItem, flag)
         regitemworker.signals.message.connect(self.logWidget.addLog)
         self.threadpool.start(regitemworker)
 
@@ -692,72 +694,45 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """ docstring: 高级通告（拉起额外线程处理，单体） """
         if nowSelectItem < 0 or nowSelectItem >= self.fd.rowCount():
             return
-        filepath = self.fd.getData(nowSelectItem, 1)
-        level = self.fd.getData(nowSelectItem, 5)
-        whitelist = self.fd.getData(nowSelectItem, 6)
-        kwargs = {}
-        if level:
-            kwargs["level"] = int(level)
+        filehash = self.fd.getData(nowSelectItem, fd.FileDataEnum.FILEHASH)
+        if not filehash:
+            return
+        filepath = self.fd.getData(nowSelectItem, fd.FileDataEnum.FILEPATH)
+        securitylevel = self.fd.getData(nowSelectItem, fd.FileDataEnum.SECURITYLEVEL)
+        whitelist = self.fd.getData(nowSelectItem, fd.FileDataEnum.WHITELIST)
+        request = {"type": "regitem", "data": {
+            "filepath": filepath, "flag": 1, "row": nowSelectItem}}
+        if securitylevel:
+            request["data"]["securitylevel"] = int(securitylevel)
         if whitelist:
-            kwargs["WhiteList"] = list(map(int, whitelist.split(',')))
-        regitemworker = worker(0, AddCacheSidUnit, filepath, 1, 1, 1, 1, **kwargs)
-        regitemworker.signals.finished.connect(lambda: self.updateProgress(nowSelectItem, 3)(100))
-        regitemworker.signals.finished.connect(lambda: self.setStatus("条目已通告"))
-        regitemworker.signals.finished.connect(SidAnn)
+            request["data"]["whitelist"] = list(map(int, whitelist.split(',')))
+        regitemworker = worker(0, ic.put_request, request)
+        filename = self.fd.getData(nowSelectItem, fd.FileDataEnum.FILENAME)
+        regitemworker.signals.finished.connect(
+            lambda: self.logWidget.addLog("<注册> 文件或服务", f"file {filename}\n"))
         self.threadpool.start(regitemworker)
 
-    def regItem_multi(self, items, progress_callback, message_callback):
+    def regItem_multi(self, items, flag, message_callback, **kwargs):
         """ docstring: 文件通告线程实际处理函数 """
-        total = len(items)
-        now = 0
         for item in items:
-            if not self.fd.getData(item, 0):
+            filehash = self.fd.getData(item, fd.FileDataEnum.FILEHASH)
+            if not filehash:
                 continue
-            now += 1
-            isReg = self.fd.getData(item, 3)
-            if isReg:
+            isReg = self.fd.getData(item, fd.FileDataEnum.ISREG)
+            if flag and isReg == fd.REG_OR_DOW_COMPLETED or not flag and isReg == fd.UNREG_COMPLETED:
                 continue
-            filepath = self.fd.getData(item, 1)
-            AddCacheSidUnit(filepath, 1, 1, 1, 1)
-            progress_callback.emit(round(now * 20 / total))
+            filepath = self.fd.getData(item, fd.FileDataEnum.FILEPATH)
+            request = {"type": "regitem", "data": {
+                "filepath": filepath, "flag": int(flag), "row": item}}
             # 添加log记录
-            message_callback.emit(
-                "<注册> 文件或服务", f"file {self.fd.getData(item, 0)}\n")
-        SidAnn()
-        progress_callback.emit(100)
-
-    def undoRegItem(self):
-        """ docstring: 取消通告（拉起额外线程处理） """
-        if len(self.selectItems) == 0:
-            self.setStatus("未选中条目")
-            return
-        nowSelectItem = self.selectItems.copy()
-        undoregworker = worker(1, self.undoRegItem_multi, nowSelectItem)
-        for item in nowSelectItem:
-            undoregworker.signals.progress.connect(self.updateProgress(item, 3))
-        undoregworker.signals.finished.connect(lambda: self.setStatus("条目已取消通告"))
-        undoregworker.signals.message.connect(self.logWidget.addLog)
-        self.threadpool.start(undoregworker)
-
-    def undoRegItem_multi(self, items, progress_callback, message_callback):
-        """ docstring: 取消通告线程实际处理函数 TODO：没有考虑高级通告的处理参数 """
-        total = len(items)
-        now = total
-        for item in items:
-            if not self.fd.getData(item, 0):
-                continue
-            now -= 1
-            isReg = self.fd.getData(item, 3)
-            if not isReg:
-                continue
-            filepath = self.fd.getData(item, 1)
-            AddCacheSidUnit(filepath, 3, 1, 1, 1)
-            progress_callback.emit(round(now * 20 / total + 80))
-            # 添加log记录
-            message_callback.emit(
-                "<取消注册> 文件或服务", f"file {self.fd.getData(item, 0)}\n")
-        SidAnn()
-        progress_callback.emit(0)
+            filename = self.fd.getData(item, fd.FileDataEnum.FILENAME)
+            if flag:
+                self.waitregitemcount += 1
+                message_callback.emit("<注册> 文件或服务", f"file {filename}\n")
+            else:
+                self.waitunregitemcount += 1
+                message_callback.emit("<取消注册> 文件或服务", f"file {filename}\n")
+            ic.put_request(request)
 
 
 if __name__ == "__main__":

@@ -68,8 +68,10 @@ async def parse_server_packet(dict_list, key, packet):
             backendmessage.message.emit(json_packet["data"])
         case "hashret":
             backendmessage.hashdata.emit(json_packet["data"])
-        case "downprogress":
-            backendmessage.downprogress.emit(json_packet["data"])
+        case "dowitemprogress":
+            backendmessage.dowitemprogress.emit(json_packet["data"])
+        case "regitemprogress":
+            backendmessage.regitemprogress.emit(json_packet["data"])
     print(json_packet["type"], json_packet.get("data", None))
     return
 
@@ -128,7 +130,7 @@ def normal_stop():
         v[ConnectionEnum.WRITER].close()
     try:
         asyncio.get_event_loop().stop()
-    except:
+    except Exception:
         print("loop has already stopped!")
 
 
