@@ -43,6 +43,7 @@ backendmessage = signals()
 
 async def test(key):
     # 测试 getconfig request
+    await asyncio.sleep(3)
     request = {"type": "getconfig"}
     request_packet = bytes(json.dumps(request), "utf-8")
     await server_list[key][ConnectionEnum.QUEUE].put(request_packet)
@@ -59,6 +60,8 @@ async def parse_server_packet(dict_list, key, packet):
     # 1. parse
     json_packet = json.loads(packet)
     # 2. work
+    print(json_packet["type"], json_packet.get("data", None))
+    return
     match json_packet["type"]:
         case "getconfigreply":
             backendmessage.configdata.emit(json_packet["data"])
@@ -98,7 +101,8 @@ async def connect_server():
         backendmessage.connected.emit()
         await asyncio.gather(
             sender(server_list, background_tasks, pb, time=SEND_INTERVAL),
-            receiver(server_list, background_tasks, pb, parse_server_packet)
+            receiver(server_list, background_tasks, pb, parse_server_packet),
+            test(pb)
         )
     w.close()
     await w.wait_closed()
@@ -115,12 +119,6 @@ def put_request(request):
     print("put ok")
 
 
-def my_term_sig_handler(signum, frame):
-    global flag_term_sig
-    flag_term_sig = True
-    term_sig_handler(server_list, signum, frame)
-
-
 def normal_stop():
     global flag_term_sig
     flag_term_sig = True
@@ -132,6 +130,12 @@ def normal_stop():
         asyncio.get_event_loop().stop()
     except Exception:
         print("loop has already stopped!")
+
+
+def my_term_sig_handler(signum, frame):
+    global flag_term_sig
+    flag_term_sig = True
+    term_sig_handler(server_list, signum, frame)
 
 
 if __name__ == '__main__':

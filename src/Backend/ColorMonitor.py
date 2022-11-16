@@ -1,24 +1,26 @@
 # coding=utf-8
 """ docstring: CoLoR监听线程，负责与网络组件的报文交互 """
+
+
 from enum import IntEnum
 import queue
 import zlib
-
 import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal
 from scapy.all import *
 from scapy.layers.inet import IP
-
 import ProxyLib as PL
 import establishSecureSession as ESS
-
 from CoLoRProtocol.CoLoRpacket import ColorGet, ColorData, ColorControl
 from slideWindow import SendingWindow, ReceivingWindow
-
 import socket
 import asyncio
-import uvloop
+try:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ModuleNotFoundError:
+    pass
 
 
 # 文件传输相关全局变量
@@ -33,7 +35,6 @@ class SendingSidField(IntEnum):
     PIDS = 4
     ESS_FLAG = 5
     SENDING_WINDOW = 6
-
     INVALID = -1
 
 
@@ -202,7 +203,8 @@ class PktHandler(threading.Thread):
                     if new_sending_thread.ready:
                         new_sending_thread.send_block_packets()
                         new_sending_thread.start()
-                        self.sending_threads[(new_sending_thread.sid, new_sending_thread.dst_nid)] = new_sending_thread
+                        self.sending_threads[(new_sending_thread.sid,
+                                              new_sending_thread.dst_nid)] = new_sending_thread
                 elif data[0] == 0x73:
                     # 收到网络中的data报文(或ACK)
                     # 校验和检验
@@ -246,7 +248,8 @@ class PktHandler(threading.Thread):
                             if PX in PL.PXs.keys():
                                 ReturnIP = PL.PXs[PX]
                             else:
-                                self.signals.output.emit(1, "未知的PX：" + hex(PX).replace('0x', '').zfill(4))
+                                self.signals.output.emit(
+                                    1, "未知的PX：" + hex(PX).replace('0x', '').zfill(4))
                         # 视频流数据
                         if isinstance(SavePath, int) and SavePath == 1:
                             global VideoCache
@@ -309,7 +312,8 @@ class PktHandler(threading.Thread):
                                 if FrameCount not in VideoCache.keys():
                                     VideoCache[FrameCount] = {}
                                 VideoCache[FrameCount][ChipCount] = RecvDataPkt.load[1:]
-                                MergeFlag[FrameCount] = ChipCount + 1 if (RecvDataPkt.load[0] == 1) else 0
+                                MergeFlag[FrameCount] = ChipCount + \
+                                    1 if (RecvDataPkt.load[0] == 1) else 0
                                 # 重置缓冲区
                                 pops = []
                                 for frame in VideoCache.keys():
@@ -361,7 +365,8 @@ class PktHandler(threading.Thread):
                                     PL.ConvertByte(text, SavePath)  # 存储数据
                                 else:
                                     recv_window: ReceivingWindow = RecvingSid[NewSid]
-                                    recv_window.receive(RecvDataPkt.SegID & ReceivingWindow.MAX_COUNT, text)
+                                    recv_window.receive(RecvDataPkt.SegID &
+                                                        ReceivingWindow.MAX_COUNT, text)
                         else:
                             # 此前收到过SID的数据包
                             if RecvDataPkt.S != 0:
@@ -577,7 +582,7 @@ class SendingThread(threading.Thread):
             else:
                 text = self.data[start:start + self.chip_len]
             load = PL.ConvertInt2Bytes(data_flag | end_flag, 1) \
-                   + (ESS.Encrypt(self.dst_nid, self.sid, text) if self.ess_flag else text)
+                + (ESS.Encrypt(self.dst_nid, self.sid, text) if self.ess_flag else text)
             data_pkt = PL.DataPkt(
                 1, 0, 1, 0, self.sid,
                 nid_cus=self.dst_nid, SegID=pkt_seg_id, PIDs=self.pids, load=load)
@@ -618,26 +623,6 @@ class SendingThread(threading.Thread):
         self.msg_queue.put(ack_pkt)
 
 
-class ControlPktSender(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.signals = pktSignals()
-
-    def run(self):
-        # 向RM发送注册报文
-        self.signals.output.emit(
-            0, "向RM发送注册报文，注册IP：" + PL.IPv4 + "；注册NID：" + hex(PL.Nid))
-        PL.AnnProxy()
-        # 重传判断
-        for i in range(3):
-            time.sleep(RTO)
-            if PL.RegFlag == 0:
-                self.signals.output.emit(0, '注册报文，第' + str(i + 1) + '次重传')
-                PL.AnnProxy()
-            else:
-                break
-
-
 class video_customer(threading.Thread):
     flag = 0  # 等待状态标记
 
@@ -672,6 +657,7 @@ class video_customer(threading.Thread):
 
 class Monitor(threading.Thread):
     """ docstring: 自行实现的监听线程类，继承自线程类 """
+    MAX_RX_NUM = 5
 
     def __init__(self, message=None, path=None):
         threading.Thread.__init__(self)
@@ -680,6 +666,7 @@ class Monitor(threading.Thread):
         self.path = path
         self.s = socket.socket(socket.AF_INET, socket.SOCK_RAW, 150)
         self.s.bind((PL.IPv4, 0))
+        self.msgqueue = asyncio.Queue(maxsize=1024)
 
     def parser(self, packet):
         """ docstring: 调用通用语法解析器线程 """
@@ -690,22 +677,12 @@ class Monitor(threading.Thread):
         GeneralHandler.start()
 
     def run(self):
-        AgentRegisterSender = ControlPktSender()
-        AgentRegisterSender.signals.output.connect(self.message)
-        AgentRegisterSender.signals.output.emit(0, "开启报文监听")
-        AgentRegisterSender.start()
-        # VideoCus = video_customer()
-        # VideoCus.start()
-
-        asyncio.set_event_loop(uvloop.new_event_loop())
-        self.msgqueue = asyncio.Queue(maxsize=1024)
         parser = PktHandler(self.msgqueue)
         parser.signals.output.connect(self.message)
         parser.signals.pathdata.connect(self.path)
         parser.start()
-        # asyncio.run(self._run())
         loop = asyncio.get_event_loop()
-        tasks = [ self._run() for _ in range(5) ]
+        tasks = [self._run() for _ in range(Monitor.MAX_RX_NUM)]
         loop.run_until_complete(asyncio.gather(*tasks))
 
     async def _run(self):

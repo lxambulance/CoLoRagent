@@ -6,7 +6,7 @@ import signal
 import qdarkstyle as qds
 import MainWindow as mw
 import InnerConnection as ic
-from logInWindow import logInWindow
+from LogInWindow import logInWindow
 
 from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import QApplication, QStyleFactory

@@ -2,26 +2,25 @@
 """ docstring: CoLoR 添加条目对话 """
 
 # 添加文件路径../
-import os
-import sys
-__BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
-sys.path.append(__BASE_DIR)
-HOME_DIR = __BASE_DIR + '/.tmp'
-from shutil import copyfile
-
-from addItemDialog import Ui_Dialog
-
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
-
 import FileData
 import resource_rc
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from ui_addItemDialog import Ui_Dialog
+from shutil import copyfile
+import os
 import sys
+__BASE_DIR = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
+sys.path.append(__BASE_DIR)
+HOME_DIR = __BASE_DIR + '/.tmp'
+
 
 class AddItemWindow(QDialog, Ui_Dialog):
     """ docstring: class addItemDialog """
-    def __init__(self, filedata, parent = None):
+
+    def __init__(self, filedata, parent=None):
         super().__init__(parent)
         self.setupUi(self)
         self.fd = filedata
@@ -36,11 +35,11 @@ class AddItemWindow(QDialog, Ui_Dialog):
         self.buttonBox.accepted.connect(self.addItem)
         self.addtionText.textChanged.connect(self.getText)
         self.filetypeChoose.currentIndexChanged[int].connect(self.changeFiletype)
-    
+
     def changeFiletype(self, index):
         self.currentfiletype = index
         # print(index)
-        if index==1:
+        if index == 1:
             self.inputFileName.setText("video server")
             self.inputFileName.setEnabled(False)
         else:
@@ -60,7 +59,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
             self.addtionText.setText('(请输入附加说明文字)')
             self.addtext = None
             self.choosePath.setText(fpath[0])
-    
+
     def addItem(self):
         """ docstring: 添加文件项到数据库结构 """
         nowIndex = self.tabWidget.currentIndex()
@@ -86,7 +85,7 @@ class AddItemWindow(QDialog, Ui_Dialog):
                     b = HOME_DIR + '/' + a
             c = self.addtext if self.addtext != None else ''
             c.replace('(请输入附加说明文字)', '')
-            self.fd.addItem(filename = a, filepath = b, fileadd = c)
+            self.fd.addItem(filename=a, filepath=b, fileadd=c)
             self.newitemrow = self.fd.rowCount() - 1
             self.needReg = int(self.needRegister.checkState() > 0)
         else:
@@ -98,9 +97,10 @@ class AddItemWindow(QDialog, Ui_Dialog):
             if len(d) != 72:
                 print('输入SID不合法')
                 return
-            self.fd.addItem(filename = a, filepath = b, filehash = d, isReg = 1, have = 0)
+            self.fd.addItem(filename=a, filepath=b, filehash=d, isReg=1, have=0)
             self.newitemrow = self.fd.rowCount() - 1
             self.needReg = 0
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

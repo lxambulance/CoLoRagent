@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'c:\Users\lxambulance\Downloads\CoLoRagent\src\Frontend\PageUI\logInDialog.ui'
+# Form implementation generated from reading ui file 'c:\Users\lxambulance\Downloads\CoLoRagent\src\Frontend\PageUI\LogInDialog.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.6
 #

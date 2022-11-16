@@ -5,7 +5,7 @@
 from PyQt5.QtCore import QObject, Qt, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow
 
-from GraphicPage import Ui_MainWindow
+from ui_GraphicPage import Ui_MainWindow
 from GraphicsItem import Node, Edge, Text
 
 

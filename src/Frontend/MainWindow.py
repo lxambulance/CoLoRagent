@@ -9,13 +9,13 @@ import json
 from worker import worker
 import InnerConnection as ic
 import FileData as fd
-from serviceTable import serviceTableModel, progressBarDelegate
-from serviceList import serviceListModel
-from AddItemWindow import AddItemWindow
+from ServiceTable import serviceTableModel, progressBarDelegate
+from ServiceList import serviceListModel
+from addItemWindow import AddItemWindow
 from GraphicWindow import GraphicWindow
-from videoWindow import videoWindow
-from cmdWindow import cmdWindow
-from mainPage import Ui_MainWindow
+from VideoWindow import videoWindow
+from CmdWindow import cmdWindow
+from ui_MainPage import Ui_MainWindow
 import pyqtgraph as pg
 from PyQt5.QtGui import QIcon, QPalette
 from PyQt5.QtCore import QSize, QThreadPool, QTimer, QObject, pyqtSignal

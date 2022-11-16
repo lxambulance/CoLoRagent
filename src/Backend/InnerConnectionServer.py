@@ -45,6 +45,10 @@ async def test(key):
     reply["data"] = {"row": 0, "value": 10}
     reply_packet = bytes(json.dumps(reply), "utf-8")
     await client_list[key][ConnectionEnum.QUEUE].put(reply_packet)
+    reply = {"type": "regitemprogress"}
+    reply["data"] = {"row": 0, "value": 100}
+    reply_packet = bytes(json.dumps(reply), "utf-8")
+    await client_list[key][ConnectionEnum.QUEUE].put(reply_packet)
 
 
 example_client_packet = """{
@@ -90,7 +94,7 @@ async def parse_client_packet(dict_list, key, packet):
             # 另外需要控制接收进度条
             print(json_packet["data"])
         case "regitem":
-            # TODO: 
+            # TODO:
             # reg
             # AddCacheSidUnit(filepath, 1, 1, 1, 1)
             # SidAnn()
@@ -115,7 +119,7 @@ async def client_connected(r, w):
         await asyncio.gather(
             sender(client_list, background_tasks, pb, time=SEND_INTERVAL),
             receiver(client_list, background_tasks, pb, parse_client_packet),
-            test(pb)
+            # test(pb)
         )
     w.close()
     await w.wait_closed()
@@ -132,7 +136,11 @@ def my_term_sig_handler(signum, frame):
     term_sig_handler(client_list, signum, frame)
 
 
-if __name__ == '__main__':
+def main():
     signal.signal(signal.SIGTERM, my_term_sig_handler)
     signal.signal(signal.SIGINT, my_term_sig_handler)
     asyncio.run(backend_server())
+
+
+if __name__ == '__main__':
+    main()

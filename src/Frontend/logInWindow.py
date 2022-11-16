@@ -3,7 +3,7 @@
 
 
 from PyQt5.QtWidgets import QDialog, QApplication
-from logInDialog import Ui_Dialog
+from ui_LogInDialog import Ui_Dialog
 from worker import worker
 import InnerConnection as ic
 
@@ -36,7 +36,7 @@ class logInWindow(QDialog, Ui_Dialog):
     def regenerateNID(self):
         """ docstring: 重新生成NID """
         # TODO: 后端重新生成
-        print("regenerateNID")
+        print("regenerateNID", self)
 
     def setIPv4(self, text):
         self.myIPv4 = text

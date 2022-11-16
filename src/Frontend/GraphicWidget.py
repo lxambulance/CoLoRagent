@@ -8,8 +8,8 @@ from PyQt5.QtGui import QColor, QStandardItemModel
 from PyQt5.QtCore import (QEasingCurve, QPointF, QPropertyAnimation, QSequentialAnimationGroup, qsrand,
     qrand, QTime, pyqtSignal, QObject, Qt, QModelIndex, pyqtProperty)
 
-from topoGraphView import topoGraphView
-from topoGraphScene import topoGraphScene
+from TopoGraphView import topoGraphView
+from TopoGraphScene import topoGraphScene
 
 
 class GraphicWidget(QWidget):
