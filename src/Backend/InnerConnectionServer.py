@@ -137,10 +137,10 @@ def my_term_sig_handler(signum, frame):
 
 
 def main():
-    signal.signal(signal.SIGTERM, my_term_sig_handler)
-    signal.signal(signal.SIGINT, my_term_sig_handler)
     asyncio.run(backend_server())
 
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGTERM, my_term_sig_handler)
+    signal.signal(signal.SIGINT, my_term_sig_handler)
     main()

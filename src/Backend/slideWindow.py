@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import IntEnum
 import threading
 from collections.abc import Callable
 
@@ -8,7 +9,19 @@ from bitmap import BitMap
 RTO = 1
 
 
+class SendingSidField(IntEnum):
+    CHIP_NUM = 0
+    CHIP_LENGTH = 1
+    CHIP_NEXT = 2
+    NID_CUSTOMER = 3
+    PIDS = 4
+    ESS_FLAG = 5
+    SENDING_WINDOW = 6
+    INVALID = -1
+
 # 滑动窗口相关
+
+
 class SlideWindow:
     WINDOW_SIZE = 0xfffe
     MAX_COUNT = 0xffff
@@ -200,3 +213,167 @@ class ReceivingWindow(SlideWindow):
             self.cache.clear()
             self.cache = None
             self.file.close()
+
+
+class SendingThread(threading.Thread):
+    def __init__(self, signals, data):
+        super().__init__()
+        self.signals = signals
+        self.ready = False
+
+        # 解析报文内容
+        getpktv2 = ColorGet(data)
+        randomnum = None if not getpktv2.Flags.R else getpktv2.Random_Num
+        get_pkt = PL.GetPkt(0, Pkt=data)
+        # 判断是否为代理当前提供内容
+        sid = ''
+        if get_pkt.N_sid != 0:
+            sid += hex(get_pkt.N_sid).replace('0x', '').zfill(32)
+        if get_pkt.L_sid != 0:
+            sid += hex(get_pkt.L_sid).replace('0x', '').zfill(40)
+        self.signals.pathdata.emit(
+            0x72, sid, get_pkt.PIDs, get_pkt.PktLength, f'{get_pkt.nid:032x}')
+        PL.Lock_AnnSidUnits.acquire()
+        if sid not in PL.AnnSidUnits.keys():
+            PL.Lock_AnnSidUnits.release()
+            return
+        # 返回数据
+        sid_unit_level = PL.AnnSidUnits[sid].Strategy_units.get(1, 0)  # 获取密级以备后续使用，没有默认为0
+        sid_path = PL.AnnSidUnits[sid].path
+        PL.Lock_AnnSidUnits.release()
+        nid = get_pkt.nid
+        pids = get_pkt.PIDs.copy()
+        # 按最大长度减去IP报文和DATA报文头长度(QoS暂默认最长为1字节)，预留位占4字节，数据传输结束标志位位于负载内占1字节
+        # sid_load_length = get_pkt.MTU-60-86-(4*len(pids)) - 4 - 1
+        sid_load_length = 1200  # 仅在报文不经过RM的点对点调试用
+        return_ip: str
+        if len(pids) == 0:
+            # 域内请求
+            if nid in PL.PeerProxys.keys():
+                return_ip = PL.PeerProxys[nid]
+            else:
+                self.signals.output.emit(1, "未知的NID：" +
+                                         hex(nid).replace('0x', '').zfill(32))
+                return
+        else:
+            PX = pids[-1] >> 16
+            if PX in PL.PXs.keys():
+                return_ip = PL.PXs[PX]
+            else:
+                self.signals.output.emit(
+                    1, "未知的PX：" + hex(PX).replace('0x', '').zfill(4))
+                return
+        # 判断是否传递特殊内容
+        if isinstance(sid_path, int):
+            if sid_path == 1:
+                # 视频服务
+                PktHandler.video_provider(self,
+                                          sid, nid, pids, sid_load_length, return_ip, randomnum)
+                return
+            elif (sid_path & 0xff) == 2:
+                # 安全链接服务
+                ESS.gotoNextStatus(
+                    nid, sid, pids=pids, ip=return_ip, randomnum=randomnum)
+                return
+            else:
+                # 未知的特殊内容
+                return
+        # 非特殊内容
+        # 特定密集文件，开启加密传输
+        ess_flag = ESS.checkSession(nid, sid)
+        if int(sid_unit_level) > 5:
+            if not ess_flag:
+                ESS.newSession(nid, sid, pids,
+                               return_ip, pkt=data, randomnum=randomnum)
+                # TODO:                      ^ data 是否可用？
+                return
+            elif not ESS.sessionReady(nid, sid):
+                self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
+                return
+        # 包解析结束
+        self.data = PL.ConvertFile(sid_path)
+        self.sid = sid
+        self.dst_nid = nid
+        self.dst_ip = return_ip
+        self.pids = pids
+        self.sid_unit_level = sid_unit_level
+        self.sid_load_length = sid_load_length
+        self.ess_flag = ess_flag
+        if ess_flag:
+            self.sid_load_length -= 32
+        # 新建 SendingWindow
+        data_len = len(self.data)
+        self.chip_num = math.ceil(data_len / self.sid_load_length)
+        self.chip_len = min(self.sid_load_length, data_len)
+        self.sending_window = SendingWindow(self.chip_num)
+        self.msg_queue = queue.Queue()
+        self.ready = True
+
+        self.count_send = 0
+
+    def send_block_packets(self):
+        """
+        使用滑动窗口对定长数据（如文件） 进行可靠传输
+         子函数：
+            `send_packet`: 发送单个数据包
+            `resend`:      重发所有未收到 ACK 的数据包
+         流程：
+            1. 从参数中获取并计算相关包头数据
+            2. 从滑动窗口中获取待发送包编号和实际文件块号列表
+            3. 依次调用 `send_packet` 发送单个数据包
+            4. 向滑动窗口更新计时器，注册 `resend` 函数以供超时重传
+        """
+        data_flag = 0
+
+        def send_packet(pkt_seg_id: int, pkt_chip_index: int):
+            """
+            发送单个数据包
+            """
+            end_flag = 0
+            start = pkt_chip_index * self.chip_len
+            if pkt_chip_index + 1 == self.chip_num:  # 最后一片
+                text = self.data[start:]
+                end_flag = 1
+            else:
+                text = self.data[start:start + self.chip_len]
+            load = PL.ConvertInt2Bytes(data_flag | end_flag, 1) \
+                + (ESS.Encrypt(self.dst_nid, self.sid, text) if self.ess_flag else text)
+            data_pkt = PL.DataPkt(
+                1, 0, 1, 0, self.sid,
+                nid_cus=self.dst_nid, SegID=pkt_seg_id, PIDs=self.pids, load=load)
+            Tar = data_pkt.packing()
+            PL.SendIpv4(self.dst_ip, Tar)
+
+        def resend():
+            """
+            向滑动窗口注册的超时重传回调函数
+            会重发所有未收到 ACK 的数据包，并检查本次传输是否已经完成
+            若已完成，则会将发送任务从 SendingSid 列表中移除
+            """
+            for (r_seg_id, r_chip_index) in self.sending_window.resend():
+                send_packet(r_seg_id, r_chip_index)
+            if self.sending_window.is_finish():
+                self.signals.output.emit(1, "发送完成")
+                self.ready = False
+
+        for (seg_id, chip_index) in self.sending_window.send_all():
+            self.count_send += 1
+            # print(self.count_send)
+            send_packet(seg_id, chip_index)
+        self.sending_window.update_timer(resend)
+
+    def run(self) -> None:
+        while True:
+            # 收到网络中的data报文(或ACK)
+            ack_pkt = self.msg_queue.get()
+            # TODO: 添加滑动窗口相关内容
+            # 滑动窗口收到 ACK 消息
+            # self.sending_window.ack(ack_pkt.SegID & SendingWindow.MAX_COUNT)
+            self.send_block_packets()
+
+    def ack(self, ack_pkt):
+        """
+        发送线程收到 ACK 包
+        """
+        self.msg_queue.put(ack_pkt)
+

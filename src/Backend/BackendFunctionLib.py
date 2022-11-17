@@ -7,14 +7,19 @@ from scapy.layers.l2 import Ether
 from scapy.all import *
 import hashlib
 import threading
+from enum import IntEnum
 
+
+class DataFlag(IntEnum):
+    ESS = 0x4
+    LAST = 0x1
 
 # 公共全局变量
 
 
 # 当前终端NID IPv4，RM IPv4，需要初始化
-Nid = None  
-IPv4 = None  
+Nid = None
+IPv4 = None
 rmIPv4 = None
 
 # 已生成但尚未通告的SID通告单元，key: path（特殊内容时使用数字，如1代表流视频服务，也作为L_SID）; value：class SidUnit
@@ -882,6 +887,11 @@ class ControlPktSender(threading.Thread):
                 PL.AnnProxy()
             else:
                 break
+
+
+def initAgent():
+    """ docstring: 启动代理。 TODO: 读取后端配置文件 """
+    print("init agent")
 
 
 if __name__ == '__main__':

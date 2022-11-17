@@ -10,6 +10,9 @@ from scapy.all import (
 from scapy.layers.inet import IP
 
 
+COLOR_PROTOCOL_NUMBER = 150
+
+
 def CalculateCS(tar):
     """ docstring: 校验和计算 tar: bytes字符串 """
     length = len(tar)
@@ -383,7 +386,7 @@ bind_layers(ColorControl, AttackInfo, {'Subtype': 18})
 
 def newIP_guess_payload_class(self, payload):
     """ docstring: 重载IP层负载猜测函数, 添加color协议 """
-    if self.proto == 150:
+    if self.proto == COLOR_PROTOCOL_NUMBER:
         if payload[0] == 113:
             return ColorAnnounce
         elif payload[0] == 114:
@@ -397,10 +400,10 @@ def newIP_guess_payload_class(self, payload):
 
 # 用于IP报文负载推测和自动填写proto字段
 IP.guess_payload_class = newIP_guess_payload_class
-bind_layers(IP, ColorAnnounce, {'proto': 150})
-bind_layers(IP, ColorGet, {'proto': 150})
-bind_layers(IP, ColorData, {'proto': 150})
-bind_layers(IP, ColorControl, {'proto': 150})
+bind_layers(IP, ColorAnnounce, {'proto': COLOR_PROTOCOL_NUMBER})
+bind_layers(IP, ColorGet, {'proto': COLOR_PROTOCOL_NUMBER})
+bind_layers(IP, ColorData, {'proto': COLOR_PROTOCOL_NUMBER})
+bind_layers(IP, ColorControl, {'proto': COLOR_PROTOCOL_NUMBER})
 
 
 if __name__ == '__main__':
