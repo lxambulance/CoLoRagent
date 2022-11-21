@@ -18,7 +18,7 @@ class DataFlag(IntEnum):
 
 
 # 当前终端NID IPv4，RM IPv4，需要初始化
-Nid = None
+NID = None
 IPv4 = None
 rmIPv4 = None
 
@@ -33,8 +33,9 @@ gets = {}
 Lock_gets = threading.Lock()  # gets变量锁
 
 RegFlag = 0  # 代理注册成功标志，收到RM返回的Control包后置1
-PeerProxys = {}  # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
-PXs = {}  # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
+Proxys = {}  # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
+BRs = {}  # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
+# TODO: Proxys BRs 键值采用 bytes存储
 
 
 # 供线程调用的功能函数
@@ -81,9 +82,9 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1, WhiteList=[]):
         Hash_sid = path  # 特殊内容标识亦作为L_sid内容
     # TODO: 需通过Hash_sid判断内容是否来自其他生产节点。
     # 此处默认了path对应的文件是本终端提供的内容，待完善 #
-    N_sid_temp = Nid if N == 1 else -1
+    N_sid_temp = NID if N == 1 else -1
     L_sid_temp = Hash_sid if L == 1 else -1
-    nid_temp = Nid if I == 1 else -1
+    nid_temp = NID if I == 1 else -1
     tempSidUnit = SidUnit(path, AM, N_sid_temp,
                           L_sid_temp, nid_temp, Strategy_units)
     Lock_CacheSidUnits.acquire()
@@ -329,7 +330,7 @@ class ControlPkt():
             self.tag = 5  # 仅存在一种情况
             self.DataLength = 20
             self.ProxyIP = IPv4
-            self.ProxyNid = Nid
+            self.ProxyNid = NID
             IPList = self.ProxyIP.split('.')
             self.data = b''
             for i in reversed(IPList):
@@ -577,12 +578,12 @@ class DataPkt:
             if self.B == 0:
                 # 普通数据报文
                 if self.R == 1:
-                    self.nid_pro = Nid
+                    self.nid_pro = NID
                 self.nid_cus = nid_cus
             elif self.B == 1:
                 # ACK报文
                 self.nid_pro = nid_pro
-                self.nid_cus = Nid
+                self.nid_cus = NID
             self.PIDs = PIDs.copy()
             if self.B == 0 and self.R == 1:
                 self.PIDs.append(0)  # 预留字段
@@ -758,7 +759,7 @@ class GetPkt:
                 self.QoS = QoS
             self.SegID = SegID
             self.A = A
-            self.nid = Nid
+            self.nid = NID
             # 计算PktLength
             self.PktLength = 64  # 固定长度(截止到SID)
             if self.K == 1:
@@ -877,7 +878,7 @@ class ControlPktSender(threading.Thread):
     def run(self):
         # 向RM发送注册报文
         self.signals.output.emit(
-            0, "向RM发送注册报文，注册IP：" + PL.IPv4 + "；注册NID：" + hex(PL.Nid))
+            0, "向RM发送注册报文，注册IP：" + PL.IPv4 + "；注册NID：" + hex(PL.NID))
         PL.AnnProxy()
         # 重传判断
         for i in range(3):

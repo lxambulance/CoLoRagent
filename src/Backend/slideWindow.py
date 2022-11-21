@@ -216,27 +216,12 @@ class ReceivingWindow(SlideWindow):
 
 
 class SendingThread(threading.Thread):
-    def __init__(self, signals, data):
+    def __init__(self, data):
         super().__init__()
-        self.signals = signals
         self.ready = False
-
         # 解析报文内容
-        getpktv2 = ColorGet(data)
-        randomnum = None if not getpktv2.Flags.R else getpktv2.Random_Num
-        get_pkt = PL.GetPkt(0, Pkt=data)
-        # 判断是否为代理当前提供内容
-        sid = ''
-        if get_pkt.N_sid != 0:
-            sid += hex(get_pkt.N_sid).replace('0x', '').zfill(32)
-        if get_pkt.L_sid != 0:
-            sid += hex(get_pkt.L_sid).replace('0x', '').zfill(40)
-        self.signals.pathdata.emit(
-            0x72, sid, get_pkt.PIDs, get_pkt.PktLength, f'{get_pkt.nid:032x}')
-        PL.Lock_AnnSidUnits.acquire()
-        if sid not in PL.AnnSidUnits.keys():
-            PL.Lock_AnnSidUnits.release()
-            return
+        randomnum = None if not getpacket.Flags.R else getpacket.Random_Num
+        
         # 返回数据
         sid_unit_level = PL.AnnSidUnits[sid].Strategy_units.get(1, 0)  # 获取密级以备后续使用，没有默认为0
         sid_path = PL.AnnSidUnits[sid].path
@@ -308,7 +293,6 @@ class SendingThread(threading.Thread):
         self.sending_window = SendingWindow(self.chip_num)
         self.msg_queue = queue.Queue()
         self.ready = True
-
         self.count_send = 0
 
     def send_block_packets(self):

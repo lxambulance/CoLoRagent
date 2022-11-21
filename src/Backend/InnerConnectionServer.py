@@ -23,6 +23,7 @@ DATA_PATH = BASE_DIR + '/data.json'
 HOME_DIR = BASE_DIR + '/.tmp'
 SEND_INTERVAL = 0.1
 client_list = {}
+now_register_key = None
 background_tasks = set()
 
 
@@ -138,6 +139,17 @@ def my_term_sig_handler(signum, frame):
 
 def main():
     asyncio.run(backend_server())
+
+
+async def put_reply_await(reply, myNID = None):
+    if now_register_key is None:
+        # TODO: 或许此处可以预先注册，排队等待
+        return
+    if myNID is not None:
+        # TODO: 查找NID对应前端结构
+        pass
+    reply_packet = bytes(json.dumps(reply), "utf-8")
+    await client_list[now_register_key][ConnectionEnum.QUEUE].put(reply_packet)
 
 
 if __name__ == '__main__':

@@ -37,6 +37,12 @@ class signals(QObject):
     message = pyqtSignal(object)
     pathdata = pyqtSignal(object)
 
+# message用于输出信号
+# message = pyqtSignal(int, object)
+# messageType, message
+# pathdata用于输出路径相关信息
+# pathdata = pyqtSignal(int, str, list, int, str)
+# pkttype, SID, paths, size, NID
 
 backendmessage = signals()
 
