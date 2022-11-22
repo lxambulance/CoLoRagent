@@ -8,6 +8,7 @@ from scapy.all import *
 import hashlib
 import threading
 from enum import IntEnum
+from CoLoRProtocol.CoLoRpacket import Announce_Unit
 
 
 class DataFlag(IntEnum):
@@ -16,25 +17,22 @@ class DataFlag(IntEnum):
 
 # 公共全局变量
 
-
 # 当前终端NID IPv4，RM IPv4，需要初始化
 NID = None
 IPv4 = None
 rmIPv4 = None
-
-# 已生成但尚未通告的SID通告单元，key: path（特殊内容时使用数字，如1代表流视频服务，也作为L_SID）; value：class SidUnit
+# 已生成但尚未通告的SID通告单元，key: path（特殊内容时使用数字，如1代表流视频服务，也作为L_SID）; value：class Announce_Unit
 CacheSidUnits = {}
-Lock_CacheSidUnits = threading.Lock()  # CacheSidUnits变量锁
-# 已通告SID通告单元，key：SID(N_sid+L_sid)的16进制字符串，不存在时为空; value：class SidUnit
-AnnSidUnits = {}
-Lock_AnnSidUnits = threading.Lock()  # AnnSidUnits变量锁
+# 已通告SID通告单元，key：SID(N_sid+L_sid)的16进制字符串，不存在时为空; value：[path, class Announce_Unit]
+SIDAnnUnitSets = {}
 # 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）（特殊内容时使用数字，如1代表流视频服务)
 gets = {}
-Lock_gets = threading.Lock()  # gets变量锁
-
-RegFlag = 0  # 代理注册成功标志，收到RM返回的Control包后置1
-Proxys = {}  # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
-BRs = {}  # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
+# 代理注册成功标志，收到RM返回的Control包后置1
+RegFlag = 0
+# 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
+Proxys = {}
+# 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
+BRs = {}
 # TODO: Proxys BRs 键值采用 bytes存储
 
 
@@ -155,7 +153,7 @@ def SidAnn(ttl=64, PublicKey='', P=0):
                 NewKey += hex(SidUnits[key].L_sid).replace('0x', '').zfill(40)
             Lock_AnnSidUnits.acquire()
             # 可能是修改或删除情况的ANN，待完善#
-            AnnSidUnits[NewKey] = SidUnits[key]
+            SIDAnnUnitSets[NewKey] = SidUnits[key]
             Lock_AnnSidUnits.release()
         SendIpv4(GetRMip(), Tar)
         # print(Tar)

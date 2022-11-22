@@ -158,8 +158,75 @@ class Monitor(threading.Thread):
             "NID": getpacket.NID.hex()}}
         await ics.put_reply_await(reply)
         # 判断是否为已通告条目
-        if SID not in bfl.AnnSidUnits.keys():
+        if SID not in bfl.SIDAnnUnitSets.keys():
             return
+
+        # 返回数据
+        # 检验目标NID下一条IP
+        NID = getpacket.NID
+        ReturnIP = ''
+        if getpacket.PID_Num == 0:
+            # 域内
+            if NID in bfl.Proxys.keys():
+                ReturnIP = bfl.Proxys[NID]
+            else:
+                reply = {"type": "message", "data": {
+                        "messageType": 1, "message": "未知的NID=" + NID.hex()}}
+                await ics.put_reply_await(reply)
+                return
+        else:
+            # 域外
+            PX = getpacket.PID_List[-1] >> 16
+            if PX in bfl.BRs.keys():
+                ReturnIP = bfl.BRs[PX]
+            else:
+                reply = {"type": "message", "data": {
+                        "messageType": 1, "message": f"未知的PX={PX:x}"}}
+                await ics.put_reply_await(reply)
+                return
+        # TODO: 遍历StrategyUnit获取密级
+        # 获取密级以备后续使用，没有默认为0
+        sid_security_level = bfl.SIDAnnUnitSets[SID][1].Strategy_Unit_List
+        filepath = bfl.SIDAnnUnitSets[SID][0]
+        randomnum = None if not getpacket.Flags.R else getpacket.Random_Num
+        # 按最大长度减去IP报文和DATA报文头长度(QoS暂默认最长为1字节)，预留位占4字节，数据传输结束标志位位于负载内占1字节
+        max_load_length = 1200  # 供调试以及测试使用
+        # max_load_length = getpacket.MTU-60-86-(4*len(pids))-4-1
+        # 判断是否传递特殊内容
+        if isinstance(filepath, int):
+            # TODO：工厂模式改造
+            if filepath == 1:
+                # 视频服务
+                PktHandler.video_provider(self,
+                                          SID, NID, pids, max_load_length, ReturnIP, randomnum)
+            elif (filepath & 0xff) == 2:
+                # 安全链接服务
+                ESS.gotoNextStatus(
+                    NID, SID, pids=pids, ip=ReturnIP, randomnum=randomnum)
+            return
+        # 非特殊内容
+        # 特定密集文件，开启加密传输
+        ess_flag = ESS.checkSession(NID, SID)
+        if int(sid_security_level) > 5:
+            if not ess_flag:
+                ESS.newSession(NID, SID, pids,
+                               ReturnIP, pkt=data, randomnum=randomnum)
+                # TODO:                      ^ data 是否可用？
+                return
+            elif not ESS.sessionReady(nid, sid):
+                self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
+                return
+        # 包解析结束
+        self.data = PL.ConvertFile(sid_path)
+        self.sid = sid
+        self.dst_nid = nid
+        self.dst_ip = ReturnIP
+        self.pids = pids
+        self.sid_unit_level = sid_unit_level
+        self.sid_load_length = sid_load_length
+        self.ess_flag = ess_flag
+        if ess_flag:
+            self.sid_load_length -= 32
         # TODO: 修改起线程方式
         new_sending_thread = SendingThread(getpacket)
         if new_sending_thread.ready:
@@ -357,7 +424,7 @@ class Monitor(threading.Thread):
             # 收到 “ACK” 数据包
             # TODO：goto VideoApp。转视频流
             NidCus = datapacket.Destination_NID
-            if isinstance(PL.AnnSidUnits[NewSID].path, int) and PL.AnnSidUnits[NewSID].path == 1:
+            if isinstance(PL.SIDAnnUnitSets[NewSID].path, int) and PL.SIDAnnUnitSets[NewSID].path == 1:
                 Lock_WaitingACK.acquire()
                 if NidCus in WaitingACK.keys():
                     WaitingACK[NidCus] = 0

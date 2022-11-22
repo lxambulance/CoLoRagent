@@ -5,6 +5,8 @@ import threading
 from collections.abc import Callable
 
 from bitmap import BitMap
+import math
+import queue
 
 RTO = 1
 
@@ -219,73 +221,7 @@ class SendingThread(threading.Thread):
     def __init__(self, data):
         super().__init__()
         self.ready = False
-        # 解析报文内容
-        randomnum = None if not getpacket.Flags.R else getpacket.Random_Num
         
-        # 返回数据
-        sid_unit_level = PL.AnnSidUnits[sid].Strategy_units.get(1, 0)  # 获取密级以备后续使用，没有默认为0
-        sid_path = PL.AnnSidUnits[sid].path
-        PL.Lock_AnnSidUnits.release()
-        nid = get_pkt.nid
-        pids = get_pkt.PIDs.copy()
-        # 按最大长度减去IP报文和DATA报文头长度(QoS暂默认最长为1字节)，预留位占4字节，数据传输结束标志位位于负载内占1字节
-        # sid_load_length = get_pkt.MTU-60-86-(4*len(pids)) - 4 - 1
-        sid_load_length = 1200  # 仅在报文不经过RM的点对点调试用
-        return_ip: str
-        if len(pids) == 0:
-            # 域内请求
-            if nid in PL.PeerProxys.keys():
-                return_ip = PL.PeerProxys[nid]
-            else:
-                self.signals.output.emit(1, "未知的NID：" +
-                                         hex(nid).replace('0x', '').zfill(32))
-                return
-        else:
-            PX = pids[-1] >> 16
-            if PX in PL.PXs.keys():
-                return_ip = PL.PXs[PX]
-            else:
-                self.signals.output.emit(
-                    1, "未知的PX：" + hex(PX).replace('0x', '').zfill(4))
-                return
-        # 判断是否传递特殊内容
-        if isinstance(sid_path, int):
-            if sid_path == 1:
-                # 视频服务
-                PktHandler.video_provider(self,
-                                          sid, nid, pids, sid_load_length, return_ip, randomnum)
-                return
-            elif (sid_path & 0xff) == 2:
-                # 安全链接服务
-                ESS.gotoNextStatus(
-                    nid, sid, pids=pids, ip=return_ip, randomnum=randomnum)
-                return
-            else:
-                # 未知的特殊内容
-                return
-        # 非特殊内容
-        # 特定密集文件，开启加密传输
-        ess_flag = ESS.checkSession(nid, sid)
-        if int(sid_unit_level) > 5:
-            if not ess_flag:
-                ESS.newSession(nid, sid, pids,
-                               return_ip, pkt=data, randomnum=randomnum)
-                # TODO:                      ^ data 是否可用？
-                return
-            elif not ESS.sessionReady(nid, sid):
-                self.signals.output.emit(1, "收到重复Get，但安全连接未建立")
-                return
-        # 包解析结束
-        self.data = PL.ConvertFile(sid_path)
-        self.sid = sid
-        self.dst_nid = nid
-        self.dst_ip = return_ip
-        self.pids = pids
-        self.sid_unit_level = sid_unit_level
-        self.sid_load_length = sid_load_length
-        self.ess_flag = ess_flag
-        if ess_flag:
-            self.sid_load_length -= 32
         # 新建 SendingWindow
         data_len = len(self.data)
         self.chip_num = math.ceil(data_len / self.sid_load_length)

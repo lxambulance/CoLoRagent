@@ -207,19 +207,15 @@ class Announce_Unit(Packet):
         BitField("AM", 1, 2),  # 1注册，2更新，3取消
         BitField("r", 0, 3, end_tot_size=1),
         ByteField("Unit_Length", None),
-        FieldLenField("Strategy_Num", None, fmt="B",
-                      count_of="Strategy_Unit_List"),
+        FieldLenField("Strategy_Num", None, fmt="B", count_of="Strategy_Unit_List"),
         ConditionalField(
-            XStrFixedLenField("NSID", "", 16),
-            lambda pkt: pkt.N == 1
+            XStrFixedLenField("NSID", "", 16), lambda pkt: pkt.N == 1
         ),
         ConditionalField(
-            XStrFixedLenField("LSID", "", 20),
-            lambda pkt: pkt.L == 1
+            XStrFixedLenField("LSID", "", 20), lambda pkt: pkt.L == 1
         ),
         ConditionalField(
-            XStrFixedLenField("NID", "", 16),
-            lambda pkt: pkt.I == 1
+            XStrFixedLenField("NID", "", 16), lambda pkt: pkt.I == 1
         ),
         PacketListField("Strategy_Unit_List", None, Strategy_Unit,
                         count_from=lambda pkt:pkt.Strategy_Num)
