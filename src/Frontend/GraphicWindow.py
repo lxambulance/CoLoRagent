@@ -5,7 +5,7 @@
 from PyQt5.QtCore import QObject, Qt, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow
 
-from GraphicPage import Ui_MainWindow
+from ui_GraphicPage import Ui_MainWindow
 from GraphicsItem import Node, Edge, Text
 
 
@@ -153,14 +153,16 @@ class GraphicWindow(QMainWindow, Ui_MainWindow):
         else:
             print("unexpected message<", mType, ">", message)
 
-    def loadTopo(self, path):
+    def loadTopo(self, configdata):
         """ docstring: 载入拓扑 """
-        self.graphics_global.scene.initTopo(path)
+        if configdata is None:
+            return
+        self.graphics_global.scene.initTopo(configdata)
         self.graphics_global.view.scaleView(0.45)
 
-    def saveTopo(self, path):
+    def saveTopo(self):
         """ docstring: 保存拓扑 """
-        self.graphics_global.scene.saveTopo(path)
+        return self.graphics_global.scene.saveTopo()
 
     def showAdvancedRegrow(self, row):
         """ docstring: 高级通告条目切换 """

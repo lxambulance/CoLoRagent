@@ -1,48 +1,42 @@
 # coding=utf-8
-""" docstring: CoLoR 登录对话 """
+""" docstring: CoLoR 登录对话页 """
 
-import establishSecureSession as ESS
-from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog
-from logInDialog import Ui_Dialog
-import os
-import sys
-import json
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))).replace('\\', '/')
-DATA_PATH = BASE_DIR + '/data.json'
-HOME_DIR = BASE_DIR + '/.tmp'
-sys.path.append(BASE_DIR)
+
+from PyQt5.QtWidgets import QDialog, QApplication
+from ui_LogInDialog import Ui_Dialog
+from worker import worker
+import InnerConnection as ic
 
 
 class logInWindow(QDialog, Ui_Dialog):
     """ docstring: 登录窗口类 """
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, threadpool):
+        super().__init__()
         self.setupUi(self)
+        self.threadpool = threadpool
+        self.configpath = None
+        self.filetmppath = None
+        self.myNID = None
+        self.myIPv4 = None
+        self.rmIPv4 = None
+        self.configdata = None
 
-        if not os.path.exists(DATA_PATH):
-            self.configpath = None
-            self.filetmppath = None
-            self.myNID = None
-            self.myIPv4 = None
-            self.rmIPv4 = None
-        else:
-            self.autoFillForm(DATA_PATH)
-            self.filetmppath = HOME_DIR
-            self.showpath_filetmp.setText(HOME_DIR)
-        # 设置信号与槽连接
-        self.choosepath_config.clicked.connect(self.getConfigPath)
-        self.choosepath_filetmp.clicked.connect(self.getFiletmpPath)
-        self.buttonBox.accepted.connect(self.checkInput)
-        self.generateNid.clicked.connect(self.setNid)
+        # 设置结束、重生成NID、ED IP修改、RM IP修改的信号/槽连接
+        self.buttonBox.accepted.connect(self.writeConfig)
+        self.generateNID.clicked.connect(self.regenerateNID)
         self.agentIPv4.textChanged.connect(self.setIPv4)
         self.RMIPv4.textChanged.connect(self.setRMIPv4)
 
-    def setNid(self):
-        ESS.Agent.regenerate()
-        self.myNID = ESS.Agent.nid.hex()
-        self.agentNID.setText(self.myNID)
+        # 设置前端连接模块在另外一个线程运行
+        InnerConnectionworker = worker(0, ic.main)
+        ic.backendmessage.connected.connect(self.startReadConfig)
+        self.threadpool.start(InnerConnectionworker)
+
+    def regenerateNID(self):
+        """ docstring: 重新生成NID """
+        # TODO: 后端重新生成
+        print("regenerateNID", self)
 
     def setIPv4(self, text):
         self.myIPv4 = text
@@ -50,55 +44,40 @@ class logInWindow(QDialog, Ui_Dialog):
     def setRMIPv4(self, text):
         self.rmIPv4 = text
 
-    def checkInput(self):
-        """ docstring: 将输入写回文件。TODO 验证输入合法性 """
-        flag = True
+    def writeConfig(self):
+        """ docstring: 保存配置文件 """
+        # TODO: 生成配置文件返回
         pass
-        if flag:
-            with open(self.configpath, 'r') as f:
-                __raw_data = json.load(f)
-            __raw_data['filetmppath'] = self.filetmppath
-            __raw_data['myNID'] = self.myNID
-            __raw_data['myIPv4'] = self.myIPv4
-            __raw_data['RMIPv4'] = self.rmIPv4
-            with open(self.configpath, 'w') as f:
-                json.dump(__raw_data, f)
-            ESS.Agent.saveKey(self.configpath)
 
-    def autoFillForm(self, path):
-        """ docstring: 根据*.json文件内容填写表单剩余项 """
-        self.configpath = path
+    def startReadConfig(self):
+        """ docstring: 设置发送线程，连接返回读取配置文件信号 """
+        def sendGetConfigRequest():
+            """ docstring: 生成配置请求并发送。"""
+            request = {"type": "getconfig"}
+            ic.put_request(request)
+        ic.backendmessage.connected.disconnect()
+        self.sendworker = worker(0, sendGetConfigRequest)
+        ic.backendmessage.configdata.connect(self.readConfig)
+        self.threadpool.start(self.sendworker)
+
+    def readConfig(self, data):
+        """ docstring: 处理后端配置文件，填写表单项 """
+        ic.backendmessage.configdata.disconnect()
+        self.configdata = data
+        self.configpath = data.get("configpath", None)
         self.showpath_config.setText(self.configpath)
-        with open(self.configpath, 'r') as f:
-            __raw_data = json.load(f)
-            self.filetmppath = __raw_data.get('filetmppath', None)
-            self.showpath_filetmp.setText(self.filetmppath)
-            try:
-                ESS.Agent.loadKey(__raw_data)
-            except:
-                print("load wrong! regenerate keys.")
-                ESS.Agent.regenerate()
-            self.myNID = ESS.Agent.nid.hex()
-            self.agentNID.setText(self.myNID)
-            self.myIPv4 = __raw_data.get('myIPv4', None)
-            self.agentIPv4.setText(self.myIPv4)
-            self.rmIPv4 = __raw_data.get('RMIPv4', None)
-            self.RMIPv4.setText(self.rmIPv4)
-
-    def getConfigPath(self):
-        configpath = QFileDialog.getOpenFileName(self, '请选择配置文件', BASE_DIR)
-        if configpath[0] and configpath[0][-5:] == '.json':
-            self.autoFillForm(configpath[0])
-
-    def getFiletmpPath(self):
-        filetmppath = QFileDialog.getExistingDirectory(
-            self, '请选择存储目录', BASE_DIR)
-        if filetmppath:
-            self.filetmppath = filetmppath
-            self.showpath_filetmp.setText(self.filetmppath)
+        self.filetmppath = data.get("filetmppath", None)
+        self.showpath_filetmp.setText(self.filetmppath)
+        self.myNID = data.get("myNID", None)
+        self.agentNID.setText(self.myNID)
+        self.myIPv4 = data.get("myIPv4", None)
+        self.agentIPv4.setText(self.myIPv4)
+        self.rmIPv4 = data.get("RMIPv4", None)
+        self.RMIPv4.setText(self.rmIPv4)
 
 
 if __name__ == '__main__':
+    import sys
     app = QApplication(sys.argv)
     window = logInWindow()
     window.show()

@@ -3,7 +3,7 @@
 
 from PyQt5.QtWidgets import QMainWindow
 
-from videoPage import Ui_MainWindow
+from ui_VideoPage import Ui_MainWindow
 
 
 class videoWindow(QMainWindow, Ui_MainWindow):

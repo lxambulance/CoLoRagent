@@ -128,7 +128,7 @@
      <x>0</x>
      <y>0</y>
      <width>850</width>
-     <height>23</height>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -278,12 +278,12 @@
   <customwidget>
    <class>MyTableView</class>
    <extends>QTableView</extends>
-   <header>serviceTable</header>
+   <header>ServiceTable</header>
   </customwidget>
   <customwidget>
    <class>MyListView</class>
    <extends>QListView</extends>
-   <header>serviceList</header>
+   <header>ServiceList</header>
   </customwidget>
   <customwidget>
    <class>PlotWidget</class>
@@ -299,7 +299,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../asset/resource.qrc"/>
+  <include location="../../../asset/resource.qrc"/>
  </resources>
  <connections/>
 </ui>

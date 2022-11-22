@@ -3,7 +3,7 @@
 
 from PyQt5.QtWidgets import QMainWindow
 
-from cmdPage import Ui_MainWindow
+from ui_CmdPage import Ui_MainWindow
 
 
 class cmdWindow(QMainWindow, Ui_MainWindow):

@@ -1,84 +1,32 @@
 # coding=utf-8
-""" docstring: 主程序 """
+""" docstring: 前端主程序 """
 
 
-import sys
-import time
-
+import signal
 import qdarkstyle as qds
-import ColorMonitor as CM
-import establishSecureSession as ESS
 import MainWindow as mw
-from logInWindow import logInWindow
+import InnerConnection as ic
+from LogInWindow import logInWindow
 
 from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import QApplication, QStyleFactory
+from PyQt5.QtCore import QThreadPool
 
 
 try:
-    # Include in try/except block if you're also targeting Mac/Linux
     from PyQt5.QtWinExtras import QtWin
-    myappid = 'mycompany.myproduct.subproduct.version'
-    QtWin.setCurrentProcessExplicitAppUserModelID(myappid)
+    # appid = 'company.product.subproduct.version'
+    appid = 'zeusnet.color.coloragent.v3.0'
+    QtWin.setCurrentProcessExplicitAppUserModelID(appid)
 except ImportError:
-    pass
+    print("Not Windows System")
 
 
-class CoLoRApp(QApplication):
-    """ docstring: CoLoR应用类 """
-
-    def __init__(self, argv):
-        """ docstring: 初始化应用 """
-        super().__init__(argv)
-        self.setStyle('Fusion')
-
-        self.setQuitOnLastWindowClosed(True)
-        self.loginwindow = logInWindow()
-        self.loginwindow.show()
-
-        # 设置信号与槽连接
-        self.loginwindow.buttonBox.accepted.connect(self.start_main)
-
-    def start_main(self):
-        # 初始化本终端信息
-        CM.PL.IPv4 = self.loginwindow.myIPv4
-        CM.PL.Nid = int('0x'+self.loginwindow.myNID, 16)
-        CM.PL.rmIPv4 = self.loginwindow.rmIPv4
-        mw.HOME_DIR = self.loginwindow.filetmppath
-        mw.DATA_PATH = self.loginwindow.configpath
-        # print(f'before HOME_DIR{mw.HOME_DIR} DATA_PATH{mw.DATA_PATH}')
-
-        self.window = mw.MainWindow()
-        ESS.ESSsignal.output.connect(self.window.handleMessageFromPkt)
-        self.window.actionWindows.triggered.connect(self._setStyle)
-        self.window.actionwindowsvista.triggered.connect(self._setStyle)
-        self.window.actionFusion.triggered.connect(self._setStyle)
-        self.window.actionQdarkstyle.triggered.connect(self._setStyle)
-        self.window.show()
-        # 连接后端信号槽
-        thread_monitor = CM.Monitor(
-            message=app.window.handleMessageFromPkt,
-            path=app.window.getPathFromPkt
-        )
-        # thread_monitor.setDaemon(True)
-        thread_monitor.daemon = True
-        thread_monitor.start()
-
-        # 测试
-        CM.PL.RegFlag = 1
-        nid = "b0cd69ef142db5a471676ad710eebf3a"
-        CM.PL.PeerProxys[int(nid, 16)]='10.134.149.183'
-        # nid = "d23454d19f307d8b98ff2da277c0b546"
-        # CM.PL.PeerProxys[int(nid, 16)]='10.134.148.137'
-        # time.sleep(2)
-        # Sql provider
-        # CM.PL.AddCacheSidUnit(3,1,1,1,1)
-        # CM.PL.SidAnn()
-        # Sql customer
-        # CM.GetSql(nid, "SELECT * from employee;")
+class CoLoRFrontend(QApplication):
+    """ docstring: 前端类 """
 
     def _setStyle(self):
-        """ docstring: 切换qss格式 """
+        """ docstring: 切换应用界面风格（改qss文件） """
         # 取消qss格式
         self.setStyleSheet('')
         self.window.graphicwindow.setStyleSheet('')
@@ -88,8 +36,7 @@ class CoLoRApp(QApplication):
             self.setStyle(tmp)
         elif tmp == 'Qdarkstyle':
             self.setStyleSheet(qds.load_stylesheet_pyqt5())
-            self.window.graphicwindow.setStyleSheet(
-                qds.load_stylesheet_pyqt5())
+            self.window.graphicwindow.setStyleSheet(qds.load_stylesheet_pyqt5())
         else:
             self.window.showStatus('该系统下没有 主题 <' + tmp + '>')
         color = self.window.palette().color(QPalette.Background).name()
@@ -98,11 +45,51 @@ class CoLoRApp(QApplication):
             "#6d6d6d" if tmp == 'Qdarkstyle' else color)  # 455364
         self.window.speedGraph.setBackground(color)
 
+    def __init__(self, argv, threadpool):
+        """ docstring: 初始化应用，打开开始界面 """
+        super().__init__(argv)
+        self.threadpool = threadpool
+
+        # 设置界面格式
+        self.setStyle('Fusion')
+        # 设置窗口退出模式
+        self.setQuitOnLastWindowClosed(True)
+        # 开启登录界面
+        self.loginwindow = logInWindow(threadpool)
+        self.loginwindow.show()
+
+        # 设置登录界面接受、拒绝信号/槽连接
+        self.loginwindow.buttonBox.accepted.connect(self.start_main)
+        self.loginwindow.buttonBox.rejected.connect(stop_main)
+
+        # 设置结束信号操作
+        signal.signal(signal.SIGTERM, ic.my_term_sig_handler)
+        signal.signal(signal.SIGINT, ic.my_term_sig_handler)
+
+    def start_main(self):
+        # 未连接到后端禁止启动
+        if self.loginwindow.configdata is None:
+            stop_main()
+
+        # 初始化本终端信息
+        self.window = mw.MainWindow(self.threadpool, self.loginwindow.myNID, configpath=self.loginwindow.configpath,
+                                    filetmppath=self.loginwindow.filetmppath, configdata=self.loginwindow.configdata)
+
+        # 设置主界面风格切换动作信号/槽连接
+        self.window.actionWindows.triggered.connect(self._setStyle)
+        self.window.actionwindowsvista.triggered.connect(self._setStyle)
+        self.window.actionFusion.triggered.connect(self._setStyle)
+        self.window.actionQdarkstyle.triggered.connect(self._setStyle)
+        self.window.show()
+
+
+def stop_main():
+    ic.normal_stop()
+    sys.exit()
+
 
 if __name__ == '__main__':
-    # import os
-    # os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
-    # os.environ['QT_API'] = 'pyqt5'
-
-    app = CoLoRApp(sys.argv)
+    import sys
+    threadpool = QThreadPool()
+    app = CoLoRFrontend(sys.argv, threadpool)
     sys.exit(app.exec_())

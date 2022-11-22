@@ -1,33 +1,39 @@
 # coding=utf-8
-""" CoLoR代理功能函数库，供交互线程及监听线程调用 """
+""" CoLoR代理功能函数库, 供交互线程及监听线程调用 """
 
-# import profile
-from scapy.all import *
+
 from scapy.layers.inet import IP
 from scapy.layers.l2 import Ether
+from scapy.all import *
 import hashlib
 import threading
+from enum import IntEnum
+from CoLoRProtocol.CoLoRpacket import Announce_Unit
+
+
+class DataFlag(IntEnum):
+    ESS = 0x4
+    LAST = 0x1
 
 # 公共全局变量
 
-
-Nid = -0x1  # 当前终端NID，需要初始化
-IPv4 = ''  # 当前终端IPv4地址，需要初始化
-rmIPv4 = ''
-
-# 已生成但尚未通告的SID通告单元，key: path（特殊内容时使用数字，如1代表流视频服务，也作为L_SID）; value：class SidUnit
+# 当前终端NID IPv4，RM IPv4，需要初始化
+NID = None
+IPv4 = None
+rmIPv4 = None
+# 已生成但尚未通告的SID通告单元，key: path（特殊内容时使用数字，如1代表流视频服务，也作为L_SID）; value：class Announce_Unit
 CacheSidUnits = {}
-Lock_CacheSidUnits = threading.Lock()  # CacheSidUnits变量锁
-# 已通告SID通告单元，key：SID(N_sid+L_sid)的16进制字符串，不存在时为空; value：class SidUnit
-AnnSidUnits = {}
-Lock_AnnSidUnits = threading.Lock()  # AnnSidUnits变量锁
+# 已通告SID通告单元，key：SID(N_sid+L_sid)的16进制字符串，不存在时为空; value：[path, class Announce_Unit]
+SIDAnnUnitSets = {}
 # 当前请求中的SID，key：SID(N_sid+L_sid)的16进制字符串，value：目标存储路径（含文件名）（特殊内容时使用数字，如1代表流视频服务)
 gets = {}
-Lock_gets = threading.Lock()  # gets变量锁
-
-RegFlag = 0  # 代理注册成功标志，收到RM返回的Control包后置1
-PeerProxys = {}  # 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
-PXs = {}  # 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
+# 代理注册成功标志，收到RM返回的Control包后置1
+RegFlag = 0
+# 存储域内Proxy信息，key: NID(int类型)，value：IP地址(字符串类型)
+Proxys = {}
+# 存储本域BR信息，key：PX(int类型)，value：IP地址(字符串类型)
+BRs = {}
+# TODO: Proxys BRs 键值采用 bytes存储
 
 
 # 供线程调用的功能函数
@@ -72,10 +78,11 @@ def AddCacheSidUnit(path, AM, N, L, I, level=-1, WhiteList=[]):
         Hash_sid = int(Sha1Hash(path), 16)
     else:
         Hash_sid = path  # 特殊内容标识亦作为L_sid内容
-    # TODO: 需通过Hash_sid判断内容是否来自其他生产节点，此处默认了path对应的文件是本终端提供的内容，待完善 #
-    N_sid_temp = Nid if N == 1 else -1
+    # TODO: 需通过Hash_sid判断内容是否来自其他生产节点。
+    # 此处默认了path对应的文件是本终端提供的内容，待完善 #
+    N_sid_temp = NID if N == 1 else -1
     L_sid_temp = Hash_sid if L == 1 else -1
-    nid_temp = Nid if I == 1 else -1
+    nid_temp = NID if I == 1 else -1
     tempSidUnit = SidUnit(path, AM, N_sid_temp,
                           L_sid_temp, nid_temp, Strategy_units)
     Lock_CacheSidUnits.acquire()
@@ -146,7 +153,7 @@ def SidAnn(ttl=64, PublicKey='', P=0):
                 NewKey += hex(SidUnits[key].L_sid).replace('0x', '').zfill(40)
             Lock_AnnSidUnits.acquire()
             # 可能是修改或删除情况的ANN，待完善#
-            AnnSidUnits[NewKey] = SidUnits[key]
+            SIDAnnUnitSets[NewKey] = SidUnits[key]
             Lock_AnnSidUnits.release()
         SendIpv4(GetRMip(), Tar)
         # print(Tar)
@@ -321,7 +328,7 @@ class ControlPkt():
             self.tag = 5  # 仅存在一种情况
             self.DataLength = 20
             self.ProxyIP = IPv4
-            self.ProxyNid = Nid
+            self.ProxyNid = NID
             IPList = self.ProxyIP.split('.')
             self.data = b''
             for i in reversed(IPList):
@@ -569,12 +576,12 @@ class DataPkt:
             if self.B == 0:
                 # 普通数据报文
                 if self.R == 1:
-                    self.nid_pro = Nid
+                    self.nid_pro = NID
                 self.nid_cus = nid_cus
             elif self.B == 1:
                 # ACK报文
                 self.nid_pro = nid_pro
-                self.nid_cus = Nid
+                self.nid_cus = NID
             self.PIDs = PIDs.copy()
             if self.B == 0 and self.R == 1:
                 self.PIDs.append(0)  # 预留字段
@@ -607,7 +614,7 @@ class DataPkt:
         TarRest += ConvertInt2Bytes(self.PidPt, 1)
         TarRest += ConvertInt2Bytes(self.PID_num, 1)
         TarRest += ConvertInt2Bytes((self.F << 7) + (self.B << 6) + (self.R << 5) + (
-                self.M << 4) + (self.Q << 3) + (self.C << 2) + (self.S << 1), 1)
+            self.M << 4) + (self.Q << 3) + (self.C << 2) + (self.S << 1), 1)
         if self.M == 1:
             TarRest += ConvertInt2Bytes_LE(self.MinimalPidCp, 2)
         if self.N_sid != -1:
@@ -750,7 +757,7 @@ class GetPkt:
                 self.QoS = QoS
             self.SegID = SegID
             self.A = A
-            self.nid = Nid
+            self.nid = NID
             # 计算PktLength
             self.PktLength = 64  # 固定长度(截止到SID)
             if self.K == 1:
@@ -804,16 +811,16 @@ class GetPkt:
 
 
 def ConvertInt2Bytes(data, length):
-    """ docstring: 将int类型转成bytes类型（大端存储）
+    """ docstring: 将int类型转成bytes类型 大端
     data: 目标数字
     length: 目标字节数 """
     return data.to_bytes(length, byteorder='big')
 
 
 def ConvertInt2Bytes_LE(data, length):
-    """ docstring: 将int类型转成bytes类型（小端存储）
-    data：目标数字
-    length：目标字节数 """
+    """ docstring: 将int类型转成bytes类型 小端
+    data: 目标数字
+    length: 目标字节数 """
     return data.to_bytes(length, byteorder='little')
 
 
@@ -823,7 +830,6 @@ def CalculateCS(tar):
     pointer = 0
     sum = 0
     while length - pointer > 1:
-        # print(tar[pointer], tar[pointer+1])
         # 两字节相加
         temp = tar[pointer] << 8
         temp += tar[pointer + 1]
@@ -847,7 +853,8 @@ def SendIpv4(ipdst, data):
         hdr_set[ipdst] = bytearray(raw(Ether() / IP(dst=ipdst, proto=150)))
     ether_hdr = hdr_set[ipdst][:14]
     ip_hdr = hdr_set[ipdst][14:]
-    ip_hdr = ip_hdr[:2] + ConvertInt2Bytes(len(data) + 20, 2) + ip_hdr[4:10] + ConvertInt2Bytes(0, 2) + ip_hdr[12:]
+    ip_hdr = ip_hdr[:2] + ConvertInt2Bytes(len(data) + 20, 2) + \
+        ip_hdr[4:10] + ConvertInt2Bytes(0, 2) + ip_hdr[12:]
     cs = ConvertInt2Bytes(CalculateCS(ip_hdr), 2)
     ip_hdr[10] = cs[0]
     ip_hdr[11] = cs[1]
@@ -856,9 +863,34 @@ def SendIpv4(ipdst, data):
 
 
 def GetRMip():
-    """ docstring: 读配置文件获取RM所在IP地址(适用IPv4) """
+    """ docstring: 读配置文件获取RM所在IP地址(仅适用IPv4) """
     # TODO: 修改为与RM交互获取数据
     return rmIPv4
+
+
+class ControlPktSender(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.signals = pktSignals()
+
+    def run(self):
+        # 向RM发送注册报文
+        self.signals.output.emit(
+            0, "向RM发送注册报文，注册IP：" + PL.IPv4 + "；注册NID：" + hex(PL.NID))
+        PL.AnnProxy()
+        # 重传判断
+        for i in range(3):
+            time.sleep(RTO)
+            if PL.RegFlag == 0:
+                self.signals.output.emit(0, '注册报文，第' + str(i + 1) + '次重传')
+                PL.AnnProxy()
+            else:
+                break
+
+
+def initAgent():
+    """ docstring: 启动代理。 TODO: 读取后端配置文件 """
+    print("init agent")
 
 
 if __name__ == '__main__':

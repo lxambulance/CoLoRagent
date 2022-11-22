@@ -10,6 +10,11 @@ from scapy.all import (
 from scapy.layers.inet import IP
 
 
+COLOR_PROTOCOL_NUMBER = 150
+COLOR_NOW_VERSION = 7
+MINIMAL_PACKET_LENGTH = 4
+
+
 def CalculateCS(tar):
     """ docstring: 校验和计算 tar: bytes字符串 """
     length = len(tar)
@@ -120,7 +125,7 @@ class ColorGet(Packet):
 
 class ColorData(Packet):
     """ docstring: Data包格式 """
-    name = 'ColorData'
+    name = "ColorData"
     fields_desc = [
         BitField("Version", 7, 4, tot_size=1),
         BitField("Type", 3, 4, end_tot_size=1),
@@ -129,7 +134,8 @@ class ColorData(Packet):
         XShortField("Checksum", None),
         ByteField("Header_Length", None),
         ByteField("PID_Pointer", None),
-        FieldLenField("PID_Num", None, fmt="B", count_of="PID_List", adjust=lambda pkt, x:x-(pkt.Flags.R == True)),
+        FieldLenField("PID_Num", None, fmt="B", count_of="PID_List",
+                      adjust=lambda pkt, x:x-(pkt.Flags.R == True)),
         FlagsField("Flags", 0, 8, "rSCQMRBF"),
         ConditionalField(LEShortField("Minimal_PID_CP", None), lambda pkt:pkt.Flags.M),
         StrFixedLenField("NSID", "", 16),
@@ -147,7 +153,8 @@ class ColorData(Packet):
         ),
         ConditionalField(StrFixedLenField("HMAC", "", 4), lambda pkt:pkt.Flags.C == True),
         ConditionalField(LEIntField("Segment_ID", None), lambda pkt:pkt.Flags.S == True),
-        FieldListField("PID_List", [0], LEIntField("", None), count_from=lambda pkt:pkt.PID_Num+(pkt.Flags.R == True))
+        FieldListField("PID_List", [0], LEIntField("", None),
+                       count_from=lambda pkt:pkt.PID_Num+(pkt.Flags.R == True))
     ]
 
     def post_build(self, pkt, pay):
@@ -200,19 +207,15 @@ class Announce_Unit(Packet):
         BitField("AM", 1, 2),  # 1注册，2更新，3取消
         BitField("r", 0, 3, end_tot_size=1),
         ByteField("Unit_Length", None),
-        FieldLenField("Strategy_Num", None, fmt="B",
-                      count_of="Strategy_Unit_List"),
+        FieldLenField("Strategy_Num", None, fmt="B", count_of="Strategy_Unit_List"),
         ConditionalField(
-            XStrFixedLenField("NSID", "", 16),
-            lambda pkt: pkt.N == 1
+            XStrFixedLenField("NSID", "", 16), lambda pkt: pkt.N == 1
         ),
         ConditionalField(
-            XStrFixedLenField("LSID", "", 20),
-            lambda pkt: pkt.L == 1
+            XStrFixedLenField("LSID", "", 20), lambda pkt: pkt.L == 1
         ),
         ConditionalField(
-            XStrFixedLenField("NID", "", 16),
-            lambda pkt: pkt.I == 1
+            XStrFixedLenField("NID", "", 16), lambda pkt: pkt.I == 1
         ),
         PacketListField("Strategy_Unit_List", None, Strategy_Unit,
                         count_from=lambda pkt:pkt.Strategy_Num)
@@ -240,7 +243,8 @@ class ColorAnnounce(Packet):
         FlagsField("Flags", 0, 8, "rrrrCPKF"),
         BitField("Unit_Num", None, 4, tot_size=1),
         BitField("PX_Num", None, 4, end_tot_size=1),
-        PacketListField("Announce_Unit_List", None, Announce_Unit, count_from=lambda pkt:pkt.Unit_Num),
+        PacketListField("Announce_Unit_List", None, Announce_Unit,
+                        count_from=lambda pkt:pkt.Unit_Num),
         ConditionalField(
             FieldLenField("Public_Key_Length", None, fmt="<H", length_of="Public_Key"),
             lambda pkt:pkt.Flags.K == True
@@ -254,11 +258,13 @@ class ColorAnnounce(Packet):
             lambda pkt:pkt.Flags.P == True
         ),
         ConditionalField(
-            FieldListField("AID_List", None, StrFixedLenField("", "", 1), count_from=lambda pkt:pkt.AS_Path_Num),
+            FieldListField("AID_List", None, StrFixedLenField(
+                "", "", 1), count_from=lambda pkt:pkt.AS_Path_Num),
             lambda pkt:pkt.Flags.P == True
         ),
         ConditionalField(StrFixedLenField("HMAC", "", 16), lambda pkt:pkt.Flags.C == True),
-        FieldListField("PX_List", None, StrFixedLenField("", "", 2), count_from=lambda pkt:pkt.PX_Num)
+        FieldListField("PX_List", None, StrFixedLenField(
+            "", "", 2), count_from=lambda pkt:pkt.PX_Num)
     ]
 
     def post_build(self, pkt, pay):
@@ -278,7 +284,7 @@ class ColorAnnounce(Packet):
 
 class IP_NID(Packet):
     """ docstring: IP-NID映射条目 """
-    name = 'IP_NID'
+    name = "IP_NID"
     fields_desc = [
         LEIntField("IP", None),
         StrFixedLenField("NID", "", 16)
@@ -290,7 +296,7 @@ class IP_NID(Packet):
 
 class PX_IP(Packet):
     """ docstring: PX-IP映射条目 """
-    name = 'PX_IP'
+    name = "PX_IP"
     fields_desc = [
         LEShortField("PX", None),
         LEIntField("IP", None)
@@ -302,7 +308,7 @@ class PX_IP(Packet):
 
 class ASInfo(Packet):
     """ docstring: 域内信息同步表 """
-    name = 'ASInfo'
+    name = "ASInfo"
     fields_desc = [
         FieldLenField("IP_NID_Num", None, count_of="IP_NID_List", fmt='B'),
         PacketListField("IP_NID_List", None, IP_NID, count_from=lambda pkt:pkt.IP_NID_Num),
@@ -313,7 +319,7 @@ class ASInfo(Packet):
 
 class AttackSummaryUnit(Packet):
     """ docstring: 攻击信息概要单元 """
-    name = 'AttackSummaryUnit'
+    name = "AttackSummaryUnit"
     fields_desc = [
         ByteField("ASID", None),
         LEIntField("Attack_Num", None)
@@ -325,7 +331,7 @@ class AttackSummaryUnit(Packet):
 
 class AttackInfo(Packet):
     """ docstring: 攻击信息表 """
-    name = 'AttackInfo'
+    name = "AttackInfo"
     fields_desc = [
         StrFixedLenField("BR_NID", "", 16),
         PacketListField("Attack_List", None, AttackSummaryUnit,
@@ -335,7 +341,7 @@ class AttackInfo(Packet):
 
 class ColorControl(Packet):
     """ docstring: 控制包格式 """
-    name = 'ColorControl'
+    name = "ColorControl"
     Subtypes = {
         1: "CONFIG_RM", 2: "CONFIG_RM_ACK", 3: "CONFIG_BR", 4: "CONFIG_BR_ACK",
         5: "PROXY_REGISTER", 6: "PROXY_REGISTER_REPLY", 7: "PROXY_REGISTER_REPLY_ACK",
@@ -375,15 +381,15 @@ class ColorControl(Packet):
 
 
 # 用于构建时自动填写Tag字段
-bind_layers(ColorControl, IP_NID, {'Subtype': 5})
-bind_layers(ColorControl, ASInfo, {'Subtype': 6})
-bind_layers(ColorControl, IP, {'Subtype': 17})
-bind_layers(ColorControl, AttackInfo, {'Subtype': 18})
+bind_layers(ColorControl, IP_NID, {"Subtype": 5})
+bind_layers(ColorControl, ASInfo, {"Subtype": 6})
+bind_layers(ColorControl, IP, {"Subtype": 17})
+bind_layers(ColorControl, AttackInfo, {"Subtype": 18})
 
 
 def newIP_guess_payload_class(self, payload):
     """ docstring: 重载IP层负载猜测函数, 添加color协议 """
-    if self.proto == 150:
+    if self.proto == COLOR_PROTOCOL_NUMBER:
         if payload[0] == 113:
             return ColorAnnounce
         elif payload[0] == 114:
@@ -397,13 +403,13 @@ def newIP_guess_payload_class(self, payload):
 
 # 用于IP报文负载推测和自动填写proto字段
 IP.guess_payload_class = newIP_guess_payload_class
-bind_layers(IP, ColorAnnounce, {'proto': 150})
-bind_layers(IP, ColorGet, {'proto': 150})
-bind_layers(IP, ColorData, {'proto': 150})
-bind_layers(IP, ColorControl, {'proto': 150})
+bind_layers(IP, ColorAnnounce, {"proto": COLOR_PROTOCOL_NUMBER})
+bind_layers(IP, ColorGet, {"proto": COLOR_PROTOCOL_NUMBER})
+bind_layers(IP, ColorData, {"proto": COLOR_PROTOCOL_NUMBER})
+bind_layers(IP, ColorControl, {"proto": COLOR_PROTOCOL_NUMBER})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # 使用样例 构造测试
     from scapy.all import send, hexdump
     pkt = IP(dst="192.168.50.1")

@@ -1,14 +1,29 @@
 from __future__ import annotations
 
+from enum import IntEnum
 import threading
 from collections.abc import Callable
 
 from bitmap import BitMap
+import math
+import queue
 
 RTO = 1
 
 
+class SendingSidField(IntEnum):
+    CHIP_NUM = 0
+    CHIP_LENGTH = 1
+    CHIP_NEXT = 2
+    NID_CUSTOMER = 3
+    PIDS = 4
+    ESS_FLAG = 5
+    SENDING_WINDOW = 6
+    INVALID = -1
+
 # 滑动窗口相关
+
+
 class SlideWindow:
     WINDOW_SIZE = 0xfffe
     MAX_COUNT = 0xffff
@@ -200,3 +215,85 @@ class ReceivingWindow(SlideWindow):
             self.cache.clear()
             self.cache = None
             self.file.close()
+
+
+class SendingThread(threading.Thread):
+    def __init__(self, data):
+        super().__init__()
+        self.ready = False
+        
+        # 新建 SendingWindow
+        data_len = len(self.data)
+        self.chip_num = math.ceil(data_len / self.sid_load_length)
+        self.chip_len = min(self.sid_load_length, data_len)
+        self.sending_window = SendingWindow(self.chip_num)
+        self.msg_queue = queue.Queue()
+        self.ready = True
+        self.count_send = 0
+
+    def send_block_packets(self):
+        """
+        使用滑动窗口对定长数据（如文件） 进行可靠传输
+         子函数：
+            `send_packet`: 发送单个数据包
+            `resend`:      重发所有未收到 ACK 的数据包
+         流程：
+            1. 从参数中获取并计算相关包头数据
+            2. 从滑动窗口中获取待发送包编号和实际文件块号列表
+            3. 依次调用 `send_packet` 发送单个数据包
+            4. 向滑动窗口更新计时器，注册 `resend` 函数以供超时重传
+        """
+        data_flag = 0
+
+        def send_packet(pkt_seg_id: int, pkt_chip_index: int):
+            """
+            发送单个数据包
+            """
+            end_flag = 0
+            start = pkt_chip_index * self.chip_len
+            if pkt_chip_index + 1 == self.chip_num:  # 最后一片
+                text = self.data[start:]
+                end_flag = 1
+            else:
+                text = self.data[start:start + self.chip_len]
+            load = PL.ConvertInt2Bytes(data_flag | end_flag, 1) \
+                + (ESS.Encrypt(self.dst_nid, self.sid, text) if self.ess_flag else text)
+            data_pkt = PL.DataPkt(
+                1, 0, 1, 0, self.sid,
+                nid_cus=self.dst_nid, SegID=pkt_seg_id, PIDs=self.pids, load=load)
+            Tar = data_pkt.packing()
+            PL.SendIpv4(self.dst_ip, Tar)
+
+        def resend():
+            """
+            向滑动窗口注册的超时重传回调函数
+            会重发所有未收到 ACK 的数据包，并检查本次传输是否已经完成
+            若已完成，则会将发送任务从 SendingSid 列表中移除
+            """
+            for (r_seg_id, r_chip_index) in self.sending_window.resend():
+                send_packet(r_seg_id, r_chip_index)
+            if self.sending_window.is_finish():
+                self.signals.output.emit(1, "发送完成")
+                self.ready = False
+
+        for (seg_id, chip_index) in self.sending_window.send_all():
+            self.count_send += 1
+            # print(self.count_send)
+            send_packet(seg_id, chip_index)
+        self.sending_window.update_timer(resend)
+
+    def run(self) -> None:
+        while True:
+            # 收到网络中的data报文(或ACK)
+            ack_pkt = self.msg_queue.get()
+            # TODO: 添加滑动窗口相关内容
+            # 滑动窗口收到 ACK 消息
+            # self.sending_window.ack(ack_pkt.SegID & SendingWindow.MAX_COUNT)
+            self.send_block_packets()
+
+    def ack(self, ack_pkt):
+        """
+        发送线程收到 ACK 包
+        """
+        self.msg_queue.put(ack_pkt)
+
